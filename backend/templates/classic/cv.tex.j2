@@ -1,0 +1,94 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[top=1.5cm,bottom=1.5cm,left=2cm,right=2cm]{geometry}
+\usepackage{enumitem}
+\usepackage[hidelinks]{hyperref}
+\usepackage{titlesec}
+\usepackage{microtype}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{4pt}
+
+\titleformat{\section}{\large\bfseries\uppercase}{}{0em}{}[{\titlerule[0.8pt]}]
+\titlespacing{\section}{0pt}{12pt}{6pt}
+
+\begin{document}
+
+\begin{center}
+  {\Huge\bfseries << cv.personal.name >>}\\[6pt]
+  <% if cv.personal.email %>\href{mailto:<< cv.personal.email >>}{<< cv.personal.email >>}<% endif %>
+  <% if cv.personal.phone %> $\cdot$ << cv.personal.phone >><% endif %>
+  <% if cv.personal.location %> $\cdot$ << cv.personal.location >><% endif %>\\[2pt]
+  <% if cv.personal.linkedin %>\href{https://<< cv.personal.linkedin >>}{<< cv.personal.linkedin >>}<% endif %>
+  <% if cv.personal.github %> $\cdot$ \href{https://<< cv.personal.github >>}{<< cv.personal.github >>}<% endif %>
+  <% if cv.personal.website %> $\cdot$ \href{https://<< cv.personal.website >>}{<< cv.personal.website >>}<% endif %>
+\end{center}
+
+<% if cv.summary %>
+\section{Summary}
+<< cv.summary >>
+<% endif %>
+
+<% if cv.experience %>
+\section{Experience}
+<% for job in cv.experience %>
+\textbf{<< job.title >>} \hfill << job.start_date >> -- << job.end_date if job.end_date else "Present" >>\\
+\textit{<< job.company >>}
+<% if job.highlights %>
+\begin{itemize}[leftmargin=*,noitemsep,topsep=2pt]
+<% for item in job.highlights %>
+  \item << item >>
+<% endfor %>
+\end{itemize}
+<% endif %>
+<% if not loop.last %>\vspace{4pt}<% endif %>
+<% endfor %>
+<% endif %>
+
+<% if cv.education %>
+\section{Education}
+<% for edu in cv.education %>
+\textbf{<< edu.degree >>} \hfill << edu.year >>\\
+\textit{<< edu.institution >>}<% if edu.gpa %> \hfill GPA: << edu.gpa >><% endif %>
+<% endfor %>
+<% endif %>
+
+<% if cv.skills %>
+\section{Skills}
+<% for group in cv.skills %>
+\textbf{<< group.category >>:} << group.items | join(", ") >>\\
+<% endfor %>
+<% endif %>
+
+<% if cv.projects %>
+\section{Projects}
+<% for proj in cv.projects %>
+\textbf{<% if proj.url %>\href{https://<< proj.url >>}{<< proj.name >>}<% else %><< proj.name >><% endif %>} --- << proj.description >>
+<% if proj.highlights %>
+\begin{itemize}[leftmargin=*,noitemsep,topsep=2pt]
+<% for item in proj.highlights %>
+  \item << item >>
+<% endfor %>
+\end{itemize}
+<% endif %>
+<% endfor %>
+<% endif %>
+
+<% if cv.certifications %>
+\section{Certifications}
+<% for cert in cv.certifications %>
+\textbf{<< cert.name >>}<% if cert.issuer %> --- << cert.issuer >><% endif %><% if cert.date %> \hfill << cert.date >><% endif %>\\
+<% endfor %>
+<% endif %>
+
+<% if cv.publications %>
+\section{Publications}
+<% for pub in cv.publications %>
+<% if pub.url %>\href{https://<< pub.url >>}{\textbf{<< pub.title >>}}<% else %>\textbf{<< pub.title >>}<% endif %><% if pub.venue %> --- << pub.venue >><% endif %><% if pub.date %> \hfill << pub.date >><% endif %>\\
+<% endfor %>
+<% endif %>
+
+<% if cv.languages %>
+\section{Languages}
+<% for lang in cv.languages %>\textbf{<< lang.language >>:} << lang.proficiency >><% if not loop.last %> \quad <% endif %><% endfor %>
+<% endif %>
+
+\end{document}
