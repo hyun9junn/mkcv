@@ -14,6 +14,8 @@ def test_personal_info_optional_fields():
     assert p.phone is None
     assert p.linkedin is None
     assert p.github is None
+    assert p.location is None
+    assert p.website is None
 
 def test_cvdata_requires_personal():
     with pytest.raises(ValidationError):
@@ -36,4 +38,21 @@ def test_experience_end_date_optional():
 
 def test_skill_group():
     sg = SkillGroup(category="Languages", items=["Python", "Go"])
-    assert len(sg.items) == 2
+    assert sg.items == ["Python", "Go"]
+
+def test_experience_requires_title_company_start_date():
+    with pytest.raises(ValidationError):
+        ExperienceItem(company="Corp", start_date="2020")  # missing title
+
+def test_education_requires_degree_institution_year():
+    with pytest.raises(ValidationError):
+        EducationItem(institution="MIT", year="2020")  # missing degree
+
+def test_project_requires_name_and_description():
+    with pytest.raises(ValidationError):
+        ProjectItem(name="Tool")  # missing description
+
+def test_cvdata_model_dump_includes_all_sections(sample_cv):
+    data = sample_cv.model_dump()
+    for section in ["personal", "summary", "experience", "education", "skills", "projects", "certifications", "publications", "languages"]:
+        assert section in data
