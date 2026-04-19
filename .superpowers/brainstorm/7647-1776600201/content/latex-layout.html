@@ -1,0 +1,76 @@
+<h2>Which CV layout style do you prefer?</h2>
+<p class="subtitle">This determines the LaTeX template and PDF appearance</p>
+
+<div class="cards">
+
+  <div class="card" data-choice="classic" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#f8f8f8;padding:16px;font-family:Georgia,serif;font-size:11px;line-height:1.5;color:#222;border-bottom:1px solid #ddd;">
+      <div style="text-align:center;margin-bottom:8px;">
+        <div style="font-size:16px;font-weight:bold;letter-spacing:1px;">JOHN DOE</div>
+        <div style="font-size:9px;color:#555;">john@email.com · github.com/johndoe · Seoul, Korea</div>
+      </div>
+      <div style="border-top:1.5px solid #222;margin:6px 0;"></div>
+      <div style="font-size:10px;font-weight:bold;letter-spacing:0.5px;margin-bottom:3px;">WORK EXPERIENCE</div>
+      <div style="font-size:9px;"><b>Senior Engineer</b> — Acme Corp <span style="float:right;color:#555;">2021–Present</span></div>
+      <div style="font-size:8.5px;color:#444;margin-left:8px;">• Led backend platform redesign</div>
+      <div style="font-size:8.5px;color:#444;margin-left:8px;">• Reduced latency by 40%</div>
+      <div style="font-size:10px;font-weight:bold;letter-spacing:0.5px;margin:5px 0 3px;">EDUCATION</div>
+      <div style="font-size:9px;"><b>B.S. Computer Science</b> — Seoul National University <span style="float:right;color:#555;">2019</span></div>
+    </div>
+    <div class="card-body">
+      <h3>Classic / Academic</h3>
+      <p>Full-width, centered header, horizontal rules as dividers. Timeless, ATS-friendly, widely accepted in academia and large companies.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="modern" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#f8f8f8;padding:0;font-family:Arial,sans-serif;font-size:11px;line-height:1.5;color:#222;border-bottom:1px solid #ddd;display:flex;min-height:140px;">
+      <div style="background:#1a1a2e;color:#fff;width:36%;padding:12px 10px;font-size:9px;">
+        <div style="font-size:13px;font-weight:bold;margin-bottom:2px;">John Doe</div>
+        <div style="font-size:8px;color:#aaa;margin-bottom:8px;">Senior Engineer</div>
+        <div style="font-size:8px;font-weight:bold;letter-spacing:0.5px;margin-bottom:3px;color:#ccc;">CONTACT</div>
+        <div style="font-size:8px;color:#bbb;">john@email.com</div>
+        <div style="font-size:8px;color:#bbb;">github.com/johndoe</div>
+        <div style="font-size:8px;color:#bbb;">Seoul, Korea</div>
+        <div style="font-size:8px;font-weight:bold;letter-spacing:0.5px;margin:6px 0 3px;color:#ccc;">SKILLS</div>
+        <div style="font-size:8px;color:#bbb;">Python · FastAPI · K8s</div>
+      </div>
+      <div style="padding:12px 10px;width:64%;">
+        <div style="font-size:10px;font-weight:bold;color:#1a1a2e;letter-spacing:0.5px;margin-bottom:3px;">EXPERIENCE</div>
+        <div style="font-size:9px;"><b>Senior Engineer</b> — Acme Corp</div>
+        <div style="font-size:8px;color:#555;margin-bottom:2px;">2021–Present</div>
+        <div style="font-size:8.5px;color:#444;">• Led backend platform redesign</div>
+        <div style="font-size:8.5px;color:#444;">• Reduced latency by 40%</div>
+        <div style="font-size:10px;font-weight:bold;color:#1a1a2e;letter-spacing:0.5px;margin:5px 0 2px;">EDUCATION</div>
+        <div style="font-size:9px;"><b>B.S. Computer Science</b></div>
+        <div style="font-size:8px;color:#555;">Seoul National Univ. · 2019</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Modern / Sidebar</h3>
+      <p>Dark sidebar for contact & skills, main column for experience. Visually striking, great for tech/design roles, stands out in stacks.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="minimal" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#fff;padding:16px;font-family:'Helvetica Neue',Arial,sans-serif;font-size:11px;line-height:1.6;color:#333;border-bottom:1px solid #ddd;">
+      <div style="margin-bottom:8px;">
+        <div style="font-size:15px;font-weight:300;letter-spacing:2px;color:#111;">John Doe</div>
+        <div style="font-size:8.5px;color:#777;margin-top:1px;">john@email.com &nbsp;·&nbsp; github.com/johndoe &nbsp;·&nbsp; Seoul</div>
+      </div>
+      <div style="border-top:1px solid #e0e0e0;margin:6px 0;"></div>
+      <div style="font-size:8px;font-weight:bold;letter-spacing:1.5px;color:#999;margin-bottom:4px;text-transform:uppercase;">Experience</div>
+      <div style="display:flex;justify-content:space-between;font-size:9px;">
+        <span><b>Senior Engineer</b>, Acme Corp</span><span style="color:#999;">2021–Now</span>
+      </div>
+      <div style="font-size:8.5px;color:#555;margin-left:0;">• Led backend platform redesign · 40% latency drop</div>
+      <div style="font-size:8px;font-weight:bold;letter-spacing:1.5px;color:#999;margin:5px 0 3px;text-transform:uppercase;">Education</div>
+      <div style="font-size:9px;">B.S. Computer Science — Seoul National Univ. <span style="color:#999;float:right;">2019</span></div>
+    </div>
+    <div class="card-body">
+      <h3>Minimal / Clean</h3>
+      <p>Light weight, generous whitespace, no heavy borders. Elegant and modern — preferred for startups, design-conscious companies.</p>
+    </div>
+  </div>
+
+</div>
