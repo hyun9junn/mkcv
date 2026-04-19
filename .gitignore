@@ -1,0 +1,7 @@
+.superpowers/
+__pycache__/
+*.pyc
+.venv/
+output/*.md
+output/*.tex
+output/*.pdf
