@@ -76,23 +76,92 @@
     #sections-header:hover { color: #fff; }
 
     #sections-panel {
-      padding: 8px 16px 12px;
+      padding: 4px 16px 12px;
       display: none;
-      flex-wrap: wrap;
-      gap: 8px 20px;
+      flex-direction: column;
+      gap: 0;
     }
-
-    #sections-panel label {
+    .section-row {
       display: flex;
       align-items: center;
-      gap: 5px;
-      font-size: 0.8rem;
+      gap: 8px;
+      padding: 5px 0;
+      border-bottom: 1px solid #222;
+      user-select: none;
+    }
+    .section-row:last-child { border-bottom: none; }
+    .section-row.dragging { opacity: .4; }
+    .section-row.drag-over { border-top: 2px solid #60a5fa; }
+    .drag-handle { color: #555; cursor: grab; font-size: 14px; padding: 0 2px; line-height: 1; }
+    .drag-handle:active { cursor: grabbing; }
+    .section-row.hidden-section .section-label { color: #666; font-style: italic; }
+    .section-label { flex: 1; font-size: 0.8rem; color: #ccc; cursor: default; }
+    .btn-reset {
+      background: #222;
+      border: 1px solid #444;
+      color: #888;
+      border-radius: 3px;
+      padding: 2px 8px;
+      font-size: 11px;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .btn-reset:hover { background: #2a2a2a; color: #fde68a; border-color: #b45309; }
+    #reset-modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.6);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+    }
+    #reset-modal-box {
+      background: #1a1a1a;
+      border: 1px solid #333;
+      border-radius: 8px;
+      padding: 24px;
+      max-width: 400px;
+      width: 90%;
+    }
+    #reset-modal-title { font-size: 1rem; font-weight: 600; color: #fff; margin-bottom: 8px; }
+    #reset-modal-body { font-size: .85rem; color: #aaa; margin-bottom: 20px; line-height: 1.5; }
+    #reset-modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
+    #reset-modal-cancel {
+      padding: 6px 16px; border-radius: 4px; border: 1px solid #444;
+      background: #222; color: #ccc; font-size: .85rem; cursor: pointer;
+    }
+    #reset-modal-confirm {
+      padding: 6px 16px; border-radius: 4px; border: 1px solid #b45309;
+      background: #92400e; color: #fde68a; font-size: .85rem; cursor: pointer; font-weight: 500;
+    }
+    #undo-toast {
+      display: none;
+      position: fixed;
+      top: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #2a2a2a;
+      border: 1px solid #444;
+      border-radius: 6px;
+      padding: 10px 16px;
+      align-items: center;
+      gap: 16px;
+      font-size: .85rem;
       color: #ccc;
+      z-index: 200;
+      box-shadow: 0 4px 16px rgba(0,0,0,.5);
+      white-space: nowrap;
+    }
+    #undo-toast-btn {
+      background: transparent;
+      border: 1px solid #555;
+      color: #93c5fd;
+      border-radius: 4px;
+      padding: 2px 10px;
+      font-size: .8rem;
       cursor: pointer;
     }
-
-    #sections-panel input[type="checkbox"] { cursor: pointer; }
-    #sections-panel input[type="checkbox"]:indeterminate { opacity: 0.5; }
 
     #main {
       display: flex;
@@ -176,10 +245,27 @@
     </div>
   </div>
 
+  <div id="reset-modal">
+    <div id="reset-modal-box">
+      <div id="reset-modal-title"></div>
+      <div id="reset-modal-body">This will replace the section content with the default template. You can undo immediately after.</div>
+      <div id="reset-modal-actions">
+        <button id="reset-modal-cancel">Cancel</button>
+        <button id="reset-modal-confirm">↺ Reset</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="undo-toast">
+    <span id="undo-toast-message"></span>
+    <button id="undo-toast-btn">Undo</button>
+  </div>
+
   <script src="app.js"></script>
   <script src="editor-adapter.js"></script>
   <script src="file-sync.js"></script>
-  <script src="sections.js"></script>
+  <script src="sections-state.js"></script>
+  <script src="sections-ui.js"></script>
   <script src="templates.js"></script>
   <script src="validator.js"></script>
   <script src="preview.js"></script>
