@@ -177,3 +177,57 @@ async def test_post_file_overwrites_existing(app, tmp_path, monkeypatch):
         resp = await client.post("/api/file", json={"content": "new content"})
     assert resp.json()["ok"] is True
     assert (tmp_path / "mycv.yaml").read_text() == "new content"
+
+
+async def test_schema_returns_200(app):
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        resp = await client.get("/api/schema")
+    assert resp.status_code == 200
+
+
+async def test_schema_has_root_keys(app):
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        resp = await client.get("/api/schema")
+    data = resp.json()
+    assert "__root__" in data
+    root = data["__root__"]
+    assert "keys" in root
+    assert "personal" in root["keys"]
+    assert "experience" in root["keys"]
+    assert "personal" in root["required"]
+
+
+async def test_schema_has_personal_keys(app):
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        resp = await client.get("/api/schema")
+    data = resp.json()
+    assert "personal" in data
+    personal = data["personal"]
+    assert "email" in personal["keys"]
+    assert "huggingface" in personal["keys"]
+    assert "name" in personal["required"]
+    assert "email" in personal["required"]
+
+
+async def test_schema_has_experience_list_context(app):
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        resp = await client.get("/api/schema")
+    data = resp.json()
+    assert "experience[]" in data
+    exp = data["experience[]"]
+    assert "title" in exp["keys"]
+    assert "company" in exp["keys"]
+    assert "highlights" in exp["list_keys"]
+    assert "title" in exp["required"]
+
+
+async def test_schema_required_field_star_not_in_keys(app):
+    """Required annotation is metadata only — all keys appear in 'keys' list."""
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        resp = await client.get("/api/schema")
+    data = resp.json()
+    for context_key, ctx in data.items():
+        for req_field in ctx.get("required", []):
+            assert req_field in ctx["keys"], (
+                f"Required field '{req_field}' in '{context_key}' must also be in 'keys'"
+            )
