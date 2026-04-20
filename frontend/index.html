@@ -10,6 +10,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/yaml/yaml.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js"></script>
 
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -55,6 +56,44 @@
       font-size: 0.8rem;
       flex-shrink: 0;
     }
+
+    #sections-bar {
+      flex-shrink: 0;
+      background: #181818;
+      border-bottom: 1px solid #333;
+    }
+
+    #sections-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 16px;
+      cursor: pointer;
+      user-select: none;
+      font-size: 0.8rem;
+      color: #aaa;
+    }
+
+    #sections-header:hover { color: #fff; }
+
+    #sections-panel {
+      padding: 8px 16px 12px;
+      display: none;
+      flex-wrap: wrap;
+      gap: 8px 20px;
+    }
+
+    #sections-panel label {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.8rem;
+      color: #ccc;
+      cursor: pointer;
+    }
+
+    #sections-panel input[type="checkbox"] { cursor: pointer; }
+    #sections-panel input[type="checkbox"]:indeterminate { opacity: 0.5; }
 
     #main {
       display: flex;
@@ -122,6 +161,12 @@
     <button id="btn-pdf">↓ PDF</button>
   </div>
   <div id="error-banner"></div>
+  <div id="sections-bar">
+    <div id="sections-header">
+      <span>Sections ▾</span>
+    </div>
+    <div id="sections-panel"></div>
+  </div>
   <div id="main">
     <div id="editor-pane"></div>
     <div id="preview-pane">
@@ -134,6 +179,7 @@
   <script src="app.js"></script>
   <script src="editor-adapter.js"></script>
   <script src="file-sync.js"></script>
+  <script src="sections.js"></script>
   <script src="templates.js"></script>
   <script src="validator.js"></script>
   <script src="preview.js"></script>
