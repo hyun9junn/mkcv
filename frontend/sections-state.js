@@ -177,6 +177,40 @@ const sectionsState = (() => {
     }
   }
 
+  function getOrderedFilteredYaml(rawYaml) {
+    try {
+      const parsed = jsyaml.load(rawYaml);
+      if (!parsed || typeof parsed !== "object") return rawYaml;
+      const { hidden, order } = _getState();
+      const ordered = {};
+      for (const key of order) {
+        if (key in parsed && !hidden.includes(key)) ordered[key] = parsed[key];
+      }
+      for (const [k, v] of Object.entries(parsed)) {
+        if (!(k in ordered) && !hidden.includes(k)) ordered[k] = v;
+      }
+      return jsyaml.dump(ordered, { lineWidth: -1 });
+    } catch {
+      return rawYaml;
+    }
+  }
+
+  function getVisibleOrder(rawYaml) {
+    try {
+      const parsed = jsyaml.load(rawYaml);
+      if (!parsed || typeof parsed !== "object") return [];
+      const { hidden, order } = _getState();
+      const present = new Set(Object.keys(parsed));
+      const result = order.filter((k) => present.has(k) && !hidden.includes(k) && k !== "personal");
+      for (const k of present) {
+        if (!result.includes(k) && !hidden.includes(k) && k !== "personal") result.push(k);
+      }
+      return result;
+    } catch {
+      return [];
+    }
+  }
+
   function resetSectionYaml(key, currentYaml) {
     // Returns { newYaml, previousYaml } or null on parse error.
     // previousYaml is a YAML string containing only the single section key.
@@ -217,6 +251,8 @@ const sectionsState = (() => {
     setOrder,
     ensureInOrder,
     getFilteredYaml,
+    getOrderedFilteredYaml,
+    getVisibleOrder,
     resetSectionYaml,
     restoreSectionYaml,
   };

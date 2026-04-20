@@ -60,7 +60,7 @@ const sectionsUI = (() => {
         sectionsState.toggleHidden(key);
         buildPanel();
         preview.refresh(
-          sectionsState.getFilteredYaml(app.state.yaml),
+          sectionsState.getOrderedFilteredYaml(app.state.yaml),
           app.state.template
         );
       });
@@ -107,6 +107,10 @@ const sectionsUI = (() => {
         sectionsState.setOrder(ord);
         dragSrcKey = null;
         buildPanel();
+        preview.refresh(
+          sectionsState.getOrderedFilteredYaml(app.state.yaml),
+          app.state.template
+        );
       });
 
       row.appendChild(handle);

@@ -22,12 +22,12 @@
   <% if cv.personal.website %> $\cdot$ \href{https://<< cv.personal.website >>}{<< cv.personal.website >>}<% endif %>
 \end{center}
 
-<% if cv.summary %>
+<% macro render_section(key) %>
+<% if key == 'summary' and cv.summary %>
 \section{Summary}
 << cv.summary >>
 <% endif %>
-
-<% if cv.experience %>
+<% if key == 'experience' and cv.experience %>
 \section{Experience}
 <% for job in cv.experience %>
 \textbf{<< job.title >>} \hfill << job.start_date >> -- << job.end_date if job.end_date else "Present" >>\\
@@ -42,23 +42,20 @@
 <% if not loop.last %>\vspace{4pt}<% endif %>
 <% endfor %>
 <% endif %>
-
-<% if cv.education %>
+<% if key == 'education' and cv.education %>
 \section{Education}
 <% for edu in cv.education %>
 \textbf{<< edu.degree >>} \hfill << edu.year >>\\
 \textit{<< edu.institution >>}<% if edu.gpa %> \hfill GPA: << edu.gpa >><% endif %>
 <% endfor %>
 <% endif %>
-
-<% if cv.skills %>
+<% if key == 'skills' and cv.skills %>
 \section{Skills}
 <% for group in cv.skills %>
 \textbf{<< group.category >>:} << group.items | join(", ") >>\\
 <% endfor %>
 <% endif %>
-
-<% if cv.projects %>
+<% if key == 'projects' and cv.projects %>
 \section{Projects}
 <% for proj in cv.projects %>
 \textbf{<% if proj.url %>\href{https://<< proj.url >>}{<< proj.name >>}<% else %><< proj.name >><% endif %>} --- << proj.description >>
@@ -71,27 +68,23 @@
 <% endif %>
 <% endfor %>
 <% endif %>
-
-<% if cv.certifications %>
+<% if key == 'certifications' and cv.certifications %>
 \section{Certifications}
 <% for cert in cv.certifications %>
 \textbf{<< cert.name >>}<% if cert.issuer %> --- << cert.issuer >><% endif %><% if cert.date %> \hfill << cert.date >><% endif %>\\
 <% endfor %>
 <% endif %>
-
-<% if cv.publications %>
+<% if key == 'publications' and cv.publications %>
 \section{Publications}
 <% for pub in cv.publications %>
 <% if pub.url %>\href{https://<< pub.url >>}{\textbf{<< pub.title >>}}<% else %>\textbf{<< pub.title >>}<% endif %><% if pub.venue %> --- << pub.venue >><% endif %><% if pub.date %> \hfill << pub.date >><% endif %>\\
 <% endfor %>
 <% endif %>
-
-<% if cv.languages %>
+<% if key == 'languages' and cv.languages %>
 \section{Languages}
 <% for lang in cv.languages %>\textbf{<< lang.language >>:} << lang.proficiency >><% if not loop.last %> \quad <% endif %><% endfor %>
 <% endif %>
-
-<% if cv.awards %>
+<% if key == 'awards' and cv.awards %>
 \section{Awards}
 <% for award in cv.awards %>
 \textbf{<< award.name >>}<% if award.date %> \hfill << award.date >><% endif %>\\
@@ -100,8 +93,7 @@
 <% if not loop.last %>\vspace{2pt}<% endif %>
 <% endfor %>
 <% endif %>
-
-<% if cv.extracurricular %>
+<% if key == 'extracurricular' and cv.extracurricular %>
 \section{Extracurricular Activities}
 <% for act in cv.extracurricular %>
 \textbf{<< act.title >>}<% if act.date %> \hfill << act.date >><% endif %>\\
@@ -116,5 +108,10 @@
 <% if not loop.last %>\vspace{4pt}<% endif %>
 <% endfor %>
 <% endif %>
+<% endmacro %>
+
+<% for key in section_order %>
+<< render_section(key) >>
+<% endfor %>
 
 \end{document}

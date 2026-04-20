@@ -56,7 +56,8 @@ def _validate_template(name: str) -> dict:
             undefined=jinja2.StrictUndefined,
         )
         template = env.get_template("cv.tex.j2")
-        rendered = template.render(cv=_SAMPLE_CV)
+        default_order = ["summary", "experience", "education", "skills", "projects", "certifications", "publications", "languages", "awards", "extracurricular"]
+        rendered = template.render(cv=_SAMPLE_CV, section_order=default_order)
     except jinja2.TemplateSyntaxError as e:
         return {"valid": False, "errors": [f"Jinja2 syntax error: {e}"]}
     except jinja2.UndefinedError as e:
@@ -103,6 +104,7 @@ app = FastAPI(lifespan=lifespan)
 class CVRequest(BaseModel):
     yaml: str
     template: str = "classic"
+    section_order: Optional[List[str]] = None
 
 
 class FileRequest(BaseModel):
@@ -145,7 +147,7 @@ async def preview(req: CVRequest):
     except CVValidationError as e:
         return _error("validation_error", e.message, e.errors)
 
-    return {"markdown": MarkdownRenderer().render(cv)}
+    return {"markdown": MarkdownRenderer().render(cv, req.section_order)}
 
 
 @app.post("/api/export/markdown")
@@ -157,7 +159,7 @@ async def export_markdown(req: CVRequest):
     except CVValidationError as e:
         return _error("validation_error", e.message, e.errors)
 
-    content = MarkdownRenderer().render(cv)
+    content = MarkdownRenderer().render(cv, req.section_order)
     OUTPUT_DIR.mkdir(exist_ok=True)
     (OUTPUT_DIR / "cv.md").write_text(content)
     return Response(
@@ -179,7 +181,7 @@ async def export_latex(req: CVRequest):
     if not _template_exists(req.template):
         return _error("unknown_template", f"Template '{req.template}' not found")
 
-    content = LaTeXRenderer(TEMPLATES_DIR, template=req.template).render(cv)
+    content = LaTeXRenderer(TEMPLATES_DIR, template=req.template).render(cv, req.section_order)
     OUTPUT_DIR.mkdir(exist_ok=True)
     (OUTPUT_DIR / "cv.tex").write_text(content)
     return Response(
@@ -201,7 +203,7 @@ async def export_pdf(req: CVRequest):
     if not _template_exists(req.template):
         return _error("unknown_template", f"Template '{req.template}' not found")
 
-    latex_content = LaTeXRenderer(TEMPLATES_DIR, template=req.template).render(cv)
+    latex_content = LaTeXRenderer(TEMPLATES_DIR, template=req.template).render(cv, req.section_order)
 
     with tempfile.TemporaryDirectory() as tmpdir:
         tex_path = Path(tmpdir) / "cv.tex"
@@ -247,7 +249,7 @@ async def preview_pdf(req: CVRequest):
     if not _template_exists(req.template):
         return _error("unknown_template", f"Template '{req.template}' not found")
 
-    latex_content = LaTeXRenderer(TEMPLATES_DIR, template=req.template).render(cv)
+    latex_content = LaTeXRenderer(TEMPLATES_DIR, template=req.template).render(cv, req.section_order)
 
     with tempfile.TemporaryDirectory() as tmpdir:
         tex_path = Path(tmpdir) / "cv.tex"

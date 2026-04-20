@@ -14,7 +14,7 @@ const exporter = (() => {
       const resp = await fetch(`/api/export/${format}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ yaml: sectionsState.getFilteredYaml(app.state.yaml), template: app.state.template }),
+        body: JSON.stringify({ yaml: sectionsState.getOrderedFilteredYaml(app.state.yaml), template: app.state.template, section_order: sectionsState.getVisibleOrder(app.state.yaml) }),
       });
       if (!resp.ok) {
         const err = await resp.json();

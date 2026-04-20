@@ -31,10 +31,11 @@ const preview = (() => {
   async function refresh(yaml, template) {
     showLoading();
     try {
+      const section_order = sectionsState.getVisibleOrder(app.state.yaml);
       const resp = await fetch("/api/preview/pdf", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ yaml, template }),
+        body: JSON.stringify({ yaml, template, section_order }),
       });
       if (!resp.ok) {
         const err = await resp.json();
@@ -53,13 +54,13 @@ const preview = (() => {
       clearTimeout(timer);
       timer = setTimeout(() => {
         if (app.state.yaml.trim()) {
-          refresh(sectionsState.getFilteredYaml(app.state.yaml), app.state.template);
+          refresh(sectionsState.getOrderedFilteredYaml(app.state.yaml), app.state.template);
         }
       }, 1500);
     });
     setTimeout(() => {
       if (app.state.yaml.trim()) {
-        refresh(sectionsState.getFilteredYaml(app.state.yaml), app.state.template);
+        refresh(sectionsState.getOrderedFilteredYaml(app.state.yaml), app.state.template);
       }
     }, 200);
   });
