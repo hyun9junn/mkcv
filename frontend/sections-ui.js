@@ -35,6 +35,9 @@ const sectionsUI = (() => {
 
     panel.innerHTML = "";
 
+    const chipsContainer = document.createElement("div");
+    chipsContainer.className = "sections-chips";
+
     for (const key of order) {
       if (!presentSet.has(key)) continue;
       const def = sectionsState.SECTION_DEFS[key];
@@ -119,8 +122,10 @@ const sectionsUI = (() => {
       row.appendChild(cb);
       row.appendChild(lbl);
       row.appendChild(btnReset);
-      panel.appendChild(row);
+      chipsContainer.appendChild(row);
     }
+
+    panel.appendChild(chipsContainer);
 
     const btnResetOrder = document.createElement("button");
     btnResetOrder.className = "btn-reset-order";
