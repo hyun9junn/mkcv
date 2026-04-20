@@ -12,18 +12,8 @@ const sectionsUI = (() => {
       : "Sections ▾";
   }
 
-  function getPresentKeys(yaml) {
-    try {
-      const parsed = jsyaml.load(yaml);
-      if (!parsed || typeof parsed !== "object") return [];
-      return Object.keys(parsed).filter((k) => k !== "personal");
-    } catch {
-      return [];
-    }
-  }
-
   function buildPanel() {
-    const presentKeys = getPresentKeys(app.state.yaml);
+    const presentKeys = sectionsState.getExpandedPresentKeys(app.state.yaml);
 
     // Any key present in YAML but missing from localStorage order gets appended.
     for (const key of presentKeys) {
@@ -40,7 +30,7 @@ const sectionsUI = (() => {
 
     for (const key of order) {
       if (!presentSet.has(key)) continue;
-      const def = sectionsState.SECTION_DEFS[key];
+      const def = sectionsState.getDef(key, app.state.yaml);
       if (!def) continue;
 
       const hidden = sectionsState.isHidden(key);
@@ -74,11 +64,14 @@ const sectionsUI = (() => {
       lbl.title = hidden ? `${def.label} (hidden)` : def.label;
       lbl.addEventListener("click", () => cb.click());
 
-      const btnReset = document.createElement("button");
-      btnReset.className = "btn-reset";
-      btnReset.textContent = "↺";
-      btnReset.title = `Reset ${def.label}`;
-      btnReset.addEventListener("click", () => showResetModal(key));
+      if (sectionsState.SECTION_DEFS[key]) {
+          const btnReset = document.createElement("button");
+          btnReset.className = "btn-reset";
+          btnReset.textContent = "↺";
+          btnReset.title = `Reset ${def.label}`;
+          btnReset.addEventListener("click", () => showResetModal(key));
+          row.appendChild(btnReset);
+      }
 
       row.addEventListener("dragstart", (e) => {
         dragSrcKey = key;
@@ -121,7 +114,6 @@ const sectionsUI = (() => {
       row.appendChild(handle);
       row.appendChild(cb);
       row.appendChild(lbl);
-      row.appendChild(btnReset);
       chipsContainer.appendChild(row);
     }
 
@@ -140,6 +132,23 @@ const sectionsUI = (() => {
       );
     });
     panel.appendChild(btnResetOrder);
+
+    if (_pendingTemplateMeta && Array.isArray(_pendingTemplateMeta.default_section_order) && _pendingTemplateMeta.default_section_order.length > 0) {
+        const pendingMeta = _pendingTemplateMeta;
+        const btnApply = document.createElement("button");
+        btnApply.className = "btn-apply-order";
+        btnApply.textContent = `↓ Apply ${pendingMeta.display_name || "template"} order`;
+        btnApply.title = `Apply the recommended section order for ${pendingMeta.display_name || "this template"}`;
+        btnApply.addEventListener("click", () => {
+            sectionsState.setOrder([...pendingMeta.default_section_order]);
+            buildPanel();
+            preview.refresh(
+                sectionsState.getOrderedFilteredYaml(app.state.yaml),
+                app.state.template
+            );
+        });
+        panel.appendChild(btnApply);
+    }
   }
 
   const modal = document.getElementById("reset-modal");
@@ -232,7 +241,14 @@ const sectionsUI = (() => {
     });
   });
 
-  return { buildPanel };
+  let _pendingTemplateMeta = null;
+
+  function setTemplateMeta(meta) {
+      _pendingTemplateMeta = meta;
+      buildPanel();
+  }
+
+  return { buildPanel, setTemplateMeta };
 })();
 
 window.sectionsUI = sectionsUI;
