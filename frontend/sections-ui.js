@@ -67,12 +67,14 @@ const sectionsUI = (() => {
 
       const lbl = document.createElement("span");
       lbl.className = "section-label";
-      lbl.textContent = def.label + (hidden ? " (hidden)" : "");
+      lbl.textContent = def.label;
+      lbl.title = hidden ? `${def.label} (hidden)` : def.label;
       lbl.addEventListener("click", () => cb.click());
 
       const btnReset = document.createElement("button");
       btnReset.className = "btn-reset";
-      btnReset.textContent = "↺ Reset";
+      btnReset.textContent = "↺";
+      btnReset.title = `Reset ${def.label}`;
       btnReset.addEventListener("click", () => showResetModal(key));
 
       row.addEventListener("dragstart", (e) => {
