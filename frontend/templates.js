@@ -1,12 +1,18 @@
 document.addEventListener("DOMContentLoaded", async () => {
   const select = document.getElementById("template-select");
+  const banner = document.getElementById("error-banner");
+  const btnValidate = document.getElementById("btn-validate-template");
 
   try {
-    const { templates } = await (await fetch("/api/templates")).json();
-    templates.forEach((name) => {
+    const data = await (await fetch("/api/templates")).json();
+    const validationMap = data.validation || {};
+
+    data.templates.forEach((name) => {
       const opt = document.createElement("option");
       opt.value = name;
-      opt.textContent = name.charAt(0).toUpperCase() + name.slice(1);
+      const isValid = validationMap[name] ? validationMap[name].valid : null;
+      const prefix = isValid === false ? "⚠ " : "";
+      opt.textContent = prefix + name.charAt(0).toUpperCase() + name.slice(1);
       if (name === app.state.template) opt.selected = true;
       select.appendChild(opt);
     });
@@ -20,5 +26,39 @@ document.addEventListener("DOMContentLoaded", async () => {
   select.addEventListener("change", () => {
     app.setState({ template: select.value });
     preview.refresh(app.state.yaml, app.state.template);
+  });
+
+  btnValidate.addEventListener("click", async () => {
+    const name = app.state.template;
+    btnValidate.disabled = true;
+    btnValidate.textContent = "Validating…";
+    try {
+      const resp = await fetch(`/api/templates/${name}/validate`, { method: "POST" });
+      const data = await resp.json();
+      banner.style.display = "block";
+      if (data.valid) {
+        banner.style.background = "#1a3a1a";
+        banner.style.color = "#86efac";
+        banner.textContent = `✓ Template '${name}' is valid (Jinja2 + pdflatex OK)`;
+      } else {
+        banner.style.background = "#5c1f1f";
+        banner.style.color = "#fca5a5";
+        banner.textContent = `⚠ Template '${name}' invalid: ${data.errors.join(" · ")}`;
+      }
+      setTimeout(() => {
+        banner.style.display = "none";
+        banner.style.background = "";
+        banner.style.color = "";
+        banner.textContent = "";
+      }, 8000);
+    } catch {
+      banner.style.display = "block";
+      banner.style.background = "";
+      banner.style.color = "";
+      banner.textContent = "Validation request failed";
+    } finally {
+      btnValidate.disabled = false;
+      btnValidate.textContent = "✓ Validate Template";
+    }
   });
 });
