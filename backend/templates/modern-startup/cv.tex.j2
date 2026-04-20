@@ -163,7 +163,7 @@
 <% elif block.type == 'kv' %>
 \begin{tabular}{@{}p{3cm}l@{}}
 <% for pair in extras.get('pairs', []) %>
-\cvrole{<< pair.key >>} & << pair.value >> \\
+\cvrole{<< pair.key >>} & \cvorg{<< pair.value >>} \\
 <% endfor %>
 \end{tabular}
 <% endif %>
