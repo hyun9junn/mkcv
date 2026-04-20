@@ -1,5 +1,4 @@
 const preview = (() => {
-  const pane = document.getElementById("preview-pane");
   const frame = document.getElementById("preview-frame");
   const loading = document.getElementById("preview-loading");
   const errorEl = document.getElementById("preview-error");
@@ -17,7 +16,8 @@ const preview = (() => {
     const detailHtml = details && details.length
       ? "<pre>" + details.map(d => d.replace(/&/g,"&amp;").replace(/</g,"&lt;")).join("\n") + "</pre>"
       : "";
-    errorEl.innerHTML = `<strong>Preview error:</strong> ${message}${detailHtml}`;
+    const safeMsg = message.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    errorEl.innerHTML = `<strong>Preview error:</strong> ${safeMsg}${detailHtml}`;
   }
 
   function showFrame(url) {
