@@ -248,7 +248,7 @@
     // Auto-trigger on every insertion keystroke when in key position
     cmEditor.on("change", (editor, change) => {
       if (!schema) return;
-      if (change.origin === "+delete" || change.origin === "paste" || change.origin === "setValue") return;
+      if (change.origin === "+delete" || change.origin === "paste" || change.origin === "setValue" || change.origin === "complete") return;
       setTimeout(() => {
         if (detectContext(editor)) {
           editor.showHint({ hint: yamlHint, completeSingle: false });
