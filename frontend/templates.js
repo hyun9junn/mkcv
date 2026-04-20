@@ -25,7 +25,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   select.addEventListener("change", () => {
     app.setState({ template: select.value });
-    preview.refresh(app.state.yaml, app.state.template);
+    preview.refresh(sectionsState.getFilteredYaml(app.state.yaml), app.state.template);
   });
 
   btnValidate.addEventListener("click", async () => {
