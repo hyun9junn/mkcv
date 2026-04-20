@@ -53,13 +53,13 @@ const preview = (() => {
       clearTimeout(timer);
       timer = setTimeout(() => {
         if (app.state.yaml.trim()) {
-          refresh(app.state.yaml, app.state.template);
+          refresh(sectionsState.getFilteredYaml(app.state.yaml), app.state.template);
         }
       }, 1500);
     });
     setTimeout(() => {
       if (app.state.yaml.trim()) {
-        refresh(app.state.yaml, app.state.template);
+        refresh(sectionsState.getFilteredYaml(app.state.yaml), app.state.template);
       }
     }, 200);
   });
