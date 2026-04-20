@@ -3,6 +3,7 @@ const sectionsUI = (() => {
   const header = document.getElementById("sections-header");
   let isPanelOpen = false;
   let dragSrcKey = null;
+  let _pendingTemplateMeta = null;
 
   function togglePanel() {
     isPanelOpen = !isPanelOpen;
@@ -240,8 +241,6 @@ const sectionsUI = (() => {
       buildTimer = setTimeout(buildPanel, 300);
     });
   });
-
-  let _pendingTemplateMeta = null;
 
   function setTemplateMeta(meta) {
       _pendingTemplateMeta = meta;
