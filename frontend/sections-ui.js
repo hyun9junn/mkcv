@@ -88,14 +88,14 @@ const sectionsUI = (() => {
       row.addEventListener("dragend", () => {
         dragSrcKey = null;
         row.classList.remove("dragging");
-        panel
+        chipsContainer
           .querySelectorAll(".section-row")
           .forEach((r) => r.classList.remove("drag-over"));
       });
       row.addEventListener("dragover", (e) => {
         e.preventDefault();
         e.dataTransfer.dropEffect = "move";
-        panel
+        chipsContainer
           .querySelectorAll(".section-row")
           .forEach((r) => r.classList.remove("drag-over"));
         if (dragSrcKey !== key) row.classList.add("drag-over");
