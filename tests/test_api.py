@@ -96,7 +96,7 @@ async def test_get_templates(app):
     assert resp.status_code == 200
     data = resp.json()
     assert "classic" in data["templates"]
-    assert "awesomecv" in data["templates"]
+    assert "heritage" in data["templates"]
     assert "validation" in data
 
 
