@@ -81,4 +81,24 @@ class MarkdownRenderer(BaseRenderer):
             parts.append(" · ".join(f"**{l.language}:** {l.proficiency}" for l in cv.languages))
             parts.append("")
 
+        if cv.awards:
+            parts.append("## Awards\n")
+            for award in cv.awards:
+                issuer = f" — {award.issuer}" if award.issuer else ""
+                date = f" · {award.date}" if award.date else ""
+                parts.append(f"**{award.name}**{issuer}{date}  ")
+                if award.description:
+                    parts.append(award.description)
+            parts.append("")
+
+        if cv.extracurricular:
+            parts.append("## Extracurricular Activities\n")
+            for act in cv.extracurricular:
+                org = f" — {act.organization}" if act.organization else ""
+                date = f" · {act.date}" if act.date else ""
+                parts.append(f"### {act.title}{org}{date}")
+                for h in act.highlights:
+                    parts.append(f"- {h}")
+                parts.append("")
+
         return "\n".join(parts)
