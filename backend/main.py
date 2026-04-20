@@ -8,6 +8,7 @@ from typing import Optional, List
 import typing
 
 import jinja2
+import yaml as _yaml
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
@@ -19,7 +20,7 @@ from backend.renderers.latex import LaTeXRenderer
 from backend.models import (
     CVData, PersonalInfo, ExperienceItem, EducationItem, SkillGroup,
     ProjectItem, CertificationItem, PublicationItem, LanguageItem,
-    AwardItem, ExtracurricularItem,
+    AwardItem, ExtracurricularItem, CustomSection, CustomBlock,
 )
 
 TEMPLATES_DIR = Path(__file__).parent / "templates"
@@ -38,10 +39,41 @@ _SAMPLE_CV = CVData(
     languages=[LanguageItem(language="English", proficiency="Native")],
     awards=[AwardItem(name="Award", issuer="Org", date="2023")],
     extracurricular=[ExtracurricularItem(title="Club", organization="Org", highlights=["Led team"])],
+    custom_sections=[
+        CustomSection(
+            key="custom-sample",
+            title="Sample Custom Section",
+            content=[
+                CustomBlock(type="bullets", items=["Item one", "Item two"]),
+            ],
+        )
+    ],
 )
 
 _template_validation_cache: dict[str, dict] = {}
+_template_meta_cache: dict[str, dict] = {}
 _CV_SCHEMA_CACHE: dict | None = None
+
+
+def _load_template_meta(template_dir: Path) -> dict:
+    meta_path = template_dir / "meta.yaml"
+    if not meta_path.exists():
+        return {
+            "display_name": template_dir.name.replace("-", " ").title(),
+            "description": "",
+            "audience": "",
+            "recommended_sections": [],
+            "default_section_order": [],
+        }
+    with meta_path.open() as f:
+        data = _yaml.safe_load(f) or {}
+    return {
+        "display_name": data.get("display_name", template_dir.name),
+        "description": data.get("description", ""),
+        "audience": data.get("audience", ""),
+        "recommended_sections": data.get("recommended_sections", []),
+        "default_section_order": data.get("default_section_order", []),
+    }
 
 
 def _validate_template(name: str) -> dict:
@@ -58,8 +90,9 @@ def _validate_template(name: str) -> dict:
             undefined=jinja2.StrictUndefined,
         )
         template = env.get_template("cv.tex.j2")
-        default_order = ["summary", "experience", "education", "skills", "projects", "certifications", "publications", "languages", "awards", "extracurricular"]
-        rendered = template.render(cv=_SAMPLE_CV, section_order=default_order)
+        default_order = ["summary", "experience", "education", "skills", "projects", "certifications", "publications", "languages", "awards", "extracurricular", "custom-sample"]
+        custom_by_key = {cs.key: cs for cs in _SAMPLE_CV.custom_sections}
+        rendered = template.render(cv=_SAMPLE_CV, section_order=default_order, custom_by_key=custom_by_key)
     except jinja2.TemplateSyntaxError as e:
         return {"valid": False, "errors": [f"Jinja2 syntax error: {e}"]}
     except jinja2.UndefinedError as e:
@@ -95,8 +128,11 @@ def _validate_template(name: str) -> dict:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     for template_dir in sorted(TEMPLATES_DIR.iterdir()):
-        if template_dir.is_dir() and (template_dir / "cv.tex.j2").exists():
-            _template_validation_cache[template_dir.name] = _validate_template(template_dir.name)
+        if template_dir.is_dir():
+            if (template_dir / "cv.tex.j2").exists():
+                _template_validation_cache[template_dir.name] = _validate_template(template_dir.name)
+            if (template_dir / "cv.tex.j2").exists() or (template_dir / "meta.yaml").exists():
+                _template_meta_cache[template_dir.name] = _load_template_meta(template_dir)
     yield
 
 
@@ -154,6 +190,7 @@ def _build_cv_schema() -> dict:
         "languages[]": LanguageItem,
         "awards[]": AwardItem,
         "extracurricular[]": ExtracurricularItem,
+        "custom_sections[]": CustomSection,
     }
 
     schema: dict = {}
@@ -172,6 +209,12 @@ def _build_cv_schema() -> dict:
     # Each list section
     for context_key, model_class in list_section_map.items():
         schema[context_key] = _model_info(model_class)
+
+    schema["custom_sections[].content[]"] = {
+        "keys": ["type", "value", "items", "pairs"],
+        "required": ["type"],
+        "list_keys": ["items", "pairs"],
+    }
 
     return schema
 
@@ -361,8 +404,16 @@ async def list_templates():
         d.name for d in TEMPLATES_DIR.iterdir()
         if d.is_dir() and (d / "cv.tex.j2").exists()
     )
+    all_template_dirs = sorted(
+        d.name for d in TEMPLATES_DIR.iterdir()
+        if d.is_dir() and ((d / "cv.tex.j2").exists() or (d / "meta.yaml").exists())
+    )
     return {
         "templates": templates,
+        "meta": {
+            name: _template_meta_cache.get(name, _load_template_meta(TEMPLATES_DIR / name))
+            for name in all_template_dirs
+        },
         "validation": {
             name: _template_validation_cache.get(name, {"valid": None, "errors": []})
             for name in templates
