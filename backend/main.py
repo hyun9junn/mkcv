@@ -265,8 +265,8 @@ async def preview_pdf(req: CVRequest):
             return _error("pdf_generation_failed", "pdflatex not found — install TeX Live or MiKTeX")
 
         if result.returncode != 0:
-            error_lines = [l for l in result.stdout.splitlines() if l.startswith("!")]
-            details = error_lines or [l for l in result.stderr.splitlines() if l.strip()]
+            error_lines = [line for line in result.stdout.splitlines() if line.startswith("!")]
+            details = error_lines or [line for line in result.stderr.splitlines() if line.strip()]
             return _error("pdf_generation_failed", "pdflatex exited with errors", details)
 
         pdf_bytes = (Path(tmpdir) / "cv.pdf").read_bytes()
