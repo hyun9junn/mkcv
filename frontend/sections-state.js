@@ -154,6 +154,10 @@ const sectionsState = (() => {
     _save(state);
   }
 
+  function resetAll() {
+    _save({ hidden: [], order: [...DEFAULT_ORDER] });
+  }
+
   function ensureInOrder(key) {
     const state = _getState();
     if (!state.order.includes(key)) {
@@ -255,6 +259,7 @@ const sectionsState = (() => {
     getVisibleOrder,
     resetSectionYaml,
     restoreSectionYaml,
+    resetAll,
   };
 })();
 
