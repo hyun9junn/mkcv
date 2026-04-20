@@ -41,6 +41,7 @@ _SAMPLE_CV = CVData(
 )
 
 _template_validation_cache: dict[str, dict] = {}
+_CV_SCHEMA_CACHE: dict | None = None
 
 
 def _validate_template(name: str) -> dict:
@@ -177,7 +178,10 @@ def _build_cv_schema() -> dict:
 
 @app.get("/api/schema")
 async def get_schema():
-    return _build_cv_schema()
+    global _CV_SCHEMA_CACHE
+    if _CV_SCHEMA_CACHE is None:
+        _CV_SCHEMA_CACHE = _build_cv_schema()
+    return _CV_SCHEMA_CACHE
 
 
 @app.post("/api/validate")
