@@ -99,3 +99,61 @@ def test_markdown_award_with_description():
     )
     output = MarkdownRenderer().render(cv)
     assert "Awarded for excellence." in output
+
+
+def test_markdown_renders_custom_section_bullets(sample_cv):
+    output = MarkdownRenderer().render(sample_cv, section_order=["talks"])
+    assert "## Selected Talks" in output
+    assert "- NeurIPS 2024: Efficient Quantization" in output
+
+def test_markdown_renders_custom_section_text():
+    from backend.models import CVData, PersonalInfo, CustomSection, CustomBlock
+    cv = CVData(
+        personal=PersonalInfo(name="Test", email="t@t.com"),
+        custom_sections=[
+            CustomSection(
+                key="bio",
+                title="Biography",
+                content=[CustomBlock(type="text", value="A short bio paragraph.")],
+            )
+        ],
+    )
+    output = MarkdownRenderer().render(cv, section_order=["bio"])
+    assert "## Biography" in output
+    assert "A short bio paragraph." in output
+
+def test_markdown_renders_custom_section_kv():
+    from backend.models import CVData, PersonalInfo, CustomSection, CustomBlock
+    cv = CVData(
+        personal=PersonalInfo(name="Test", email="t@t.com"),
+        custom_sections=[
+            CustomSection(
+                key="service",
+                title="Academic Service",
+                content=[CustomBlock(type="kv", pairs=[{"key": "Reviewer", "value": "NeurIPS, ICML"}])],
+            )
+        ],
+    )
+    output = MarkdownRenderer().render(cv, section_order=["service"])
+    assert "## Academic Service" in output
+    assert "**Reviewer:**" in output
+    assert "NeurIPS, ICML" in output
+
+def test_markdown_skips_custom_section_not_in_order(sample_cv):
+    output = MarkdownRenderer().render(sample_cv, section_order=["summary"])
+    assert "Selected Talks" not in output
+
+def test_markdown_custom_section_unknown_block_type_skipped():
+    from backend.models import CVData, PersonalInfo, CustomSection, CustomBlock
+    cv = CVData(
+        personal=PersonalInfo(name="Test", email="t@t.com"),
+        custom_sections=[
+            CustomSection(
+                key="misc",
+                title="Misc",
+                content=[CustomBlock(type="unknown_type")],
+            )
+        ],
+    )
+    output = MarkdownRenderer().render(cv, section_order=["misc"])
+    assert "## Misc" in output  # section header still renders

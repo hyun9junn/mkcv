@@ -29,4 +29,9 @@ class LaTeXRenderer(BaseRenderer):
             lstrip_blocks=True,
         )
         order = section_order if section_order else DEFAULT_SECTION_ORDER
-        return env.get_template("cv.tex.j2").render(cv=cv, section_order=order)
+        custom_by_key = {cs.key: cs for cs in cv.custom_sections}
+        return env.get_template("cv.tex.j2").render(
+            cv=cv,
+            section_order=order,
+            custom_by_key=custom_by_key,
+        )

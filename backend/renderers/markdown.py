@@ -25,6 +25,8 @@ class MarkdownRenderer(BaseRenderer):
         parts.append("")
 
         order = section_order if section_order else DEFAULT_SECTION_ORDER
+        custom_by_key = {cs.key: cs for cs in cv.custom_sections}
+
         for key in order:
             if key == "summary" and cv.summary:
                 parts.append("## Summary\n")
@@ -96,5 +98,20 @@ class MarkdownRenderer(BaseRenderer):
                     for h in act.highlights:
                         parts.append(f"- {h}")
                     parts.append("")
+            elif key in custom_by_key:
+                cs = custom_by_key[key]
+                parts.append(f"## {cs.title}\n")
+                for block in cs.content:
+                    btype = block.type
+                    extras = block.model_extra
+                    if btype == "text":
+                        parts.append(extras.get("value", ""))
+                    elif btype == "bullets":
+                        for item in extras.get("items", []):
+                            parts.append(f"- {item}")
+                    elif btype == "kv":
+                        for pair in extras.get("pairs", []):
+                            parts.append(f"**{pair['key']}:** {pair['value']}")
+                parts.append("")
 
         return "\n".join(parts)

@@ -65,3 +65,50 @@ def test_classic_latex_skips_empty_awards(minimal_cv):
 def test_classic_latex_skips_empty_extracurricular(minimal_cv):
     output = LaTeXRenderer(TEMPLATES_DIR, template="classic").render(minimal_cv)
     assert "Extracurricular" not in output
+
+
+def test_classic_latex_renders_custom_section_bullets(sample_cv):
+    output = LaTeXRenderer(TEMPLATES_DIR, template="classic").render(
+        sample_cv, section_order=["talks"]
+    )
+    assert r"\section{Selected Talks}" in output
+    assert "NeurIPS 2024: Efficient Quantization" in output
+
+def test_classic_latex_renders_custom_section_text():
+    from backend.models import CVData, PersonalInfo, CustomSection, CustomBlock
+    cv = CVData(
+        personal=PersonalInfo(name="Test", email="t@t.com"),
+        custom_sections=[
+            CustomSection(
+                key="bio",
+                title="Biography",
+                content=[CustomBlock(type="text", value="A short bio paragraph.")],
+            )
+        ],
+    )
+    output = LaTeXRenderer(TEMPLATES_DIR, template="classic").render(cv, section_order=["bio"])
+    assert r"\section{Biography}" in output
+    assert "A short bio paragraph." in output
+
+def test_classic_latex_renders_custom_section_kv():
+    from backend.models import CVData, PersonalInfo, CustomSection, CustomBlock
+    cv = CVData(
+        personal=PersonalInfo(name="Test", email="t@t.com"),
+        custom_sections=[
+            CustomSection(
+                key="service",
+                title="Academic Service",
+                content=[CustomBlock(type="kv", pairs=[{"key": "Reviewer", "value": "NeurIPS"}])],
+            )
+        ],
+    )
+    output = LaTeXRenderer(TEMPLATES_DIR, template="classic").render(cv, section_order=["service"])
+    assert r"\section{Academic Service}" in output
+    assert "Reviewer" in output
+    assert "NeurIPS" in output
+
+def test_classic_latex_skips_custom_section_not_in_order(sample_cv):
+    output = LaTeXRenderer(TEMPLATES_DIR, template="classic").render(
+        sample_cv, section_order=["summary"]
+    )
+    assert "Selected Talks" not in output
