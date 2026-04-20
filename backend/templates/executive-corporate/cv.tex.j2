@@ -1,17 +1,39 @@
 \documentclass[11pt,a4paper]{article}
 
-\usepackage[top=1.5cm,bottom=1.5cm,left=2cm,right=2cm]{geometry}
+\usepackage[top=1.3cm,bottom=1.5cm,left=1.6cm,right=1.6cm]{geometry}
 \usepackage{enumitem}
 \usepackage[hidelinks]{hyperref}
 \usepackage{titlesec}
 \usepackage{microtype}
+\usepackage{xcolor}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{tabularx}
+\usepackage{array}
 
 \setlength{\parindent}{0pt}
-\setlength{\parskip}{4pt}
+\setlength{\parskip}{3pt}
 \pagestyle{empty}
 
-\titleformat{\section}{\large\bfseries\uppercase}{}{0em}{}[{\titlerule[0.8pt]}]
-\titlespacing{\section}{0pt}{12pt}{6pt}
+% Section style
+\definecolor{sectioncolor}{HTML}{B22222}
+\titleformat{\section}
+  {\large\bfseries\color{sectioncolor}}
+  {}
+  {0em}
+  {}
+  [{\color{sectioncolor}\titlerule[0.8pt]}]
+
+\titlespacing{\section}{0pt}{10pt}{6pt}
+
+\newenvironment{cvitems}{%
+  \begin{itemize}[leftmargin=*,noitemsep,topsep=2pt]%
+}{%
+  \end{itemize}%
+}
+
+\newcommand{\cvrole}[1]{\textbf{#1}}
+\newcommand{\cvorg}[1]{\textit{#1}}
 
 \begin{document}
 
@@ -19,122 +41,138 @@
 % Header
 % =========================
 \begin{center}
-    {\Huge\bfseries << cv.personal.name >>}\\[6pt]
+    {\Huge\bfseries << cv.personal.name >>}\\[4pt]
+
+    <% if cv.personal.tagline %>
+    {\normalsize << cv.personal.tagline >>}\\[4pt]
+    <% elif cv.personal.address %>
+    {\normalsize << cv.personal.address >>}\\[4pt]
+    <% endif %>
 
     \normalsize
-    <% set sep = joiner(" $\cdot$ ") %>
-    <% if cv.personal.email %><< sep() >>\href{mailto:<< cv.personal.email >>}{<< cv.personal.email >>}<% endif %>
+    <% set sep = joiner(" \\textbar\\ ") %>
     <% if cv.personal.phone %><< sep() >><< cv.personal.phone >><% endif %>
+    <% if cv.personal.email %><< sep() >>\href{mailto:<< cv.personal.email >>}{<< cv.personal.email >>}<% endif %>
     <% if cv.personal.location %><< sep() >><< cv.personal.location >><% endif %>
     \\[2pt]
 
-    <% set sep2 = joiner(" $\cdot$ ") %>
+    <% set sep2 = joiner(" \\textbar\\ ") %>
     <% if cv.personal.linkedin %><< sep2() >>\href{https://<< cv.personal.linkedin >>}{LinkedIn}<% endif %>
     <% if cv.personal.github %><< sep2() >>\href{https://<< cv.personal.github >>}{GitHub}<% endif %>
     <% if cv.personal.huggingface %><< sep2() >>\href{https://<< cv.personal.huggingface >>}{Hugging Face}<% endif %>
     <% if cv.personal.website %><< sep2() >>\href{https://<< cv.personal.website >>}{Website}<% endif %>
 \end{center}
 
-% =========================
-% Sections
-% =========================
 <% macro render_section(key) %>
 <% if key == 'summary' and cv.summary %>
 \section{Summary}
 << cv.summary >>
 <% endif %>
-
 <% if key == 'experience' and cv.experience %>
 \section{Experience}
 <% for job in cv.experience %>
 \textbf{<< job.title >>} \hfill << job.start_date >> -- << job.end_date if job.end_date else "Present" >>\\
-\textit{<< job.company >>}
+\textit{<< job.company >>}<% if job.location %>, << job.location >><% endif %>\\
 <% if job.highlights %>
-\begin{itemize}[leftmargin=*,noitemsep,topsep=2pt]
+\begin{itemize}[leftmargin=1.4em,noitemsep,topsep=2pt,itemsep=1pt]
 <% for item in job.highlights %>
-    \item << item >>
+  \item << item >>
 <% endfor %>
 \end{itemize}
 <% endif %>
-<% if not loop.last %>\vspace{4pt}<% endif %>
-<% endfor %>
-<% endif %>
-
-<% if key == 'education' and cv.education %>
-\section{Education}
-<% for edu in cv.education %>
-\textbf{<< edu.degree >>} \hfill << edu.year >>\\
-\textit{<< edu.institution >>}<% if edu.gpa %> \hfill GPA: << edu.gpa >><% endif %>
 <% if not loop.last %>\vspace{3pt}<% endif %>
 <% endfor %>
 <% endif %>
-
+<% if key == 'education' and cv.education %>
+\section{Education}
+<% for edu in cv.education %>
+\textbf{<< edu.degree >>} \hfill
+<% if edu.start_date and edu.end_date %>
+<< edu.start_date >> -- << edu.end_date >>
+<% elif edu.year %>
+<< edu.year >>
+<% endif %>\\
+\textit{<< edu.institution >>}
+<% if edu.gpa %> \hfill GPA: << edu.gpa >><% endif %>\\
+<% if edu.details %>
+<< edu.details >>\\
+<% endif %>
+<% if not loop.last %>\vspace{3pt}<% endif %>
+<% endfor %>
+<% endif %>
 <% if key == 'skills' and cv.skills %>
 \section{Skills}
 <% for group in cv.skills %>
 \textbf{<< group.category >>:} << group.items | join(", ") >>\\
 <% endfor %>
 <% endif %>
-
 <% if key == 'projects' and cv.projects %>
 \section{Projects}
 <% for proj in cv.projects %>
-\textbf{<% if proj.url %>\href{https://<< proj.url >>}{<< proj.name >>}<% else %><< proj.name >><% endif %>} --- << proj.description >>
+\textbf{<% if proj.url %>\href{https://<< proj.url >>}{<< proj.name >>}<% else %><< proj.name >><% endif %>}
+<% if proj.date %>\hfill << proj.date >><% endif %>\\
+<% if proj.description %>
+<< proj.description >>\\
+<% endif %>
 <% if proj.highlights %>
-\begin{itemize}[leftmargin=*,noitemsep,topsep=2pt]
+\begin{itemize}[leftmargin=1.4em,noitemsep,topsep=2pt,itemsep=1pt]
 <% for item in proj.highlights %>
-    \item << item >>
+  \item << item >>
 <% endfor %>
 \end{itemize}
 <% endif %>
 <% if not loop.last %>\vspace{3pt}<% endif %>
 <% endfor %>
 <% endif %>
-
-<% if key == 'certifications' and cv.certifications %>
-\section{Certifications}
-<% for cert in cv.certifications %>
-\textbf{<< cert.name >>}<% if cert.issuer %> --- << cert.issuer >><% endif %><% if cert.date %> \hfill << cert.date >><% endif %>\\
-<% if not loop.last %>\vspace{2pt}<% endif %>
-<% endfor %>
-<% endif %>
-
-<% if key == 'publications' and cv.publications %>
-\section{Publications}
-<% for pub in cv.publications %>
-<% if pub.url %>\href{https://<< pub.url >>}{\textbf{<< pub.title >>}}<% else %>\textbf{<< pub.title >>}<% endif %><% if pub.venue %> --- << pub.venue >><% endif %><% if pub.date %> \hfill << pub.date >><% endif %>\\
-<% if not loop.last %>\vspace{2pt}<% endif %>
-<% endfor %>
-<% endif %>
-
-<% if key == 'languages' and cv.languages %>
-\section{Languages}
-<% for lang in cv.languages %>\textbf{<< lang.language >>:} << lang.proficiency >><% if not loop.last %> \quad <% endif %><% endfor %>
-<% endif %>
-
 <% if key == 'awards' and cv.awards %>
 \section{Awards}
 <% for award in cv.awards %>
-\textbf{<< award.name >>}<% if award.date %> \hfill << award.date >><% endif %>\\
+\textbf{<< award.name >>}
+<% if award.date %>\hfill << award.date >><% endif %>\\
 <% if award.issuer %>\textit{<< award.issuer >>}\\<% endif %>
 <% if award.description %><< award.description >>\\<% endif %>
 <% if not loop.last %>\vspace{2pt}<% endif %>
 <% endfor %>
 <% endif %>
-
+<% if key == 'certifications' and cv.certifications %>
+\section{Certifications}
+<% for cert in cv.certifications %>
+\textbf{<< cert.name >>}
+<% if cert.date %>\hfill << cert.date >><% endif %>\\
+<% if cert.issuer %>\textit{<< cert.issuer >>}\\<% endif %>
+<% if not loop.last %>\vspace{2pt}<% endif %>
+<% endfor %>
+<% endif %>
+<% if key == 'publications' and cv.publications %>
+\section{Publications}
+<% for pub in cv.publications %>
+<% if pub.url %>\href{https://<< pub.url >>}{\textbf{<< pub.title >>}}<% else %>\textbf{<< pub.title >>}<% endif %>
+<% if pub.date %>\hfill << pub.date >><% endif %>\\
+<% if pub.venue %>\textit{<< pub.venue >>}\\<% endif %>
+<% if pub.description %><< pub.description >>\\<% endif %>
+<% if not loop.last %>\vspace{2pt}<% endif %>
+<% endfor %>
+<% endif %>
+<% if key == 'languages' and cv.languages %>
+\section{Languages}
+<% for lang in cv.languages %>
+\textbf{<< lang.language >>:} << lang.proficiency >><% if not loop.last %> \quad\quad <% endif %>
+<% endfor %>
+<% endif %>
 <% if key == 'extracurricular' and cv.extracurricular %>
 \section{Extracurricular Activities}
 <% for act in cv.extracurricular %>
-\textbf{<< act.title >>}<% if act.date %> \hfill << act.date >><% endif %>\\
+\textbf{<< act.title >>}
+<% if act.date %>\hfill << act.date >><% endif %>\\
 <% if act.organization %>\textit{<< act.organization >>}\\<% endif %>
 <% if act.highlights %>
-\begin{itemize}[leftmargin=*,noitemsep,topsep=2pt]
+\begin{itemize}[leftmargin=1.4em,noitemsep,topsep=2pt,itemsep=1pt]
 <% for item in act.highlights %>
-    \item << item >>
+  \item << item >>
 <% endfor %>
 \end{itemize}
 <% endif %>
-<% if not loop.last %>\vspace{4pt}<% endif %>
+<% if not loop.last %>\vspace{3pt}<% endif %>
 <% endfor %>
 <% endif %>
 <% if key in custom_by_key %>
@@ -145,15 +183,15 @@
 <% if block.type == 'text' %>
 << extras.get('value', '') >>
 <% elif block.type == 'bullets' %>
-\begin{itemize}[leftmargin=*,noitemsep,topsep=2pt]
+\begin{cvitems}
 <% for item in extras.get('items', []) %>
     \item << item >>
 <% endfor %>
-\end{itemize}
+\end{cvitems}
 <% elif block.type == 'kv' %>
 \begin{tabular}{@{}p{3cm}l@{}}
 <% for pair in extras.get('pairs', []) %>
-\textbf{<< pair.key >>} & << pair.value >> \\
+\cvrole{<< pair.key >>} & \cvorg{<< pair.value >>} \\
 <% endfor %>
 \end{tabular}
 <% endif %>

@@ -167,6 +167,28 @@
 <% if not loop.last %>\vspace{3pt}<% endif %>
 <% endfor %>
 <% endif %>
+<% if key in custom_by_key %>
+<% set cs = custom_by_key[key] %>
+\section{<< cs.title >>}
+<% for block in cs.content %>
+<% set extras = block.model_extra %>
+<% if block.type == 'text' %>
+<< extras.get('value', '') >>
+<% elif block.type == 'bullets' %>
+\begin{itemize}[leftmargin=1.4em,noitemsep,topsep=2pt,itemsep=1pt]
+<% for item in extras.get('items', []) %>
+  \item << item >>
+<% endfor %>
+\end{itemize}
+<% elif block.type == 'kv' %>
+\begin{tabular}{@{}p{3cm}l@{}}
+<% for pair in extras.get('pairs', []) %>
+\textbf{<< pair.key >>} & << pair.value >> \\
+<% endfor %>
+\end{tabular}
+<% endif %>
+<% endfor %>
+<% endif %>
 <% endmacro %>
 
 <% for key in section_order %>

@@ -5,13 +5,26 @@
 \usepackage[hidelinks]{hyperref}
 \usepackage{titlesec}
 \usepackage{microtype}
+\usepackage{xcolor}
+\usepackage{tabularx}
+\usepackage{array}
 
 \setlength{\parindent}{0pt}
 \setlength{\parskip}{4pt}
 \pagestyle{empty}
 
-\titleformat{\section}{\large\bfseries\uppercase}{}{0em}{}[{\titlerule[0.8pt]}]
+\definecolor{sectioncolor}{HTML}{4B0082}
+\titleformat{\section}{\large\bfseries\scshape\color{sectioncolor}}{}{0em}{}[{\color{sectioncolor}\titlerule[0.6pt]}]
 \titlespacing{\section}{0pt}{12pt}{6pt}
+
+\newenvironment{cvitems}{%
+  \begin{itemize}[leftmargin=*,noitemsep,topsep=2pt]%
+}{%
+  \end{itemize}%
+}
+
+\newcommand{\cvrole}[1]{\textbf{#1}}
+\newcommand{\cvorg}[1]{\textit{#1}}
 
 \begin{document}
 
@@ -33,6 +46,8 @@
     <% if cv.personal.github %><< sep2() >>\href{https://<< cv.personal.github >>}{GitHub}<% endif %>
     <% if cv.personal.huggingface %><< sep2() >>\href{https://<< cv.personal.huggingface >>}{Hugging Face}<% endif %>
     <% if cv.personal.website %><< sep2() >>\href{https://<< cv.personal.website >>}{Website}<% endif %>
+    <% if cv.personal.orcid %><< sep2() >>\href{https://<< cv.personal.orcid >>}{ORCID}<% endif %>
+    <% if cv.personal.scholar %><< sep2() >>\href{https://<< cv.personal.scholar >>}{Scholar}<% endif %>
 \end{center}
 
 % =========================
@@ -50,11 +65,11 @@
 \textbf{<< job.title >>} \hfill << job.start_date >> -- << job.end_date if job.end_date else "Present" >>\\
 \textit{<< job.company >>}
 <% if job.highlights %>
-\begin{itemize}[leftmargin=*,noitemsep,topsep=2pt]
+\begin{cvitems}
 <% for item in job.highlights %>
     \item << item >>
 <% endfor %>
-\end{itemize}
+\end{cvitems}
 <% endif %>
 <% if not loop.last %>\vspace{4pt}<% endif %>
 <% endfor %>
@@ -81,11 +96,11 @@
 <% for proj in cv.projects %>
 \textbf{<% if proj.url %>\href{https://<< proj.url >>}{<< proj.name >>}<% else %><< proj.name >><% endif %>} --- << proj.description >>
 <% if proj.highlights %>
-\begin{itemize}[leftmargin=*,noitemsep,topsep=2pt]
+\begin{cvitems}
 <% for item in proj.highlights %>
     \item << item >>
 <% endfor %>
-\end{itemize}
+\end{cvitems}
 <% endif %>
 <% if not loop.last %>\vspace{3pt}<% endif %>
 <% endfor %>
@@ -128,11 +143,11 @@
 \textbf{<< act.title >>}<% if act.date %> \hfill << act.date >><% endif %>\\
 <% if act.organization %>\textit{<< act.organization >>}\\<% endif %>
 <% if act.highlights %>
-\begin{itemize}[leftmargin=*,noitemsep,topsep=2pt]
+\begin{cvitems}
 <% for item in act.highlights %>
     \item << item >>
 <% endfor %>
-\end{itemize}
+\end{cvitems}
 <% endif %>
 <% if not loop.last %>\vspace{4pt}<% endif %>
 <% endfor %>
@@ -145,15 +160,15 @@
 <% if block.type == 'text' %>
 << extras.get('value', '') >>
 <% elif block.type == 'bullets' %>
-\begin{itemize}[leftmargin=*,noitemsep,topsep=2pt]
+\begin{cvitems}
 <% for item in extras.get('items', []) %>
     \item << item >>
 <% endfor %>
-\end{itemize}
+\end{cvitems}
 <% elif block.type == 'kv' %>
 \begin{tabular}{@{}p{3cm}l@{}}
 <% for pair in extras.get('pairs', []) %>
-\textbf{<< pair.key >>} & << pair.value >> \\
+\cvrole{<< pair.key >>} & \cvorg{<< pair.value >>} \\
 <% endfor %>
 \end{tabular}
 <% endif %>
