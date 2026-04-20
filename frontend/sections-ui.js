@@ -117,9 +117,74 @@ const sectionsUI = (() => {
     }
   }
 
+  const modal = document.getElementById("reset-modal");
+  const modalTitle = document.getElementById("reset-modal-title");
+  const modalCancel = document.getElementById("reset-modal-cancel");
+  const modalConfirm = document.getElementById("reset-modal-confirm");
+
+  const toast = document.getElementById("undo-toast");
+  const toastMsg = document.getElementById("undo-toast-message");
+  const toastBtn = document.getElementById("undo-toast-btn");
+
+  let toastTimer = null;
+  let pendingUndo = null; // { key, previousSectionYaml }
+
+  function hideToast() {
+    clearTimeout(toastTimer);
+    toast.style.display = "none";
+    pendingUndo = null;
+  }
+
+  function showToast(label, key, previousSectionYaml) {
+    clearTimeout(toastTimer);
+    pendingUndo = { key, previousSectionYaml };
+    toastMsg.textContent = `${label} reset`;
+    toast.style.display = "flex";
+    toastTimer = setTimeout(hideToast, 5000);
+  }
+
+  toastBtn.addEventListener("click", () => {
+    if (!pendingUndo) return;
+    const { key, previousSectionYaml } = pendingUndo;
+    const restored = sectionsState.restoreSectionYaml(
+      key,
+      previousSectionYaml,
+      app.state.yaml
+    );
+    if (restored) {
+      window.editorAdapter.setValue(restored);
+      app.setState({ yaml: restored });
+    }
+    hideToast();
+  });
+
   function showResetModal(key) {
-    // Stub — replaced in Task 4
-    alert(`Reset stub for: ${key}`);
+    const def = sectionsState.SECTION_DEFS[key];
+    modalTitle.textContent = `Reset ${def.label}?`;
+    modal.style.display = "flex";
+
+    function onConfirm() {
+      modal.style.display = "none";
+      cleanup();
+      const result = sectionsState.resetSectionYaml(key, app.state.yaml);
+      if (!result) return;
+      window.editorAdapter.setValue(result.newYaml);
+      app.setState({ yaml: result.newYaml });
+      showToast(def.label, key, result.previousYaml);
+    }
+
+    function onCancel() {
+      modal.style.display = "none";
+      cleanup();
+    }
+
+    function cleanup() {
+      modalConfirm.removeEventListener("click", onConfirm);
+      modalCancel.removeEventListener("click", onCancel);
+    }
+
+    modalConfirm.addEventListener("click", onConfirm);
+    modalCancel.addEventListener("click", onCancel);
   }
 
   document.addEventListener("DOMContentLoaded", () => {
@@ -129,6 +194,9 @@ const sectionsUI = (() => {
     window.editorAdapter.onChange(() => {
       clearTimeout(buildTimer);
       buildTimer = setTimeout(buildPanel, 300);
+    });
+    modal.addEventListener("click", (e) => {
+      if (e.target === modal) modal.style.display = "none";
     });
   });
 
