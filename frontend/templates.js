@@ -53,8 +53,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       }, 8000);
     } catch {
       banner.style.display = "block";
-      banner.style.background = "";
-      banner.style.color = "";
+      banner.style.background = "#5c1f1f";
+      banner.style.color = "#fca5a5";
       banner.textContent = "Validation request failed";
     } finally {
       btnValidate.disabled = false;
