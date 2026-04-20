@@ -16,6 +16,7 @@ from backend.renderers.latex import LaTeXRenderer
 
 TEMPLATES_DIR = Path(__file__).parent / "templates"
 OUTPUT_DIR = Path("output")
+CV_FILE = Path("mycv.yaml")
 
 app = FastAPI()
 
@@ -23,6 +24,10 @@ app = FastAPI()
 class CVRequest(BaseModel):
     yaml: str
     template: str = "classic"
+
+
+class FileRequest(BaseModel):
+    content: str
 
 
 def _error(error_type: str, message: str, details: list[str] | None = None, status: int = 422):
@@ -148,6 +153,62 @@ async def export_pdf(req: CVRequest):
         media_type="application/pdf",
         headers={"Content-Disposition": "attachment; filename=cv.pdf"},
     )
+
+
+@app.post("/api/preview/pdf")
+async def preview_pdf(req: CVRequest):
+    try:
+        cv = parse_yaml(req.yaml)
+    except YAMLParseError as e:
+        return _error("invalid_yaml", e.message, e.details)
+    except CVValidationError as e:
+        return _error("validation_error", e.message, e.errors)
+
+    if not _template_exists(req.template):
+        return _error("unknown_template", f"Template '{req.template}' not found")
+
+    latex_content = LaTeXRenderer(TEMPLATES_DIR, template=req.template).render(cv)
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        tex_path = Path(tmpdir) / "cv.tex"
+        tex_path.write_text(latex_content)
+        try:
+            result = subprocess.run(
+                ["pdflatex", "-interaction=nonstopmode", "cv.tex"],
+                cwd=tmpdir,
+                capture_output=True,
+                timeout=30,
+                text=True,
+            )
+        except subprocess.TimeoutExpired:
+            return _error("pdf_generation_failed", "pdflatex timed out after 30 seconds")
+        except FileNotFoundError:
+            return _error("pdf_generation_failed", "pdflatex not found — install TeX Live or MiKTeX")
+
+        if result.returncode != 0:
+            error_lines = [l for l in result.stdout.splitlines() if l.startswith("!")]
+            details = error_lines or [l for l in result.stderr.splitlines() if l.strip()]
+            return _error("pdf_generation_failed", "pdflatex exited with errors", details)
+
+        pdf_bytes = (Path(tmpdir) / "cv.pdf").read_bytes()
+
+    return Response(content=pdf_bytes, media_type="application/pdf")
+
+
+@app.get("/api/file")
+async def get_file():
+    if not CV_FILE.exists():
+        return {"content": ""}
+    return {"content": CV_FILE.read_text()}
+
+
+@app.post("/api/file")
+async def save_file(req: FileRequest):
+    try:
+        CV_FILE.write_text(req.content)
+        return {"ok": True}
+    except OSError as e:
+        return _error("file_write_failed", str(e), status=500)
 
 
 @app.get("/api/templates")

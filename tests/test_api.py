@@ -95,3 +95,56 @@ async def test_get_templates(app):
         resp = await client.get("/api/templates")
     assert resp.status_code == 200
     assert "classic" in resp.json()["templates"]
+
+
+import os
+
+VALID_YAML_FULL = """
+personal:
+  name: Alice
+  email: alice@example.com
+summary: A brief summary.
+"""
+
+async def test_preview_pdf_invalid_yaml(app):
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        resp = await client.post("/api/preview/pdf", json={"yaml": INVALID_YAML, "template": "classic"})
+    assert resp.status_code == 422
+    assert resp.json()["error"] == "invalid_yaml"
+
+async def test_preview_pdf_unknown_template(app):
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        resp = await client.post("/api/preview/pdf", json={"yaml": VALID_YAML, "template": "nonexistent"})
+    assert resp.status_code == 422
+    assert resp.json()["error"] == "unknown_template"
+
+async def test_get_file_missing_returns_empty(app, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        resp = await client.get("/api/file")
+    assert resp.status_code == 200
+    assert resp.json()["content"] == ""
+
+async def test_get_file_existing_returns_content(app, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "mycv.yaml").write_text("personal:\n  name: Test\n")
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        resp = await client.get("/api/file")
+    assert resp.status_code == 200
+    assert "Test" in resp.json()["content"]
+
+async def test_post_file_writes_content(app, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        resp = await client.post("/api/file", json={"content": "personal:\n  name: Bob\n"})
+    assert resp.status_code == 200
+    assert resp.json()["ok"] is True
+    assert (tmp_path / "mycv.yaml").read_text() == "personal:\n  name: Bob\n"
+
+async def test_post_file_overwrites_existing(app, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "mycv.yaml").write_text("old content")
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        resp = await client.post("/api/file", json={"content": "new content"})
+    assert resp.json()["ok"] is True
+    assert (tmp_path / "mycv.yaml").read_text() == "new content"
