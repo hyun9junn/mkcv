@@ -5,6 +5,7 @@ import tempfile
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Optional, List
+import typing
 
 import jinja2
 from fastapi import FastAPI
@@ -120,6 +121,63 @@ def _error(error_type: str, message: str, details: list[str] | None = None, stat
 
 def _template_exists(template: str) -> bool:
     return (TEMPLATES_DIR / template / "cv.tex.j2").exists()
+
+
+def _build_cv_schema() -> dict:
+    """Derive autocomplete schema from Pydantic models."""
+    from pydantic_core import PydanticUndefinedType
+
+    def _model_info(model_class) -> dict:
+        keys = []
+        required = []
+        list_keys = []
+        for field_name, field_info in model_class.model_fields.items():
+            keys.append(field_name)
+            # Required if no default (default is PydanticUndefined)
+            if isinstance(field_info.default, PydanticUndefinedType):
+                required.append(field_name)
+            # list_keys: fields whose annotation is list[...]
+            ann = field_info.annotation
+            origin = typing.get_origin(ann)
+            if origin is list:
+                list_keys.append(field_name)
+        return {"keys": keys, "required": required, "list_keys": list_keys}
+
+    list_section_map = {
+        "experience[]": ExperienceItem,
+        "education[]": EducationItem,
+        "skills[]": SkillGroup,
+        "projects[]": ProjectItem,
+        "certifications[]": CertificationItem,
+        "publications[]": PublicationItem,
+        "languages[]": LanguageItem,
+        "awards[]": AwardItem,
+        "extracurricular[]": ExtracurricularItem,
+    }
+
+    schema: dict = {}
+
+    # Root level — CVData fields (no list_keys at root; lists are sections, not values)
+    root_info = _model_info(CVData)
+    schema["__root__"] = {
+        "keys": root_info["keys"],
+        "required": root_info["required"],
+        "list_keys": [],  # root list keys are section headers, not block sequences
+    }
+
+    # personal block (scalar mapping, not a list section)
+    schema["personal"] = _model_info(PersonalInfo)
+
+    # Each list section
+    for context_key, model_class in list_section_map.items():
+        schema[context_key] = _model_info(model_class)
+
+    return schema
+
+
+@app.get("/api/schema")
+async def get_schema():
+    return _build_cv_schema()
 
 
 @app.post("/api/validate")
