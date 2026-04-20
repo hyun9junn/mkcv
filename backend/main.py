@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import subprocess
 import tempfile
+from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Optional, List
 
+import jinja2
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
@@ -13,12 +15,89 @@ from pydantic import BaseModel
 from backend.parsers.yaml_parser import parse_yaml, YAMLParseError, CVValidationError
 from backend.renderers.markdown import MarkdownRenderer
 from backend.renderers.latex import LaTeXRenderer
+from backend.models import (
+    CVData, PersonalInfo, ExperienceItem, EducationItem, SkillGroup,
+    ProjectItem, CertificationItem, PublicationItem, LanguageItem,
+    AwardItem, ExtracurricularItem,
+)
 
 TEMPLATES_DIR = Path(__file__).parent / "templates"
 OUTPUT_DIR = Path("output")
 CV_FILE = Path("mycv.yaml")
 
-app = FastAPI()
+_SAMPLE_CV = CVData(
+    personal=PersonalInfo(name="Test User", email="test@example.com", phone="+1-000-0000", location="City, Country"),
+    summary="A brief summary.",
+    experience=[ExperienceItem(title="Engineer", company="Corp", start_date="2020", end_date="2023", highlights=["Did things"])],
+    education=[EducationItem(degree="B.S. CS", institution="University", year="2020")],
+    skills=[SkillGroup(category="Languages", items=["Python"])],
+    projects=[ProjectItem(name="Project", description="A project", highlights=["Feature"])],
+    certifications=[CertificationItem(name="Cert", issuer="Org", date="2022")],
+    publications=[PublicationItem(title="Paper", venue="Journal", date="2023")],
+    languages=[LanguageItem(language="English", proficiency="Native")],
+    awards=[AwardItem(name="Award", issuer="Org", date="2023")],
+    extracurricular=[ExtracurricularItem(title="Club", organization="Org", highlights=["Led team"])],
+)
+
+_template_validation_cache: dict[str, dict] = {}
+
+
+def _validate_template(name: str) -> dict:
+    # Stage 1: Jinja2 render with StrictUndefined
+    try:
+        env = jinja2.Environment(
+            loader=jinja2.FileSystemLoader(str(TEMPLATES_DIR / name)),
+            block_start_string="<%",
+            block_end_string="%>",
+            variable_start_string="<<",
+            variable_end_string=">>",
+            comment_start_string="<#",
+            comment_end_string="#>",
+            undefined=jinja2.StrictUndefined,
+        )
+        template = env.get_template("cv.tex.j2")
+        rendered = template.render(cv=_SAMPLE_CV)
+    except jinja2.TemplateSyntaxError as e:
+        return {"valid": False, "errors": [f"Jinja2 syntax error: {e}"]}
+    except jinja2.UndefinedError as e:
+        return {"valid": False, "errors": [f"Jinja2 undefined variable: {e}"]}
+    except Exception as e:
+        return {"valid": False, "errors": [f"Jinja2 render error: {e}"]}
+
+    # Stage 2: pdflatex compilation
+    with tempfile.TemporaryDirectory() as tmpdir:
+        tex_path = Path(tmpdir) / "cv.tex"
+        tex_path.write_text(rendered)
+        try:
+            result = subprocess.run(
+                ["pdflatex", "-interaction=nonstopmode", "cv.tex"],
+                cwd=tmpdir,
+                capture_output=True,
+                timeout=30,
+                text=True,
+            )
+        except subprocess.TimeoutExpired:
+            return {"valid": False, "errors": ["pdflatex timed out after 30 seconds"]}
+        except FileNotFoundError:
+            return {"valid": False, "errors": ["pdflatex not found — install TeX Live or MiKTeX"]}
+
+        if result.returncode != 0:
+            error_lines = [line for line in result.stdout.splitlines() if line.startswith("!")]
+            errors = error_lines or [line for line in result.stderr.splitlines() if line.strip()]
+            return {"valid": False, "errors": errors}
+
+    return {"valid": True, "errors": []}
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    for template_dir in sorted(TEMPLATES_DIR.iterdir()):
+        if template_dir.is_dir() and (template_dir / "cv.tex.j2").exists():
+            _template_validation_cache[template_dir.name] = _validate_template(template_dir.name)
+    yield
+
+
+app = FastAPI(lifespan=lifespan)
 
 
 class CVRequest(BaseModel):
@@ -217,7 +296,22 @@ async def list_templates():
         d.name for d in TEMPLATES_DIR.iterdir()
         if d.is_dir() and (d / "cv.tex.j2").exists()
     )
-    return {"templates": templates}
+    return {
+        "templates": templates,
+        "validation": {
+            name: _template_validation_cache.get(name, {"valid": None, "errors": []})
+            for name in templates
+        },
+    }
+
+
+@app.post("/api/templates/{name}/validate")
+async def validate_template(name: str):
+    if not _template_exists(name):
+        return JSONResponse(status_code=404, content={"error": "not_found", "message": f"Template '{name}' not found"})
+    result = _validate_template(name)
+    _template_validation_cache[name] = result
+    return result
 
 
 # Serve frontend — must come after all API routes

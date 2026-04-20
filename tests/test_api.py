@@ -94,7 +94,38 @@ async def test_get_templates(app):
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         resp = await client.get("/api/templates")
     assert resp.status_code == 200
-    assert "classic" in resp.json()["templates"]
+    data = resp.json()
+    assert "classic" in data["templates"]
+    assert "awesomecv" in data["templates"]
+    assert "validation" in data
+
+
+async def test_validate_template_classic(app):
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        resp = await client.post("/api/templates/classic/validate")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "valid" in data
+    assert "errors" in data
+    assert isinstance(data["errors"], list)
+
+
+async def test_validate_template_not_found(app):
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        resp = await client.post("/api/templates/nonexistent/validate")
+    assert resp.status_code == 404
+
+
+async def test_get_templates_includes_validation(app):
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        resp = await client.get("/api/templates")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "templates" in data
+    assert "classic" in data["templates"]
+    assert "validation" in data
+    assert "classic" in data["validation"]
+    assert "valid" in data["validation"]["classic"]
 
 
 VALID_YAML_FULL = """
