@@ -97,8 +97,6 @@ async def test_get_templates(app):
     assert "classic" in resp.json()["templates"]
 
 
-import os
-
 VALID_YAML_FULL = """
 personal:
   name: Alice
