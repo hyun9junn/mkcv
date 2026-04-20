@@ -121,6 +121,20 @@ const sectionsUI = (() => {
       row.appendChild(btnReset);
       panel.appendChild(row);
     }
+
+    const btnResetOrder = document.createElement("button");
+    btnResetOrder.className = "btn-reset-order";
+    btnResetOrder.textContent = "↺ Reset Order";
+    btnResetOrder.title = "Reset section order and visibility to defaults";
+    btnResetOrder.addEventListener("click", () => {
+      sectionsState.resetAll();
+      buildPanel();
+      preview.refresh(
+        sectionsState.getOrderedFilteredYaml(app.state.yaml),
+        app.state.template
+      );
+    });
+    panel.appendChild(btnResetOrder);
   }
 
   const modal = document.getElementById("reset-modal");
