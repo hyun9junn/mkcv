@@ -87,11 +87,12 @@
       gap: 8px;
       padding: 5px 0;
       border-bottom: 1px solid #222;
+      border-top: 2px solid transparent;
       user-select: none;
     }
     .section-row:last-child { border-bottom: none; }
     .section-row.dragging { opacity: .4; }
-    .section-row.drag-over { border-top: 2px solid #60a5fa; }
+    .section-row.drag-over { border-top-color: #60a5fa; }
     .drag-handle { color: #555; cursor: grab; font-size: 14px; padding: 0 2px; line-height: 1; }
     .drag-handle:active { cursor: grabbing; }
     .section-row.hidden-section .section-label { color: #666; font-style: italic; }
