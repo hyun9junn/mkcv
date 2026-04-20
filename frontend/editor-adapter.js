@@ -16,6 +16,10 @@ class CodeMirrorAdapter {
     return this._editor.getValue();
   }
 
+  setValue(str) {
+    this._editor.setValue(str);
+  }
+
   onChange(callback) {
     this._editor.on("change", () => callback(this.getValue()));
   }
