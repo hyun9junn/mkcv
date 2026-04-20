@@ -81,6 +81,7 @@ const sectionsUI = (() => {
         e.dataTransfer.effectAllowed = "move";
       });
       row.addEventListener("dragend", () => {
+        dragSrcKey = null;
         row.classList.remove("dragging");
         panel
           .querySelectorAll(".section-row")
@@ -104,6 +105,7 @@ const sectionsUI = (() => {
         ord.splice(fromIdx, 1);
         ord.splice(toIdx, 0, dragSrcKey);
         sectionsState.setOrder(ord);
+        dragSrcKey = null;
         buildPanel();
       });
 
@@ -123,7 +125,11 @@ const sectionsUI = (() => {
   document.addEventListener("DOMContentLoaded", () => {
     header.addEventListener("click", togglePanel);
     buildPanel();
-    window.editorAdapter.onChange(() => buildPanel());
+    let buildTimer = null;
+    window.editorAdapter.onChange(() => {
+      clearTimeout(buildTimer);
+      buildTimer = setTimeout(buildPanel, 300);
+    });
   });
 
   return { buildPanel };
