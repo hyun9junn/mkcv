@@ -166,6 +166,40 @@ const sectionsState = (() => {
     }
   }
 
+  function getCustomDefs(rawYaml) {
+    try {
+      const parsed = jsyaml.load(rawYaml);
+      if (!parsed || !Array.isArray(parsed.custom_sections)) return {};
+      const defs = {};
+      for (const cs of parsed.custom_sections) {
+        if (cs && cs.key && cs.title) {
+          defs[cs.key] = { label: cs.title, yaml: null };
+        }
+      }
+      return defs;
+    } catch {
+      return {};
+    }
+  }
+
+  function getExpandedPresentKeys(rawYaml) {
+    try {
+      const parsed = jsyaml.load(rawYaml);
+      if (!parsed || typeof parsed !== "object") return [];
+      const keys = Object.keys(parsed).filter((k) => k !== "personal" && k !== "custom_sections");
+      const customDefs = getCustomDefs(rawYaml);
+      return [...keys, ...Object.keys(customDefs)];
+    } catch {
+      return [];
+    }
+  }
+
+  function getDef(key, rawYaml) {
+    if (SECTION_DEFS[key]) return SECTION_DEFS[key];
+    const customDefs = getCustomDefs(rawYaml);
+    return customDefs[key] || null;
+  }
+
   function getFilteredYaml(rawYaml) {
     try {
       const parsed = jsyaml.load(rawYaml);
@@ -186,12 +220,26 @@ const sectionsState = (() => {
       const parsed = jsyaml.load(rawYaml);
       if (!parsed || typeof parsed !== "object") return rawYaml;
       const { hidden, order } = _getState();
+      const customDefs = getCustomDefs(rawYaml);
+      const customKeys = Object.keys(customDefs);
+
+      const anyCustomVisible = customKeys.some((k) => !hidden.includes(k));
+
       const ordered = {};
       for (const key of order) {
-        if (key in parsed && !hidden.includes(key)) ordered[key] = parsed[key];
+        if (key in parsed && key !== "custom_sections" && !hidden.includes(key)) {
+          ordered[key] = parsed[key];
+        }
+      }
+      if (anyCustomVisible && Array.isArray(parsed.custom_sections)) {
+        ordered.custom_sections = parsed.custom_sections.filter(
+          (cs) => cs && cs.key && !hidden.includes(cs.key)
+        );
       }
       for (const [k, v] of Object.entries(parsed)) {
-        if (!(k in ordered) && !hidden.includes(k)) ordered[k] = v;
+        if (!(k in ordered) && !hidden.includes(k) && k !== "personal" && k !== "custom_sections") {
+          ordered[k] = v;
+        }
       }
       return jsyaml.dump(ordered, { lineWidth: -1 });
     } catch {
@@ -204,10 +252,11 @@ const sectionsState = (() => {
       const parsed = jsyaml.load(rawYaml);
       if (!parsed || typeof parsed !== "object") return [];
       const { hidden, order } = _getState();
-      const present = new Set(Object.keys(parsed));
-      const result = order.filter((k) => present.has(k) && !hidden.includes(k) && k !== "personal");
-      for (const k of present) {
-        if (!result.includes(k) && !hidden.includes(k) && k !== "personal") result.push(k);
+      const expandedKeys = getExpandedPresentKeys(rawYaml);
+      const present = new Set(expandedKeys);
+      const result = order.filter((k) => present.has(k) && !hidden.includes(k));
+      for (const k of expandedKeys) {
+        if (!result.includes(k) && !hidden.includes(k)) result.push(k);
       }
       return result;
     } catch {
@@ -257,6 +306,9 @@ const sectionsState = (() => {
     getFilteredYaml,
     getOrderedFilteredYaml,
     getVisibleOrder,
+    getCustomDefs,
+    getExpandedPresentKeys,
+    getDef,
     resetSectionYaml,
     restoreSectionYaml,
     resetAll,
