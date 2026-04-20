@@ -144,7 +144,8 @@
           const text = editor.getLine(i);
           if (text.match(/^personal:/)) { inside = true; continue; }
           if (inside) {
-            if (!text.match(/^  /) || text.trim() === "") { inside = false; continue; }
+            if (text.trim() === "") continue;             // blank line — stay inside block
+            if (!text.match(/^  /)) { inside = false; continue; }  // dedented — exit block
             const m = text.match(/^  (\w[\w_]*):/);
             if (m) siblings.add(m[1]);
           }
@@ -247,7 +248,7 @@
     // Auto-trigger on every insertion keystroke when in key position
     cmEditor.on("change", (editor, change) => {
       if (!schema) return;
-      if (change.origin === "+delete" || change.origin === "paste") return;
+      if (change.origin === "+delete" || change.origin === "paste" || change.origin === "setValue") return;
       setTimeout(() => {
         if (detectContext(editor)) {
           editor.showHint({ hint: yamlHint, completeSingle: false });

@@ -19,7 +19,7 @@
   white-space: pre;
 }
 
-.CodeMirror-hint-active {
+li.CodeMirror-hint-active {
   background: #2979ff22;
   color: #82aaff;
 }
