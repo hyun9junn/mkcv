@@ -8,7 +8,7 @@ Write your CV once in `mycv.yaml` — get a live PDF preview, export to Markdown
 
 - **Live PDF preview** — the preview pane renders the actual compiled PDF of the selected template in real time (1.5s debounce)
 - **File sync** — editor loads `mycv.yaml` on startup and auto-saves every 1s as you type
-- **Section toggle panel** — collapsible checklist above the editor; enable/disable any section to insert or remove its YAML scaffold
+- **Section management panel** — sidebar panel for managing sections: hide/show any section from PDF output (YAML on disk unchanged), drag-and-drop to reorder the panel display, and Reset any section to its default template scaffold (with confirmation modal + 5s undo toast); all state is persisted in localStorage
 - **Two LaTeX templates** — `classic` (clean, minimal) and `awesomecv` (colored headings, Hugging Face link support)
 - **Template validation** — validates Jinja2 rendering + pdflatex compilation; invalid templates are marked ⚠ in the dropdown
 - **Three export formats** — Markdown (`.md`), LaTeX (`.tex`), PDF
