@@ -78,21 +78,39 @@
 
     #preview-pane {
       width: 50%;
-      overflow-y: auto;
-      padding: 24px 32px;
-      background: #fff;
-      color: #111;
-      font-family: Georgia, serif;
-      font-size: 15px;
-      line-height: 1.7;
+      position: relative;
+      overflow: hidden;
+      background: #555;
     }
 
-    #preview-pane h1 { font-size: 1.8rem; margin-bottom: 4px; }
-    #preview-pane h2 { font-size: 1.1rem; border-bottom: 1px solid #ccc; margin: 20px 0 8px; padding-bottom: 4px; text-transform: uppercase; letter-spacing: 0.05em; }
-    #preview-pane h3 { font-size: 1rem; margin: 12px 0 2px; }
-    #preview-pane ul { padding-left: 20px; margin: 4px 0; }
-    #preview-pane p { margin: 4px 0; }
-    #preview-pane a { color: #1a56db; }
+    #preview-pane iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      display: block;
+    }
+
+    #preview-loading {
+      display: none;
+      position: absolute;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      color: #fff;
+      font-size: 0.9rem;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #preview-error {
+      display: none;
+      padding: 24px 32px;
+      background: #fff;
+      color: #c00;
+      font-family: monospace;
+      font-size: 0.8rem;
+      overflow-y: auto;
+      height: 100%;
+    }
   </style>
 </head>
 <body>
@@ -106,7 +124,11 @@
   <div id="error-banner"></div>
   <div id="main">
     <div id="editor-pane"></div>
-    <div id="preview-pane"><em>Loading preview...</em></div>
+    <div id="preview-pane">
+      <iframe id="preview-frame" title="CV Preview"></iframe>
+      <div id="preview-loading">Generating preview…</div>
+      <div id="preview-error"></div>
+    </div>
   </div>
 
   <script src="app.js"></script>

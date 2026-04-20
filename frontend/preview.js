@@ -1,32 +1,67 @@
 const preview = (() => {
   const pane = document.getElementById("preview-pane");
+  const frame = document.getElementById("preview-frame");
+  const loading = document.getElementById("preview-loading");
+  const errorEl = document.getElementById("preview-error");
   let timer = null;
+  let currentBlobUrl = null;
+
+  function showLoading() {
+    loading.style.display = "flex";
+    errorEl.style.display = "none";
+  }
+
+  function showError(message, details) {
+    loading.style.display = "none";
+    errorEl.style.display = "block";
+    const detailHtml = details && details.length
+      ? "<pre>" + details.map(d => d.replace(/&/g,"&amp;").replace(/</g,"&lt;")).join("\n") + "</pre>"
+      : "";
+    errorEl.innerHTML = `<strong>Preview error:</strong> ${message}${detailHtml}`;
+  }
+
+  function showFrame(url) {
+    loading.style.display = "none";
+    errorEl.style.display = "none";
+    if (currentBlobUrl) URL.revokeObjectURL(currentBlobUrl);
+    currentBlobUrl = url;
+    frame.src = url;
+  }
 
   async function refresh(yaml, template) {
+    showLoading();
     try {
-      const resp = await fetch("/api/preview", {
+      const resp = await fetch("/api/preview/pdf", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ yaml, template }),
       });
       if (!resp.ok) {
         const err = await resp.json();
-        pane.innerHTML = `<p style="color:#c00"><strong>Preview error:</strong> ${err.message}</p>`;
+        showError(err.message, err.details);
         return;
       }
-      const { markdown } = await resp.json();
-      pane.innerHTML = marked.parse(markdown);
+      const blob = await resp.blob();
+      showFrame(URL.createObjectURL(blob));
     } catch {
-      pane.innerHTML = `<p style="color:#c00">Preview unavailable</p>`;
+      showError("Preview unavailable — network error", []);
     }
   }
 
   document.addEventListener("DOMContentLoaded", () => {
     window.editorAdapter.onChange(() => {
       clearTimeout(timer);
-      timer = setTimeout(() => refresh(app.state.yaml, app.state.template), 500);
+      timer = setTimeout(() => {
+        if (app.state.yaml.trim()) {
+          refresh(app.state.yaml, app.state.template);
+        }
+      }, 1500);
     });
-    setTimeout(() => refresh(app.state.yaml, app.state.template), 100);
+    setTimeout(() => {
+      if (app.state.yaml.trim()) {
+        refresh(app.state.yaml, app.state.template);
+      }
+    }, 200);
   });
 
   return { refresh };
