@@ -9,7 +9,15 @@ class CodeMirrorAdapter {
       tabSize: 2,
       indentWithTabs: false,
       autofocus: true,
+      extraKeys: {
+        Tab: _tabOrComplete,
+        "Shift-Tab": _shiftTab,
+      },
     });
+
+    if (typeof initYamlAutocomplete === "function") {
+      initYamlAutocomplete(this._editor);
+    }
   }
 
   getValue() {
@@ -22,6 +30,44 @@ class CodeMirrorAdapter {
 
   onChange(callback) {
     this._editor.on("change", () => callback(this.getValue()));
+  }
+}
+
+// Tab: fast-accept if one candidate, open dropdown if many, else insert 2 spaces.
+// When show-hint menu is open, show-hint's keymap intercepts Tab first — this
+// function only runs when the menu is closed.
+function _tabOrComplete(editor) {
+  const hint = typeof yamlHint === "function" ? yamlHint(editor) : null;
+  if (hint && hint.list.length === 1) {
+    // Fast-accept: exactly one candidate
+    const completion = hint.list[0];
+    editor.replaceRange(completion.text, hint.from, hint.to);
+    return;
+  }
+  if (hint && hint.list.length > 1) {
+    editor.showHint({ hint: yamlHint, completeSingle: false });
+    return;
+  }
+  // No completions available: YAML-safe indent (spaces only, never \t)
+  editor.replaceSelection("  ");
+}
+
+// Shift+Tab: dismiss hint menu if open, else remove up to 2 leading spaces.
+function _shiftTab(editor) {
+  if (editor.state.completionActive) {
+    editor.state.completionActive.close(); // show-hint internal API
+    return;
+  }
+  const cursor = editor.getCursor();
+  const lineText = editor.getLine(cursor.line);
+  const spaces = (lineText.match(/^ */) || [""])[0].length;
+  const remove = Math.min(spaces, 2);
+  if (remove > 0) {
+    editor.replaceRange(
+      "",
+      { line: cursor.line, ch: 0 },
+      { line: cursor.line, ch: remove }
+    );
   }
 }
 
