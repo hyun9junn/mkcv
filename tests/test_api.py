@@ -225,6 +225,7 @@ async def test_schema_required_field_star_not_in_keys(app):
     """Required annotation is metadata only — all keys appear in 'keys' list."""
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         resp = await client.get("/api/schema")
+    assert resp.status_code == 200
     data = resp.json()
     for context_key, ctx in data.items():
         for req_field in ctx.get("required", []):
