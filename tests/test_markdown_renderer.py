@@ -89,3 +89,13 @@ def test_markdown_extracurricular_without_highlights():
     output = MarkdownRenderer().render(cv)
     assert "Running Club" in output
     assert "SNU" in output
+
+
+def test_markdown_award_with_description():
+    from backend.models import CVData, PersonalInfo
+    cv = CVData(
+        personal=PersonalInfo(name="Test", email="t@t.com"),
+        awards=[AwardItem(name="Award", description="Awarded for excellence.")],
+    )
+    output = MarkdownRenderer().render(cv)
+    assert "Awarded for excellence." in output
