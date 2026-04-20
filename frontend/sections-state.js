@@ -113,7 +113,11 @@ const sectionsState = (() => {
   }
 
   function _save(state) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    } catch {
+      // Storage unavailable (quota exceeded or private browsing); operate statelessly.
+    }
   }
 
   function _getState() {
@@ -144,6 +148,7 @@ const sectionsState = (() => {
   }
 
   function setOrder(newOrder) {
+    if (!Array.isArray(newOrder)) return;
     const state = _getState();
     state.order = newOrder;
     _save(state);
@@ -178,6 +183,7 @@ const sectionsState = (() => {
     try {
       const parsed = jsyaml.load(currentYaml);
       if (!parsed || typeof parsed !== "object") return null;
+      if (!SECTION_DEFS[key]) return null;
       const defaultParsed = jsyaml.load(SECTION_DEFS[key].yaml);
       if (!defaultParsed) return null;
       const previousYaml = jsyaml.dump({ [key]: parsed[key] }, { lineWidth: -1 });
