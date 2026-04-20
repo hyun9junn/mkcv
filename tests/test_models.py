@@ -45,9 +45,13 @@ def test_experience_requires_title_company_start_date():
     with pytest.raises(ValidationError):
         ExperienceItem(company="Corp", start_date="2020")  # missing title
 
-def test_education_requires_degree_institution_year():
+def test_education_requires_degree_and_institution():
     with pytest.raises(ValidationError):
         EducationItem(institution="MIT", year="2020")  # missing degree
+
+def test_education_year_is_optional():
+    ed = EducationItem(degree="B.S. CS", institution="MIT")
+    assert ed.year is None
 
 def test_project_requires_name_and_description():
     with pytest.raises(ValidationError):
@@ -86,6 +90,7 @@ def test_extracurricular_item_required_title():
 def test_extracurricular_item_all_fields():
     act = ExtracurricularItem(title="Chess Club", organization="SNU", date="2023", highlights=["Won championship"])
     assert act.organization == "SNU"
+    assert act.date == "2023"
     assert act.highlights == ["Won championship"]
 
 def test_extracurricular_requires_title():
@@ -122,3 +127,17 @@ def test_cvdata_model_dump_includes_new_sections(sample_cv):
     data = sample_cv.model_dump()
     assert "awards" in data
     assert "extracurricular" in data
+
+def test_experience_item_optional_location():
+    item = ExperienceItem(title="Dev", company="Corp", start_date="2020", location="Seoul")
+    assert item.location == "Seoul"
+
+def test_education_item_date_range():
+    ed = EducationItem(degree="B.S. CS", institution="MIT", start_date="2020", end_date="2024")
+    assert ed.start_date == "2020"
+    assert ed.end_date == "2024"
+    assert ed.year is None
+
+def test_project_item_optional_date():
+    proj = ProjectItem(name="Tool", description="A tool", date="2024")
+    assert proj.date == "2024"
