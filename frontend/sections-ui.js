@@ -136,7 +136,7 @@ const sectionsUI = (() => {
   }
 
   function showToast(label, key, previousSectionYaml) {
-    clearTimeout(toastTimer);
+    hideToast();
     pendingUndo = { key, previousSectionYaml };
     toastMsg.textContent = `${label} reset`;
     toast.style.display = "flex";
@@ -160,6 +160,7 @@ const sectionsUI = (() => {
 
   function showResetModal(key) {
     const def = sectionsState.SECTION_DEFS[key];
+    if (!def) return;
     modalTitle.textContent = `Reset ${def.label}?`;
     modal.style.display = "flex";
 
@@ -178,13 +179,22 @@ const sectionsUI = (() => {
       cleanup();
     }
 
+    function onBackdrop(e) {
+      if (e.target === modal) {
+        modal.style.display = "none";
+        cleanup();
+      }
+    }
+
     function cleanup() {
       modalConfirm.removeEventListener("click", onConfirm);
       modalCancel.removeEventListener("click", onCancel);
+      modal.removeEventListener("click", onBackdrop);
     }
 
     modalConfirm.addEventListener("click", onConfirm);
     modalCancel.addEventListener("click", onCancel);
+    modal.addEventListener("click", onBackdrop);
   }
 
   document.addEventListener("DOMContentLoaded", () => {
@@ -194,9 +204,6 @@ const sectionsUI = (() => {
     window.editorAdapter.onChange(() => {
       clearTimeout(buildTimer);
       buildTimer = setTimeout(buildPanel, 300);
-    });
-    modal.addEventListener("click", (e) => {
-      if (e.target === modal) modal.style.display = "none";
     });
   });
 
