@@ -91,4 +91,30 @@
 <% for lang in cv.languages %>\textbf{<< lang.language >>:} << lang.proficiency >><% if not loop.last %> \quad <% endif %><% endfor %>
 <% endif %>
 
+<% if cv.awards %>
+\section{Awards}
+<% for award in cv.awards %>
+\textbf{<< award.name >>}<% if award.date %> \hfill << award.date >><% endif %>\\
+<% if award.issuer %>\textit{<< award.issuer >>}\\<% endif %>
+<% if award.description %><< award.description >>\\<% endif %>
+<% if not loop.last %>\vspace{2pt}<% endif %>
+<% endfor %>
+<% endif %>
+
+<% if cv.extracurricular %>
+\section{Extracurricular Activities}
+<% for act in cv.extracurricular %>
+\textbf{<< act.title >>}<% if act.date %> \hfill << act.date >><% endif %>\\
+<% if act.organization %>\textit{<< act.organization >>}\\<% endif %>
+<% if act.highlights %>
+\begin{itemize}[leftmargin=*,noitemsep,topsep=2pt]
+<% for item in act.highlights %>
+  \item << item >>
+<% endfor %>
+\end{itemize}
+<% endif %>
+<% if not loop.last %>\vspace{4pt}<% endif %>
+<% endfor %>
+<% endif %>
+
 \end{document}

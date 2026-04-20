@@ -1,6 +1,7 @@
 import pytest
 from pathlib import Path
 from backend.renderers.latex import LaTeXRenderer
+from backend.models import AwardItem, ExtracurricularItem
 
 TEMPLATES_DIR = Path("backend/templates")
 
@@ -40,3 +41,27 @@ def test_latex_skips_empty_summary(minimal_cv):
 def test_latex_unknown_template_raises(sample_cv):
     with pytest.raises(ValueError, match="unknown_template"):
         LaTeXRenderer(TEMPLATES_DIR, template="nonexistent").render(sample_cv)
+
+
+def test_classic_latex_renders_awards(sample_cv):
+    output = LaTeXRenderer(TEMPLATES_DIR, template="classic").render(sample_cv)
+    assert r"\section{Awards}" in output
+    assert "Best Paper Award" in output
+    assert "ICML" in output
+
+
+def test_classic_latex_renders_extracurricular(sample_cv):
+    output = LaTeXRenderer(TEMPLATES_DIR, template="classic").render(sample_cv)
+    assert r"\section{Extracurricular Activities}" in output
+    assert "Chess Club" in output
+    assert "Won championship" in output
+
+
+def test_classic_latex_skips_empty_awards(minimal_cv):
+    output = LaTeXRenderer(TEMPLATES_DIR, template="classic").render(minimal_cv)
+    assert "Awards" not in output
+
+
+def test_classic_latex_skips_empty_extracurricular(minimal_cv):
+    output = LaTeXRenderer(TEMPLATES_DIR, template="classic").render(minimal_cv)
+    assert "Extracurricular" not in output
