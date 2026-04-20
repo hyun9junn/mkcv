@@ -2,6 +2,7 @@ import pytest
 from backend.models import (
     CVData, PersonalInfo, ExperienceItem, EducationItem,
     SkillGroup, ProjectItem, CertificationItem, PublicationItem, LanguageItem,
+    AwardItem, ExtracurricularItem,
 )
 
 
@@ -40,6 +41,10 @@ def sample_cv():
         certifications=[CertificationItem(name="AWS SAA", issuer="Amazon", date="2022")],
         publications=[PublicationItem(title="Fast APIs", venue="Dev Blog", date="2023")],
         languages=[LanguageItem(language="English", proficiency="Native")],
+        awards=[AwardItem(name="Best Paper Award", issuer="ICML", date="2024")],
+        extracurricular=[
+            ExtracurricularItem(title="Chess Club", organization="SNU", highlights=["Won championship"])
+        ],
     )
 
 

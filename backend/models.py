@@ -10,6 +10,9 @@ class PersonalInfo(BaseModel):
     linkedin: Optional[str] = None
     github: Optional[str] = None
     website: Optional[str] = None
+    huggingface: Optional[str] = None
+    tagline: Optional[str] = None
+    address: Optional[str] = None
 
 
 class ExperienceItem(BaseModel):
@@ -17,14 +20,18 @@ class ExperienceItem(BaseModel):
     company: str
     start_date: str
     end_date: Optional[str] = None
+    location: Optional[str] = None
     highlights: list[str] = []
 
 
 class EducationItem(BaseModel):
     degree: str
     institution: str
-    year: str
+    year: Optional[str] = None
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
     gpa: Optional[str] = None
+    details: Optional[str] = None
 
 
 class SkillGroup(BaseModel):
@@ -36,6 +43,7 @@ class ProjectItem(BaseModel):
     name: str
     description: str
     url: Optional[str] = None
+    date: Optional[str] = None
     highlights: list[str] = []
 
 
@@ -50,11 +58,26 @@ class PublicationItem(BaseModel):
     venue: Optional[str] = None
     date: Optional[str] = None
     url: Optional[str] = None
+    description: Optional[str] = None
 
 
 class LanguageItem(BaseModel):
     language: str
     proficiency: str
+
+
+class AwardItem(BaseModel):
+    name: str
+    issuer: Optional[str] = None
+    date: Optional[str] = None
+    description: Optional[str] = None
+
+
+class ExtracurricularItem(BaseModel):
+    title: str
+    organization: Optional[str] = None
+    date: Optional[str] = None
+    highlights: list[str] = []
 
 
 class CVData(BaseModel):
@@ -67,3 +90,5 @@ class CVData(BaseModel):
     certifications: list[CertificationItem] = []
     publications: list[PublicationItem] = []
     languages: list[LanguageItem] = []
+    awards: list[AwardItem] = []
+    extracurricular: list[ExtracurricularItem] = []
