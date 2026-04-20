@@ -2,7 +2,7 @@ import pytest
 from backend.models import (
     CVData, PersonalInfo, ExperienceItem, EducationItem,
     SkillGroup, ProjectItem, CertificationItem, PublicationItem, LanguageItem,
-    AwardItem, ExtracurricularItem,
+    AwardItem, ExtracurricularItem, CustomSection, CustomBlock,
 )
 
 
@@ -44,6 +44,15 @@ def sample_cv():
         awards=[AwardItem(name="Best Paper Award", issuer="ICML", date="2024")],
         extracurricular=[
             ExtracurricularItem(title="Chess Club", organization="SNU", highlights=["Won championship"])
+        ],
+        custom_sections=[
+            CustomSection(
+                key="talks",
+                title="Selected Talks",
+                content=[
+                    CustomBlock(type="bullets", items=["NeurIPS 2024: Efficient Quantization"]),
+                ],
+            )
         ],
     )
 
