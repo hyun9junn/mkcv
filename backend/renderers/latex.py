@@ -63,7 +63,7 @@ class LaTeXRenderer(BaseRenderer):
         )
         order = section_order if section_order else DEFAULT_SECTION_ORDER
         custom_by_key = {cs.key: cs for cs in cv.custom_sections}
-        font_size = _FONT_SIZE.get(self.font_scale, "11pt")
+        font_size = _FONT_SIZE.get(self.font_scale, _FONT_SIZE["normal"])
         layout_preamble = _build_layout_preamble(self.density)
         return env.get_template("cv.tex.j2").render(
             cv=cv,

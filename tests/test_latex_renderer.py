@@ -1,7 +1,6 @@
 import pytest
 from pathlib import Path
 from backend.renderers.latex import LaTeXRenderer, _build_layout_preamble, _FONT_SIZE
-from backend.models import AwardItem, ExtracurricularItem, CVData, PersonalInfo
 
 TEMPLATES_DIR = Path("backend/templates")
 
@@ -114,10 +113,6 @@ def test_classic_latex_skips_custom_section_not_in_order(sample_cv):
     assert "Selected Talks" not in output
 
 
-def _minimal_cv():
-    return CVData(personal=PersonalInfo(name="Test User", email="t@t.com"))
-
-
 def test_font_size_map():
     assert _FONT_SIZE["small"] == "10pt"
     assert _FONT_SIZE["normal"] == "11pt"
@@ -153,7 +148,7 @@ def test_layout_preamble_unknown_falls_back_to_balanced():
     assert "\\newcommand{\\cvvgap}{4pt}" in p
 
 
-def test_renderer_passes_layout_vars_to_template(tmp_path):
+def test_renderer_passes_layout_vars_to_template(tmp_path, minimal_cv):
     tmpl_dir = tmp_path / "mini"
     tmpl_dir.mkdir()
     (tmpl_dir / "cv.tex.j2").write_text(
@@ -162,12 +157,12 @@ def test_renderer_passes_layout_vars_to_template(tmp_path):
         "\\begin{document}hello\\end{document}"
     )
     renderer = LaTeXRenderer(tmp_path, template="mini", density="compact", font_scale="small")
-    result = renderer.render(_minimal_cv())
+    result = renderer.render(minimal_cv)
     assert "\\documentclass[10pt]{article}" in result
     assert "\\newcommand{\\cvvgap}{2pt}" in result
 
 
-def test_renderer_unknown_font_scale_falls_back(tmp_path):
+def test_renderer_unknown_font_scale_falls_back(tmp_path, minimal_cv):
     tmpl_dir = tmp_path / "mini"
     tmpl_dir.mkdir()
     (tmpl_dir / "cv.tex.j2").write_text(
@@ -176,5 +171,5 @@ def test_renderer_unknown_font_scale_falls_back(tmp_path):
         "\\begin{document}hello\\end{document}"
     )
     renderer = LaTeXRenderer(tmp_path, template="mini", font_scale="huge")
-    result = renderer.render(_minimal_cv())
+    result = renderer.render(minimal_cv)
     assert "\\documentclass[11pt]{article}" in result
