@@ -25,7 +25,7 @@ const preview = (() => {
     errorEl.style.display = "none";
     if (currentBlobUrl) URL.revokeObjectURL(currentBlobUrl);
     currentBlobUrl = url;
-    frame.src = url;
+    frame.src = url + "#toolbar=0";
   }
 
   async function refresh(yaml, template) {
