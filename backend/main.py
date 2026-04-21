@@ -16,7 +16,7 @@ from pydantic import BaseModel
 
 from backend.parsers.yaml_parser import parse_yaml, YAMLParseError, CVValidationError
 from backend.renderers.markdown import MarkdownRenderer
-from backend.renderers.latex import LaTeXRenderer
+from backend.renderers.latex import LaTeXRenderer, _build_layout_preamble, _FONT_SIZE
 from backend.models import (
     CVData, PersonalInfo, ExperienceItem, EducationItem, SkillGroup,
     ProjectItem, CertificationItem, PublicationItem, LanguageItem,
@@ -92,7 +92,13 @@ def _validate_template(name: str) -> dict:
         template = env.get_template("cv.tex.j2")
         default_order = ["summary", "experience", "education", "skills", "projects", "certifications", "publications", "languages", "awards", "extracurricular", "custom-sample"]
         custom_by_key = {cs.key: cs for cs in _SAMPLE_CV.custom_sections}
-        rendered = template.render(cv=_SAMPLE_CV, section_order=default_order, custom_by_key=custom_by_key)
+        rendered = template.render(
+            cv=_SAMPLE_CV,
+            section_order=default_order,
+            custom_by_key=custom_by_key,
+            font_size=_FONT_SIZE["normal"],
+            layout_preamble=_build_layout_preamble("balanced"),
+        )
     except jinja2.TemplateSyntaxError as e:
         return {"valid": False, "errors": [f"Jinja2 syntax error: {e}"]}
     except jinja2.UndefinedError as e:
@@ -143,6 +149,8 @@ class CVRequest(BaseModel):
     yaml: str
     template: str = "classic"
     section_order: Optional[List[str]] = None
+    density: str = "balanced"
+    font_scale: str = "normal"
 
 
 class FileRequest(BaseModel):
@@ -286,7 +294,7 @@ async def export_latex(req: CVRequest):
     if not _template_exists(req.template):
         return _error("unknown_template", f"Template '{req.template}' not found")
 
-    content = LaTeXRenderer(TEMPLATES_DIR, template=req.template).render(cv, req.section_order)
+    content = LaTeXRenderer(TEMPLATES_DIR, template=req.template, density=req.density, font_scale=req.font_scale).render(cv, req.section_order)
     OUTPUT_DIR.mkdir(exist_ok=True)
     (OUTPUT_DIR / "cv.tex").write_text(content)
     return Response(
@@ -308,7 +316,7 @@ async def export_pdf(req: CVRequest):
     if not _template_exists(req.template):
         return _error("unknown_template", f"Template '{req.template}' not found")
 
-    latex_content = LaTeXRenderer(TEMPLATES_DIR, template=req.template).render(cv, req.section_order)
+    latex_content = LaTeXRenderer(TEMPLATES_DIR, template=req.template, density=req.density, font_scale=req.font_scale).render(cv, req.section_order)
 
     with tempfile.TemporaryDirectory() as tmpdir:
         tex_path = Path(tmpdir) / "cv.tex"
@@ -354,7 +362,7 @@ async def preview_pdf(req: CVRequest):
     if not _template_exists(req.template):
         return _error("unknown_template", f"Template '{req.template}' not found")
 
-    latex_content = LaTeXRenderer(TEMPLATES_DIR, template=req.template).render(cv, req.section_order)
+    latex_content = LaTeXRenderer(TEMPLATES_DIR, template=req.template, density=req.density, font_scale=req.font_scale).render(cv, req.section_order)
 
     with tempfile.TemporaryDirectory() as tmpdir:
         tex_path = Path(tmpdir) / "cv.tex"
