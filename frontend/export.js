@@ -10,11 +10,20 @@ const exporter = (() => {
 
   async function exportFile(format) {
     const filename = { markdown: "cv.md", latex: "cv.tex", pdf: "cv.pdf" }[format];
+    const body = {
+      yaml: sectionsState.getOrderedFilteredYaml(app.state.yaml),
+      template: app.state.template,
+      section_order: sectionsState.getVisibleOrder(app.state.yaml),
+    };
+    if (format !== "markdown") {
+      body.density = app.state.density;
+      body.font_scale = app.state.font_scale;
+    }
     try {
       const resp = await fetch(`/api/export/${format}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ yaml: sectionsState.getOrderedFilteredYaml(app.state.yaml), template: app.state.template, section_order: sectionsState.getVisibleOrder(app.state.yaml) }),
+        body: JSON.stringify(body),
       });
       if (!resp.ok) {
         const err = await resp.json();

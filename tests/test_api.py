@@ -261,3 +261,27 @@ async def test_templates_meta_academic_recommended_includes_publications(app):
         resp = await client.get("/api/templates")
     data = resp.json()
     assert "publications" in data["meta"]["academic-research"]["recommended_sections"]
+
+
+async def test_export_latex_with_density_and_font_scale(app):
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        resp = await client.post("/api/export/latex", json={
+            "yaml": VALID_YAML,
+            "template": "classic",
+            "density": "compact",
+            "font_scale": "small",
+        })
+    assert resp.status_code == 200
+    content = resp.text
+    assert "Alice" in content
+    assert "\\documentclass" in content
+
+
+async def test_export_latex_invalid_density_returns_422(app):
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        resp = await client.post("/api/export/latex", json={
+            "yaml": VALID_YAML,
+            "template": "classic",
+            "density": "INVALID",
+        })
+    assert resp.status_code == 422

@@ -257,6 +257,18 @@
     <h1>mkcv</h1>
     <select id="template-select" title="Template"></select>
     <span id="template-recommended-badges" style="font-size:0.75rem;color:#9ca3af;margin-left:8px;"></span>
+    <div id="density-group" style="display:inline-flex;align-items:center;border:1px solid #444;border-radius:4px;overflow:hidden;">
+      <span style="padding:5px 8px;background:#1a1a1a;color:#666;font-size:0.7rem;letter-spacing:0.05em;text-transform:uppercase;border-right:1px solid #444;white-space:nowrap;">Density</span>
+      <button type="button" data-value="comfortable" style="background:#222;color:#aaa;border:none;border-right:1px solid #333;padding:5px 10px;cursor:pointer;font-size:0.8rem;font-family:inherit;">Comfortable</button>
+      <button type="button" data-value="balanced" style="background:#222;color:#aaa;border:none;border-right:1px solid #333;padding:5px 10px;cursor:pointer;font-size:0.8rem;font-family:inherit;">Balanced</button>
+      <button type="button" data-value="compact" style="background:#222;color:#aaa;border:none;padding:5px 10px;cursor:pointer;font-size:0.8rem;font-family:inherit;">Compact</button>
+    </div>
+    <div id="font-scale-group" style="display:inline-flex;align-items:center;border:1px solid #444;border-radius:4px;overflow:hidden;">
+      <span style="padding:5px 8px;background:#1a1a1a;color:#666;font-size:0.7rem;letter-spacing:0.05em;text-transform:uppercase;border-right:1px solid #444;">Font</span>
+      <button type="button" data-value="small" style="background:#222;color:#aaa;border:none;border-right:1px solid #333;padding:5px 10px;cursor:pointer;font-size:0.8rem;font-family:inherit;">S</button>
+      <button type="button" data-value="normal" style="background:#222;color:#aaa;border:none;border-right:1px solid #333;padding:5px 10px;cursor:pointer;font-size:0.8rem;font-family:inherit;">M</button>
+      <button type="button" data-value="large" style="background:#222;color:#aaa;border:none;padding:5px 10px;cursor:pointer;font-size:0.8rem;font-family:inherit;">L</button>
+    </div>
     <button id="btn-validate-template">✓ Validate Template</button>
     <button id="btn-md">↓ Markdown</button>
     <button id="btn-tex">↓ LaTeX</button>
@@ -295,6 +307,7 @@
   </div>
 
   <script src="app.js"></script>
+  <script src="layout-controls.js"></script>
   <script src="lib/show-hint.js"></script>
   <script src="yaml-autocomplete.js"></script>
   <script src="editor-adapter.js"></script>
