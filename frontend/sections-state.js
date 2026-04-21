@@ -226,6 +226,7 @@ const sectionsState = (() => {
       const anyCustomVisible = customKeys.some((k) => !hidden.includes(k));
 
       const ordered = {};
+      if ("personal" in parsed) ordered.personal = parsed.personal;
       for (const key of order) {
         if (key in parsed && key !== "custom_sections" && !hidden.includes(key)) {
           ordered[key] = parsed[key];
@@ -237,7 +238,7 @@ const sectionsState = (() => {
         );
       }
       for (const [k, v] of Object.entries(parsed)) {
-        if (!(k in ordered) && !hidden.includes(k) && k !== "personal" && k !== "custom_sections") {
+        if (!(k in ordered) && !hidden.includes(k) && k !== "custom_sections") {
           ordered[k] = v;
         }
       }
