@@ -1,4 +1,6 @@
-const layoutControls = (() => {
+(() => {
+  // Requires preview and sectionsState to be defined (loaded in later script tags,
+  // but only accessed inside event callbacks after DOMContentLoaded completes).
   const DENSITY_KEY = "mkcv_density";
   const FONT_KEY = "mkcv_font_scale";
 
@@ -11,8 +13,12 @@ const layoutControls = (() => {
   }
 
   document.addEventListener("DOMContentLoaded", () => {
-    const density = localStorage.getItem(DENSITY_KEY) || "balanced";
-    const fontScale = localStorage.getItem(FONT_KEY) || "normal";
+    const VALID_DENSITIES = new Set(["comfortable", "balanced", "compact"]);
+    const VALID_FONT_SCALES = new Set(["small", "normal", "large"]);
+    const storedDensity = localStorage.getItem(DENSITY_KEY);
+    const storedFont = localStorage.getItem(FONT_KEY);
+    const density = VALID_DENSITIES.has(storedDensity) ? storedDensity : "balanced";
+    const fontScale = VALID_FONT_SCALES.has(storedFont) ? storedFont : "normal";
     app.setState({ density, font_scale: fontScale });
 
     const densityGroup = document.getElementById("density-group");
