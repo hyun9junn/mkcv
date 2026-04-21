@@ -87,7 +87,7 @@
 <% if key == 'experience' and cv.experience %>
 \mainsection{Experience}
 <% for job in cv.experience %>
-\cventry{<< job.start_date >> --\\ << job.end_date if job.end_date else "Present" >>}{%
+\cventry{<< job.start_date >> -- << job.end_date if job.end_date else "Present" >>}{%
   \cvrole{<< job.title >>}, \cvorg{<< job.company >>}<% if job.location %> \hfill \cvdate{<< job.location >>}<% endif %>
   <% if job.highlights %>
   \begin{cvitems}
@@ -104,7 +104,7 @@
 <% if key == 'education' and cv.education %>
 \mainsection{Education}
 <% for edu in cv.education %>
-\cventry{<% if edu.year %><< edu.year >><% elif edu.start_date %><< edu.start_date >> --\\ << edu.end_date if edu.end_date else "Present" >><% endif %>}{%
+\cventry{<% if edu.year %><< edu.year >><% elif edu.start_date %><< edu.start_date >> -- << edu.end_date if edu.end_date else "Present" >><% endif %>}{%
   \cvrole{<< edu.degree >>}, \cvorg{<< edu.institution >>}<% if edu.gpa %> \hfill \cvdate{GPA: << edu.gpa >>}<% endif %>
 }
 <% if not loop.last %>\vspace{3pt}<% endif %>
