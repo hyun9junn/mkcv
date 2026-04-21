@@ -1,18 +1,3 @@
 display_name: "Banking"
 description: "ModernCV banking style — two-column header, date-left tabular entries, deep blue accent — finance, consulting, law"
 audience: general
-recommended_sections:
-  - experience
-  - education
-  - skills
-default_section_order:
-  - summary
-  - experience
-  - education
-  - skills
-  - certifications
-  - publications
-  - awards
-  - languages
-  - projects
-  - extracurricular

@@ -247,21 +247,6 @@ async def test_templates_meta_has_display_name(app):
     data = resp.json()
     assert data["meta"]["classic"]["display_name"] == "Classic"
 
-async def test_templates_meta_has_recommended_and_default_order(app):
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-        resp = await client.get("/api/templates")
-    data = resp.json()
-    meta = data["meta"]["classic"]
-    assert "recommended_sections" in meta
-    assert "default_section_order" in meta
-    assert isinstance(meta["default_section_order"], list)
-
-async def test_templates_meta_academic_recommended_includes_publications(app):
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-        resp = await client.get("/api/templates")
-    data = resp.json()
-    assert "publications" in data["meta"]["academic-research"]["recommended_sections"]
-
 
 async def test_export_latex_with_density_and_font_scale(app):
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:

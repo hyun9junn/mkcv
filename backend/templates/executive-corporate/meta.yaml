@@ -1,17 +1,3 @@
 display_name: "Executive Corporate"
 description: "Consulting, finance, senior IC — dense layout, Libertine serif, burgundy accent, two-column header"
 audience: corporate
-recommended_sections:
-  - certifications
-  - languages
-default_section_order:
-  - summary
-  - experience
-  - education
-  - skills
-  - projects
-  - certifications
-  - publications
-  - awards
-  - languages
-  - extracurricular

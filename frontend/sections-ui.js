@@ -3,8 +3,6 @@ const sectionsUI = (() => {
   const header = document.getElementById("sections-header");
   let isPanelOpen = false;
   let dragSrcKey = null;
-  let _pendingTemplateMeta = null;
-
   function togglePanel() {
     isPanelOpen = !isPanelOpen;
     panel.style.display = isPanelOpen ? "flex" : "none";
@@ -134,22 +132,6 @@ const sectionsUI = (() => {
     });
     panel.appendChild(btnResetOrder);
 
-    if (_pendingTemplateMeta && Array.isArray(_pendingTemplateMeta.default_section_order) && _pendingTemplateMeta.default_section_order.length > 0) {
-        const pendingMeta = _pendingTemplateMeta;
-        const btnApply = document.createElement("button");
-        btnApply.className = "btn-apply-order";
-        btnApply.textContent = `↓ Apply ${pendingMeta.display_name || "template"} order`;
-        btnApply.title = `Apply the recommended section order for ${pendingMeta.display_name || "this template"}`;
-        btnApply.addEventListener("click", () => {
-            sectionsState.setOrder([...pendingMeta.default_section_order]);
-            buildPanel();
-            preview.refresh(
-                sectionsState.getOrderedFilteredYaml(app.state.yaml),
-                app.state.template
-            );
-        });
-        panel.appendChild(btnApply);
-    }
   }
 
   const modal = document.getElementById("reset-modal");
@@ -242,12 +224,7 @@ const sectionsUI = (() => {
     });
   });
 
-  function setTemplateMeta(meta) {
-      _pendingTemplateMeta = meta;
-      buildPanel();
-  }
-
-  return { buildPanel, setTemplateMeta };
+  return { buildPanel };
 })();
 
 window.sectionsUI = sectionsUI;

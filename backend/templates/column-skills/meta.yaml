@@ -1,18 +1,3 @@
 display_name: "Column Skills"
 description: "Full-width header, two-column body — experience/education left, skill chips/summary/awards right — engineering, data science"
 audience: general
-recommended_sections:
-  - experience
-  - skills
-  - education
-default_section_order:
-  - experience
-  - education
-  - projects
-  - publications
-  - certifications
-  - extracurricular
-  - summary
-  - skills
-  - awards
-  - languages

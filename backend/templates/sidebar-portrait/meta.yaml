@@ -1,18 +1,3 @@
 display_name: "Sidebar Portrait"
 description: "Dark navy sidebar with circular photo slot, contact info left, all sections right — creative, SWE, product roles"
 audience: general
-recommended_sections:
-  - experience
-  - projects
-  - skills
-default_section_order:
-  - summary
-  - experience
-  - education
-  - projects
-  - skills
-  - publications
-  - certifications
-  - awards
-  - languages
-  - extracurricular

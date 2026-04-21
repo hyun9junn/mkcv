@@ -1,18 +1,3 @@
 display_name: "Modern Startup"
 description: "SWE / AI engineers — airy layout, EB Garamond display, ink-only, no color accents"
 audience: engineering
-recommended_sections:
-  - projects
-  - skills
-  - experience
-default_section_order:
-  - summary
-  - experience
-  - education
-  - projects
-  - skills
-  - publications
-  - certifications
-  - awards
-  - languages
-  - extracurricular

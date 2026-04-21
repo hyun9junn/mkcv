@@ -20,10 +20,6 @@ document.addEventListener("DOMContentLoaded", async () => {
             select.appendChild(opt);
         });
 
-        const initialMeta = allMeta[app.state.template] || null;
-        if (initialMeta) sectionsUI.setTemplateMeta(initialMeta);
-        _updateRecommendedBadges(initialMeta);
-
     } catch {
         const opt = document.createElement("option");
         opt.value = "classic";
@@ -31,23 +27,10 @@ document.addEventListener("DOMContentLoaded", async () => {
         select.appendChild(opt);
     }
 
-    function _updateRecommendedBadges(meta) {
-        const badgesEl = document.getElementById("template-recommended-badges");
-        if (!badgesEl) return;
-        if (!meta || !meta.recommended_sections || meta.recommended_sections.length === 0) {
-            badgesEl.textContent = "";
-            return;
-        }
-        badgesEl.textContent = "✦ " + meta.recommended_sections.join(", ");
-    }
-
     select.addEventListener("change", () => {
         const name = select.value;
         app.setState({ template: name });
         preview.refresh(sectionsState.getFilteredYaml(app.state.yaml), name);
-        const meta = allMeta[name] || null;
-        sectionsUI.setTemplateMeta(meta);
-        _updateRecommendedBadges(meta);
     });
 
     btnValidate.addEventListener("click", async () => {

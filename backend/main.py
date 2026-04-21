@@ -62,8 +62,6 @@ def _load_template_meta(template_dir: Path) -> dict:
             "display_name": template_dir.name.replace("-", " ").title(),
             "description": "",
             "audience": "",
-            "recommended_sections": [],
-            "default_section_order": [],
         }
     with meta_path.open() as f:
         data = _yaml.safe_load(f) or {}
@@ -71,8 +69,6 @@ def _load_template_meta(template_dir: Path) -> dict:
         "display_name": data.get("display_name", template_dir.name),
         "description": data.get("description", ""),
         "audience": data.get("audience", ""),
-        "recommended_sections": data.get("recommended_sections", []),
-        "default_section_order": data.get("default_section_order", []),
     }
 
 
