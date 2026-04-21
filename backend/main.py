@@ -4,7 +4,7 @@ import subprocess
 import tempfile
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Optional, List
+from typing import Literal, Optional, List
 import typing
 
 import jinja2
@@ -149,8 +149,8 @@ class CVRequest(BaseModel):
     yaml: str
     template: str = "classic"
     section_order: Optional[List[str]] = None
-    density: str = "balanced"
-    font_scale: str = "normal"
+    density: Literal["comfortable", "balanced", "compact"] = "balanced"
+    font_scale: Literal["small", "normal", "large"] = "normal"
 
 
 class FileRequest(BaseModel):
@@ -294,7 +294,8 @@ async def export_latex(req: CVRequest):
     if not _template_exists(req.template):
         return _error("unknown_template", f"Template '{req.template}' not found")
 
-    content = LaTeXRenderer(TEMPLATES_DIR, template=req.template, density=req.density, font_scale=req.font_scale).render(cv, req.section_order)
+    renderer = LaTeXRenderer(TEMPLATES_DIR, template=req.template, density=req.density, font_scale=req.font_scale)
+    content = renderer.render(cv, req.section_order)
     OUTPUT_DIR.mkdir(exist_ok=True)
     (OUTPUT_DIR / "cv.tex").write_text(content)
     return Response(
@@ -316,7 +317,8 @@ async def export_pdf(req: CVRequest):
     if not _template_exists(req.template):
         return _error("unknown_template", f"Template '{req.template}' not found")
 
-    latex_content = LaTeXRenderer(TEMPLATES_DIR, template=req.template, density=req.density, font_scale=req.font_scale).render(cv, req.section_order)
+    renderer = LaTeXRenderer(TEMPLATES_DIR, template=req.template, density=req.density, font_scale=req.font_scale)
+    latex_content = renderer.render(cv, req.section_order)
 
     with tempfile.TemporaryDirectory() as tmpdir:
         tex_path = Path(tmpdir) / "cv.tex"
@@ -362,7 +364,8 @@ async def preview_pdf(req: CVRequest):
     if not _template_exists(req.template):
         return _error("unknown_template", f"Template '{req.template}' not found")
 
-    latex_content = LaTeXRenderer(TEMPLATES_DIR, template=req.template, density=req.density, font_scale=req.font_scale).render(cv, req.section_order)
+    renderer = LaTeXRenderer(TEMPLATES_DIR, template=req.template, density=req.density, font_scale=req.font_scale)
+    latex_content = renderer.render(cv, req.section_order)
 
     with tempfile.TemporaryDirectory() as tmpdir:
         tex_path = Path(tmpdir) / "cv.tex"
