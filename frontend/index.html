@@ -49,6 +49,119 @@
 
     #toolbar button:hover { background: #333; }
 
+    #template-select-wrapper {
+      position: relative;
+      display: inline-block;
+    }
+
+    #template-trigger {
+      padding: 5px 12px;
+      border-radius: 4px;
+      border: 1px solid #444;
+      background: #222;
+      color: #eee;
+      font-size: 0.875rem;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    #template-trigger:hover { background: #333; }
+
+    #template-dropdown {
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0;
+      background: #1e1e1e;
+      border: 1px solid #444;
+      border-radius: 6px;
+      min-width: 180px;
+      z-index: 100;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+      overflow: hidden;
+    }
+
+    .tpl-option {
+      padding: 7px 12px;
+      color: #aaa;
+      font-size: 0.8rem;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .tpl-option:hover,
+    .tpl-option.selected {
+      background: #2a2a2a;
+      color: #eee;
+    }
+
+    #template-tooltip {
+      position: absolute;
+      left: calc(100% + 10px);
+      top: 0;
+      background: #2d2d2d;
+      border: 1px solid #555;
+      border-radius: 10px;
+      padding: 10px 14px;
+      width: 220px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+      pointer-events: none;
+      z-index: 101;
+    }
+
+    #template-tooltip::before {
+      content: '';
+      position: absolute;
+      left: -7px;
+      top: 50%;
+      transform: translateY(-50%);
+      border-top: 6px solid transparent;
+      border-bottom: 6px solid transparent;
+      border-right: 7px solid #555;
+    }
+
+    #template-tooltip::after {
+      content: '';
+      position: absolute;
+      left: -6px;
+      top: 50%;
+      transform: translateY(-50%);
+      border-top: 6px solid transparent;
+      border-bottom: 6px solid transparent;
+      border-right: 7px solid #2d2d2d;
+    }
+
+    #tooltip-name {
+      font-weight: 600;
+      color: #eee;
+      font-size: 0.78rem;
+      margin-bottom: 4px;
+    }
+
+    #tooltip-desc {
+      color: #aaa;
+      font-size: 0.73rem;
+      line-height: 1.4;
+    }
+
+    #template-tooltip.flip-left {
+      left: auto;
+      right: calc(100% + 10px);
+    }
+
+    #template-tooltip.flip-left::before {
+      left: auto;
+      right: -7px;
+      border-right: none;
+      border-left: 7px solid #555;
+    }
+
+    #template-tooltip.flip-left::after {
+      left: auto;
+      right: -6px;
+      border-right: none;
+      border-left: 7px solid #2d2d2d;
+    }
+
     #error-banner {
       display: none;
       background: #5c1f1f;
@@ -255,7 +368,14 @@
 <body>
   <div id="toolbar">
     <h1>mkcv</h1>
-    <select id="template-select" title="Template"></select>
+    <div id="template-select-wrapper">
+      <button id="template-trigger" type="button">Template</button>
+      <div id="template-dropdown" hidden></div>
+      <div id="template-tooltip" hidden>
+        <div id="tooltip-name"></div>
+        <div id="tooltip-desc"></div>
+      </div>
+    </div>
     <div id="density-group" style="display:inline-flex;align-items:center;border:1px solid #444;border-radius:4px;overflow:hidden;">
       <span style="padding:5px 8px;background:#1a1a1a;color:#666;font-size:0.7rem;letter-spacing:0.05em;text-transform:uppercase;border-right:1px solid #444;white-space:nowrap;">Density</span>
       <button type="button" data-value="comfortable" style="background:#222;color:#aaa;border:none;border-right:1px solid #333;padding:5px 10px;cursor:pointer;font-size:0.8rem;font-family:inherit;">Comfortable</button>
