@@ -63,7 +63,7 @@
 <% if key == 'education' and cv.education %>
 \section{Education}
 <% for edu in cv.education %>
-\textbf{<< edu.degree >>} \hfill << edu.year >>\\
+\textbf{<< edu.degree >>} \hfill <% if edu.year %><< edu.year >><% elif edu.start_date %><< edu.start_date >> -- << edu.end_date if edu.end_date else "Present" >><% endif %>\\
 \textit{<< edu.institution >>}<% if edu.gpa %> \hfill GPA: << edu.gpa >><% endif %>
 <% if not loop.last %>\vspace{3pt}<% endif %>
 <% endfor %>

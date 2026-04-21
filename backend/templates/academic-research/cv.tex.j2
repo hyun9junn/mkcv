@@ -1,30 +1,50 @@
+% =============================================================
+% MKCV — Template: academic-research
+% Drop-in replacement for cv.tex.j2
+% Audience: graduate school / labs / research internships
+% Compiler: pdfLaTeX (native)
+% Page: A4, balanced, EB Garamond small-caps, indigo rules
+% =============================================================
 \documentclass[11pt,a4paper]{article}
 
-\usepackage[top=1.5cm,bottom=1.5cm,left=2cm,right=2cm]{geometry}
+\usepackage[a4paper,top=1.9cm,bottom=1.9cm,left=2.0cm,right=2.0cm]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{ebgaramond}
+\usepackage{xcolor}
 \usepackage{enumitem}
 \usepackage[hidelinks]{hyperref}
 \usepackage{titlesec}
 \usepackage{microtype}
-\usepackage{xcolor}
-\usepackage{tabularx}
 \usepackage{array}
+\usepackage{parskip}
+\usepackage{etoolbox}
 
+% ---------- palette ------------------------------------------
+\definecolor{cvink}{HTML}{111214}
+\definecolor{cvmute}{HTML}{55575B}
+\definecolor{cvaccent}{HTML}{1E3A8A}   % deep indigo — section rules
+
+\color{cvink}
 \setlength{\parindent}{0pt}
-\setlength{\parskip}{4pt}
+\setlength{\parskip}{3pt}
 \pagestyle{empty}
+\linespread{1.05}
 
-\definecolor{sectioncolor}{HTML}{4B0082}
-\titleformat{\section}{\large\bfseries\scshape\color{sectioncolor}}{}{0em}{}[{\color{sectioncolor}\titlerule[0.6pt]}]
-\titlespacing{\section}{0pt}{12pt}{6pt}
+% ---------- section: small-caps + indigo hairline -------------
+\titleformat{\section}
+  {\normalsize\scshape\color{cvaccent}}
+  {}{0em}{}
+  [\vspace{1pt}{\color{cvaccent}\titlerule[0.5pt]}]
+\titlespacing*{\section}{0pt}{13pt}{4pt}
 
-\newenvironment{cvitems}{%
-  \begin{itemize}[leftmargin=*,noitemsep,topsep=2pt]%
-}{%
-  \end{itemize}%
-}
+\newcommand{\cvrole}[1]{{\bfseries #1}}
+\newcommand{\cvorg}[1]{{\itshape #1}}
+\newcommand{\cvdate}[1]{{\color{cvmute}#1}}
 
-\newcommand{\cvrole}[1]{\textbf{#1}}
-\newcommand{\cvorg}[1]{\textit{#1}}
+\newenvironment{cvitems}
+  {\begin{itemize}[leftmargin=1.2em,labelsep=0.5em,itemsep=1pt,topsep=2pt,parsep=0pt]}
+  {\end{itemize}}
 
 \begin{document}
 
@@ -32,23 +52,23 @@
 % Header
 % =========================
 \begin{center}
-    {\Huge\bfseries << cv.personal.name >>}\\[6pt]
+    {\fontsize{22pt}{26pt}\selectfont\scshape << cv.personal.name >>}\\[4pt]
 
     \normalsize
-    <% set sep = joiner(" $\cdot$ ") %>
+    <% set sep = joiner(" \,\textperiodcentered\, ") %>
     <% if cv.personal.email %><< sep() >>\href{mailto:<< cv.personal.email >>}{<< cv.personal.email >>}<% endif %>
     <% if cv.personal.phone %><< sep() >><< cv.personal.phone >><% endif %>
     <% if cv.personal.location %><< sep() >><< cv.personal.location >><% endif %>
     \\[2pt]
 
-    <% set sep2 = joiner(" $\cdot$ ") %>
+    <% set sep2 = joiner(" \,\textperiodcentered\, ") %>
+    <% if cv.personal.github %><< sep2() >>\href{https://<< cv.personal.github >>}{<< cv.personal.github >>}<% endif %>
     <% if cv.personal.linkedin %><< sep2() >>\href{https://<< cv.personal.linkedin >>}{LinkedIn}<% endif %>
-    <% if cv.personal.github %><< sep2() >>\href{https://<< cv.personal.github >>}{GitHub}<% endif %>
     <% if cv.personal.huggingface %><< sep2() >>\href{https://<< cv.personal.huggingface >>}{Hugging Face}<% endif %>
     <% if cv.personal.website %><< sep2() >>\href{https://<< cv.personal.website >>}{Website}<% endif %>
-    <% if cv.personal.orcid %><< sep2() >>\href{https://<< cv.personal.orcid >>}{ORCID}<% endif %>
-    <% if cv.personal.scholar %><< sep2() >>\href{https://<< cv.personal.scholar >>}{Scholar}<% endif %>
 \end{center}
+\vspace{2pt}
+{\color{cvaccent}\hrule height 0.5pt}
 
 % =========================
 % Sections
@@ -59,14 +79,49 @@
 << cv.summary >>
 <% endif %>
 
+<% if key == 'education' and cv.education %>
+\section{Education}
+<% for edu in cv.education %>
+\cvrole{<< edu.institution >>} \hfill \cvdate{<% if edu.year %><< edu.year >><% elif edu.start_date %><< edu.start_date >> -- << edu.end_date if edu.end_date else "Present" >><% endif %>}\\
+\cvorg{<< edu.degree >>}<% if edu.gpa %> \hfill \cvdate{GPA: << edu.gpa >>}<% endif %>
+<% if not loop.last %>\vspace{4pt}<% endif %>
+<% endfor %>
+<% endif %>
+
 <% if key == 'experience' and cv.experience %>
-\section{Experience}
+\section{Research \& Professional Experience}
 <% for job in cv.experience %>
-\textbf{<< job.title >>} \hfill << job.start_date >> -- << job.end_date if job.end_date else "Present" >>\\
-\textit{<< job.company >>}
+\cvrole{<< job.company >>} \hfill \cvdate{<< job.start_date >> -- << job.end_date if job.end_date else "Present" >>}\\
+\cvorg{<< job.title >>}
 <% if job.highlights %>
 \begin{cvitems}
 <% for item in job.highlights %>
+    \item << item >>
+<% endfor %>
+\end{cvitems}
+<% endif %>
+<% if not loop.last %>\vspace{5pt}<% endif %>
+<% endfor %>
+<% endif %>
+
+<% if key == 'publications' and cv.publications %>
+\section{Publications}
+\begin{enumerate}[leftmargin=1.8em,itemsep=4pt,topsep=2pt,label=\textup{[\arabic*]}]
+<% for pub in cv.publications %>
+  \item <% if pub.url %>\href{https://<< pub.url >>}{\textbf{<< pub.title >>}}<% else %>\textbf{<< pub.title >>}<% endif %>.
+  <% if pub.authors %><< pub.authors | join(", ") >>. <% endif %>
+  <% if pub.venue %>\textit{<< pub.venue >>}<% endif %><% if pub.date %>, << pub.date >><% endif %>.
+<% endfor %>
+\end{enumerate}
+<% endif %>
+
+<% if key == 'projects' and cv.projects %>
+\section{Projects}
+<% for proj in cv.projects %>
+\cvrole{<% if proj.url %>\href{https://<< proj.url >>}{<< proj.name >>}<% else %><< proj.name >><% endif %>} --- \cvorg{<< proj.description >>}
+<% if proj.highlights %>
+\begin{cvitems}
+<% for item in proj.highlights %>
     \item << item >>
 <% endfor %>
 \end{cvitems}
@@ -75,73 +130,44 @@
 <% endfor %>
 <% endif %>
 
-<% if key == 'education' and cv.education %>
-\section{Education}
-<% for edu in cv.education %>
-\textbf{<< edu.degree >>} \hfill << edu.year >>\\
-\textit{<< edu.institution >>}<% if edu.gpa %> \hfill GPA: << edu.gpa >><% endif %>
-<% if not loop.last %>\vspace{3pt}<% endif %>
-<% endfor %>
-<% endif %>
-
 <% if key == 'skills' and cv.skills %>
-\section{Skills}
+\section{Technical Skills}
+\begin{tabular}{@{}p{0.22\textwidth}@{\hspace{6pt}}p{0.74\textwidth}@{}}
 <% for group in cv.skills %>
-\textbf{<< group.category >>:} << group.items | join(", ") >>\\
+\cvrole{<< group.category >>} & << group.items | join(", ") >> \\[2pt]
 <% endfor %>
+\end{tabular}
 <% endif %>
 
-<% if key == 'projects' and cv.projects %>
-\section{Projects}
-<% for proj in cv.projects %>
-\textbf{<% if proj.url %>\href{https://<< proj.url >>}{<< proj.name >>}<% else %><< proj.name >><% endif %>} --- << proj.description >>
-<% if proj.highlights %>
-\begin{cvitems}
-<% for item in proj.highlights %>
-    \item << item >>
+<% if key == 'awards' and cv.awards %>
+\section{Awards \& Honors}
+\begin{itemize}[leftmargin=1.2em,itemsep=2pt,topsep=2pt]
+<% for award in cv.awards %>
+  \item \cvrole{<< award.name >>}<% if award.issuer %>, \cvorg{<< award.issuer >>}<% endif %><% if award.date %> \hfill \cvdate{<< award.date >>}<% endif %>
+  <% if award.description %>\\{\small << award.description >>}<% endif %>
 <% endfor %>
-\end{cvitems}
-<% endif %>
-<% if not loop.last %>\vspace{3pt}<% endif %>
-<% endfor %>
+\end{itemize}
 <% endif %>
 
 <% if key == 'certifications' and cv.certifications %>
 \section{Certifications}
+\begin{itemize}[leftmargin=1.2em,itemsep=2pt,topsep=2pt]
 <% for cert in cv.certifications %>
-\textbf{<< cert.name >>}<% if cert.issuer %> --- << cert.issuer >><% endif %><% if cert.date %> \hfill << cert.date >><% endif %>\\
-<% if not loop.last %>\vspace{2pt}<% endif %>
+  \item \cvrole{<< cert.name >>}<% if cert.issuer %>, << cert.issuer >><% endif %><% if cert.date %> \hfill \cvdate{<< cert.date >>}<% endif %>
 <% endfor %>
-<% endif %>
-
-<% if key == 'publications' and cv.publications %>
-\section{Publications}
-<% for pub in cv.publications %>
-<% if pub.url %>\href{https://<< pub.url >>}{\textbf{<< pub.title >>}}<% else %>\textbf{<< pub.title >>}<% endif %><% if pub.venue %> --- << pub.venue >><% endif %><% if pub.date %> \hfill << pub.date >><% endif %>\\
-<% if not loop.last %>\vspace{2pt}<% endif %>
-<% endfor %>
+\end{itemize}
 <% endif %>
 
 <% if key == 'languages' and cv.languages %>
 \section{Languages}
-<% for lang in cv.languages %>\textbf{<< lang.language >>:} << lang.proficiency >><% if not loop.last %> \quad <% endif %><% endfor %>
-<% endif %>
-
-<% if key == 'awards' and cv.awards %>
-\section{Awards}
-<% for award in cv.awards %>
-\textbf{<< award.name >>}<% if award.date %> \hfill << award.date >><% endif %>\\
-<% if award.issuer %>\textit{<< award.issuer >>}\\<% endif %>
-<% if award.description %><< award.description >>\\<% endif %>
-<% if not loop.last %>\vspace{2pt}<% endif %>
-<% endfor %>
+<% for lang in cv.languages %>\cvrole{<< lang.language >>}~--~<< lang.proficiency >><% if not loop.last %>\quad\textperiodcentered\quad <% endif %><% endfor %>
 <% endif %>
 
 <% if key == 'extracurricular' and cv.extracurricular %>
-\section{Extracurricular Activities}
+\section{Service \& Activities}
 <% for act in cv.extracurricular %>
-\textbf{<< act.title >>}<% if act.date %> \hfill << act.date >><% endif %>\\
-<% if act.organization %>\textit{<< act.organization >>}\\<% endif %>
+\cvrole{<< act.title >>}<% if act.date %> \hfill \cvdate{<< act.date >>}<% endif %>\\
+<% if act.organization %>\cvorg{<< act.organization >>}\\<% endif %>
 <% if act.highlights %>
 \begin{cvitems}
 <% for item in act.highlights %>
