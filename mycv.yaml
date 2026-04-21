@@ -1,0 +1,119 @@
+personal:
+  name: Alex Jordan
+  email: alex.jordan@example.com
+  phone: "+1-415-555-0192"
+  location: San Francisco, CA
+  linkedin: linkedin.com/in/alexjordan
+  github: github.com/alexjordan
+  website: alexjordan.dev
+
+summary: >
+  Software engineer with 5 years of experience building distributed backend systems
+  and developer tooling. Passionate about performance engineering, open-source
+  contribution, and making complex infrastructure approachable. Previously at two
+  Y Combinator companies; currently focused on reliability and observability tooling.
+
+experience:
+  - title: Senior Software Engineer
+    company: Streamline AI
+    start_date: "2023-04"
+    end_date: null
+    location: San Francisco, CA
+    highlights:
+      - Redesigned the ingestion pipeline to handle 10× peak traffic with no latency regression
+      - Led migration from a monolith to event-driven microservices (Kafka, Go)
+      - Reduced P99 API latency from 420 ms to 95 ms through query optimization and caching
+      - Mentored two junior engineers; introduced structured on-call rotation and runbooks
+
+  - title: Software Engineer
+    company: Heron Data
+    start_date: "2021-07"
+    end_date: "2023-03"
+    location: New York, NY (Remote)
+    highlights:
+      - Built a real-time financial transaction classifier serving 50 M events/day
+      - Owned the Python SDK used by 300+ enterprise customers
+      - Shipped async job queue (Celery + Redis) cutting report generation time by 70%
+      - Contributed to open-source fintech tooling (1.2 k GitHub stars)
+
+  - title: Software Engineering Intern
+    company: Dropbase
+    start_date: "2020-05"
+    end_date: "2020-08"
+    location: San Francisco, CA
+    highlights:
+      - Implemented CSV-to-Postgres bulk import feature used in product launch
+      - Wrote integration tests that caught 12 regressions before release
+
+education:
+  - degree: B.S. Computer Science
+    institution: University of Illinois Urbana-Champaign
+    start_date: "2017"
+    end_date: "2021"
+    gpa: "3.87"
+
+skills:
+  - category: Languages
+    items: [Go, Python, TypeScript, SQL, Bash]
+  - category: Infrastructure
+    items: [Kubernetes, Docker, Terraform, AWS, GCP]
+  - category: Data & Messaging
+    items: [PostgreSQL, Redis, Kafka, Elasticsearch]
+  - category: Observability
+    items: [Prometheus, Grafana, OpenTelemetry, Datadog]
+
+projects:
+  - name: tinyqueue
+    description: Minimal persistent job queue in Go with at-least-once delivery guarantees
+    url: github.com/alexjordan/tinyqueue
+    highlights:
+      - 800+ GitHub stars; used in production by 3 startups
+      - Sub-millisecond enqueue latency under 10 k concurrent workers
+      - Zero external dependencies — single binary deployment
+
+  - name: pg-explain-viewer
+    description: Browser tool for visualizing PostgreSQL EXPLAIN ANALYZE output as flame graphs
+    url: github.com/alexjordan/pg-explain-viewer
+    highlights:
+      - Supports EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) output
+      - Highlights sequential scans and missing index opportunities automatically
+
+certifications:
+  - name: AWS Certified Solutions Architect – Associate
+    issuer: Amazon Web Services
+    date: "2022"
+  - name: Certified Kubernetes Administrator (CKA)
+    issuer: Cloud Native Computing Foundation
+    date: "2023"
+
+publications:
+  - title: "Practical At-Least-Once Delivery Without a Message Broker"
+    venue: Medium – Towards Data Engineering
+    date: "2024"
+    url: medium.com/@alexjordan/at-least-once-delivery
+
+languages:
+  - language: English
+    proficiency: Native
+  - language: Spanish
+    proficiency: Conversational
+
+awards:
+  - name: 1st Place, Cal Hacks 9.0
+    issuer: UC Berkeley
+    date: "2022"
+    description: Built an AI-powered accessibility tool for low-vision users in 36 hours
+
+extracurricular:
+  - title: Open Source Maintainer
+    organization: tinyqueue (personal project)
+    date: "2022–Present"
+    highlights:
+      - Triages issues and reviews PRs from 40+ external contributors
+      - Writes release notes and maintains CHANGELOG for each version
+  - title: Technical Mentor
+    organization: Code2040
+    date: "2023–Present"
+    highlights:
+      - Mentors two Black and Latinx early-career engineers each cohort
+      - Runs monthly system-design mock interview sessions
