@@ -1,0 +1,18 @@
+display_name: "Sidebar Minimal"
+description: "Dark navy sidebar with large stacked name and contact info, clean white main column — engineering, corporate roles"
+audience: general
+recommended_sections:
+  - experience
+  - skills
+  - education
+default_section_order:
+  - summary
+  - experience
+  - education
+  - skills
+  - projects
+  - publications
+  - certifications
+  - awards
+  - languages
+  - extracurricular

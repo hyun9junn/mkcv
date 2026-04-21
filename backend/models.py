@@ -17,6 +17,7 @@ class PersonalInfo(BaseModel):
     twitter: Optional[str] = None
     orcid: Optional[str] = None
     scholar: Optional[str] = None
+    photo: Optional[str] = None
 
 
 class ExperienceItem(BaseModel):
