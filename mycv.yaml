@@ -20,7 +20,7 @@ experience:
     end_date: null
     location: San Francisco, CA
     highlights:
-      - Redesigned the ingestion pipeline to handle 10× peak traffic with no latency regression
+      - Redesigned the ingestion pipeline to handle 10x peak traffic with no latency regression
       - Led migration from a monolith to event-driven microservices (Kafka, Go)
       - Reduced P99 API latency from 420 ms to 95 ms through query optimization and caching
       - Mentored two junior engineers; introduced structured on-call rotation and runbooks
@@ -57,7 +57,7 @@ skills:
     items: [Go, Python, TypeScript, SQL, Bash]
   - category: Infrastructure
     items: [Kubernetes, Docker, Terraform, AWS, GCP]
-  - category: Data & Messaging
+  - category: Data and Messaging
     items: [PostgreSQL, Redis, Kafka, Elasticsearch]
   - category: Observability
     items: [Prometheus, Grafana, OpenTelemetry, Datadog]
@@ -69,7 +69,7 @@ projects:
     highlights:
       - 800+ GitHub stars; used in production by 3 startups
       - Sub-millisecond enqueue latency under 10 k concurrent workers
-      - Zero external dependencies — single binary deployment
+      - Zero external dependencies, single binary deployment
 
   - name: pg-explain-viewer
     description: Browser tool for visualizing PostgreSQL EXPLAIN ANALYZE output as flame graphs
@@ -79,7 +79,7 @@ projects:
       - Highlights sequential scans and missing index opportunities automatically
 
 certifications:
-  - name: AWS Certified Solutions Architect – Associate
+  - name: AWS Certified Solutions Architect - Associate
     issuer: Amazon Web Services
     date: "2022"
   - name: Certified Kubernetes Administrator (CKA)
@@ -88,7 +88,7 @@ certifications:
 
 publications:
   - title: "Practical At-Least-Once Delivery Without a Message Broker"
-    venue: Medium – Towards Data Engineering
+    venue: Medium - Towards Data Engineering
     date: "2024"
     url: medium.com/@alexjordan/at-least-once-delivery
 
@@ -107,13 +107,13 @@ awards:
 extracurricular:
   - title: Open Source Maintainer
     organization: tinyqueue (personal project)
-    date: "2022–Present"
+    date: "2022-Present"
     highlights:
       - Triages issues and reviews PRs from 40+ external contributors
       - Writes release notes and maintains CHANGELOG for each version
   - title: Technical Mentor
     organization: Code2040
-    date: "2023–Present"
+    date: "2023-Present"
     highlights:
       - Mentors two Black and Latinx early-career engineers each cohort
       - Runs monthly system-design mock interview sessions
