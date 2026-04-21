@@ -5,7 +5,8 @@
 % Compiler: pdfLaTeX
 % Page: A4, dense, Libertine serif, burgundy accent, flush header
 % =============================================================
-\documentclass[11pt,a4paper]{article}
+\documentclass[<< font_size >>,a4paper]{article}
+<< layout_preamble >>
 
 \usepackage[a4paper,top=1.7cm,bottom=1.7cm,left=1.8cm,right=1.8cm]{geometry}
 \usepackage[T1]{fontenc}
@@ -39,14 +40,14 @@
   {0em}
   {\MakeUppercase}
   [\vspace{1.5pt}{\color{cvink}\titlerule[0.4pt]}]
-\titlespacing*{\section}{0pt}{11pt}{4pt}
+\titlespacing*{\section}{0pt}{\cvsecbefore}{\cvsecafter}
 
 \newcommand{\cvrole}[1]{{\bfseries #1}}
 \newcommand{\cvorg}[1]{{\itshape\color{cvmute}#1}}
 \newcommand{\cvdate}[1]{{\sffamily\footnotesize\color{cvmute}#1}}
 
 \newenvironment{cvitems}
-  {\begin{itemize}[leftmargin=1.0em,labelsep=0.4em,itemsep=1pt,topsep=2pt,parsep=0pt]}
+  {\begin{itemize}[leftmargin=1.0em,labelsep=0.4em,itemsep=1pt,topsep=\cvitembefore,parsep=0pt]}
   {\end{itemize}}
 
 \begin{document}
@@ -89,7 +90,7 @@
 <% endfor %>
 \end{cvitems}
 <% endif %>
-<% if not loop.last %>\vspace{4pt}<% endif %>
+<% if not loop.last %>\vspace{\cvvgap}<% endif %>
 <% endfor %>
 <% endif %>
 
@@ -97,7 +98,7 @@
 \section{Education}
 <% for edu in cv.education %>
 \cvrole{<< edu.degree >>} --- \cvorg{<< edu.institution >>} \hfill \cvdate{<% if edu.year %><< edu.year >><% elif edu.start_date %><< edu.start_date >> -- << edu.end_date if edu.end_date else "Present" >><% endif %>}<% if edu.gpa %> \quad GPA: << edu.gpa >><% endif %>\\
-<% if not loop.last %>\vspace{2pt}<% endif %>
+<% if not loop.last %>\vspace{\cvvgap}<% endif %>
 <% endfor %>
 <% endif %>
 
@@ -121,13 +122,13 @@
 <% endfor %>
 \end{cvitems}
 <% endif %>
-<% if not loop.last %>\vspace{3pt}<% endif %>
+<% if not loop.last %>\vspace{\cvvgap}<% endif %>
 <% endfor %>
 <% endif %>
 
 <% if key == 'publications' and cv.publications %>
 \section{Publications}
-\begin{itemize}[leftmargin=1.1em,itemsep=2pt,topsep=2pt]
+\begin{itemize}[leftmargin=1.1em,itemsep=2pt,topsep=\cvitembefore]
 <% for pub in cv.publications %>
   \item <% if pub.url %>\href{https://<< pub.url >>}{\textbf{<< pub.title >>}}<% else %>\textbf{<< pub.title >>}<% endif %><% if pub.venue %>, \textit{<< pub.venue >>}<% endif %><% if pub.date %>, << pub.date >><% endif %>.
 <% endfor %>
@@ -136,7 +137,7 @@
 
 <% if key == 'certifications' and cv.certifications %>
 \section{Certifications}
-\begin{itemize}[leftmargin=1.1em,itemsep=1.5pt,topsep=2pt]
+\begin{itemize}[leftmargin=1.1em,itemsep=1.5pt,topsep=\cvitembefore]
 <% for cert in cv.certifications %>
   \item \cvrole{<< cert.name >>}<% if cert.issuer %>, << cert.issuer >><% endif %><% if cert.date %> \hfill \cvdate{<< cert.date >>}<% endif %>
 <% endfor %>
@@ -145,7 +146,7 @@
 
 <% if key == 'awards' and cv.awards %>
 \section{Awards}
-\begin{itemize}[leftmargin=1.1em,itemsep=1.5pt,topsep=2pt]
+\begin{itemize}[leftmargin=1.1em,itemsep=1.5pt,topsep=\cvitembefore]
 <% for award in cv.awards %>
   \item \cvrole{<< award.name >>}<% if award.issuer %>, \cvorg{<< award.issuer >>}<% endif %><% if award.date %> \hfill \cvdate{<< award.date >>}<% endif %>
   <% if award.description %>\\{\small << award.description >>}<% endif %>
@@ -169,7 +170,7 @@
 <% endfor %>
 \end{cvitems}
 <% endif %>
-<% if not loop.last %>\vspace{3pt}<% endif %>
+<% if not loop.last %>\vspace{\cvvgap}<% endif %>
 <% endfor %>
 <% endif %>
 
