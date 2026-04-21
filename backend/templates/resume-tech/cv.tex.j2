@@ -5,7 +5,8 @@
 % Layout: single column, bold section headers + full-width rule
 % Packages: titlesec, enumitem, microtype
 % =============================================================
-\documentclass[11pt,a4paper]{article}
+\documentclass[<< font_size >>,a4paper]{article}
+<< layout_preamble >>
 
 \usepackage[a4paper,top=11mm,bottom=11mm,left=14mm,right=14mm]{geometry}
 \usepackage[T1]{fontenc}
@@ -35,7 +36,7 @@
 \newcommand{\cvdate}[1]{{\small #1}}
 
 \newenvironment{cvitems}{%
-  \begin{itemize}[leftmargin=1.2em,labelsep=0.4em,itemsep=0pt,topsep=1pt,parsep=0pt,label=\textbullet]%
+  \begin{itemize}[leftmargin=1.2em,labelsep=0.4em,itemsep=0pt,topsep=\cvitembefore,parsep=0pt,label=\textbullet]%
 }{\end{itemize}}
 
 \begin{document}
@@ -75,7 +76,7 @@
 <% endfor %>
 \end{cvitems}
 <% endif %>
-<% if not loop.last %>\vspace{5pt}<% endif %>
+<% if not loop.last %>\vspace{\cvvgap}<% endif %>
 <% endfor %>
 <% endif %>
 
@@ -84,7 +85,7 @@
 <% for edu in cv.education %>
 \noindent\cvrole{<< edu.institution >>} \hfill \cvdate{<% if edu.year %><< edu.year >><% elif edu.start_date %><< edu.start_date >> -- << edu.end_date if edu.end_date else "Present" >><% endif %>}\\
 \cvorg{<< edu.degree >>}<% if edu.gpa %> \hfill \cvdate{GPA: << edu.gpa >>}<% endif %>
-<% if not loop.last %>\vspace{4pt}<% endif %>
+<% if not loop.last %>\vspace{\cvvgap}<% endif %>
 <% endfor %>
 <% endif %>
 
@@ -106,13 +107,13 @@
 <% endfor %>
 \end{cvitems}
 <% endif %>
-<% if not loop.last %>\vspace{4pt}<% endif %>
+<% if not loop.last %>\vspace{\cvvgap}<% endif %>
 <% endfor %>
 <% endif %>
 
 <% if key == 'publications' and cv.publications %>
 \section{Publications}
-\begin{enumerate}[leftmargin=1.5em,itemsep=2pt,topsep=1pt,label=\textup{[\arabic*]}]
+\begin{enumerate}[leftmargin=1.5em,itemsep=2pt,topsep=\cvitembefore,label=\textup{[\arabic*]}]
 <% for pub in cv.publications %>
   \item <% if pub.url %>\href{https://<< pub.url >>}{\textbf{<< pub.title >>}}<% else %>\textbf{<< pub.title >>}<% endif %>.<% if pub.authors %> << pub.authors | join(", ") >>.<% endif %><% if pub.venue %> \textit{<< pub.venue >>}<% endif %><% if pub.date %>, << pub.date >><% endif %>.
 <% endfor %>
@@ -151,7 +152,7 @@
 <% endfor %>
 \end{cvitems}
 <% endif %>
-<% if not loop.last %>\vspace{4pt}<% endif %>
+<% if not loop.last %>\vspace{\cvvgap}<% endif %>
 <% endfor %>
 <% endif %>
 
