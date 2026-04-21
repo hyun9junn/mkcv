@@ -31,9 +31,66 @@ Write your CV once in `mycv.yaml` — get a live PDF preview, export to Markdown
 | Awards | `awards` |
 | Extracurricular Activities | `extracurricular` |
 
+## Installing LaTeX (pdflatex)
+
+PDF preview and export require `pdflatex` to be available on your `PATH`. Install a TeX distribution for your OS:
+
+### macOS
+
+**Option A — MacTeX (full, ~4 GB):**
+```bash
+brew install --cask mactex
+```
+After installation, open a new terminal so `/Library/TeX/texbin` is added to `PATH`.
+
+**Option B — BasicTeX (minimal, ~100 MB) + required packages:**
+```bash
+brew install --cask basictex
+# open a new terminal, then:
+sudo tlmgr update --self
+sudo tlmgr install collection-fontsrecommended enumitem geometry hyperref xcolor fontawesome5
+```
+
+### Windows
+
+**Option A — MiKTeX (recommended, auto-installs missing packages):**
+1. Download the installer from <https://miktex.org/download>
+2. Run the installer and follow the prompts (install for all users recommended)
+3. Open a new Command Prompt — `pdflatex` should be on `PATH` automatically
+
+**Option B — TeX Live:**
+1. Download `install-tl-windows.exe` from <https://tug.org/texlive/acquire-netinstall.html>
+2. Run the installer (full install is ~7 GB; choose a smaller scheme if disk space is limited)
+
+### Linux
+
+**Debian / Ubuntu:**
+```bash
+sudo apt-get update
+sudo apt-get install texlive-latex-recommended texlive-fonts-recommended \
+     texlive-latex-extra texlive-fonts-extra
+```
+
+**Fedora / RHEL / CentOS:**
+```bash
+sudo dnf install texlive-scheme-medium
+```
+
+**Arch Linux:**
+```bash
+sudo pacman -S texlive-most
+```
+
+**All distros — verify the install:**
+```bash
+pdflatex --version
+```
+
+---
+
 ## Getting Started
 
-**Requirements:** Python 3.11+, and `pdflatex` for PDF preview/export (install [TeX Live](https://tug.org/texlive/) or [MiKTeX](https://miktex.org/)).
+**Requirements:** Python 3.11+, and `pdflatex` on your `PATH` (see [Installing LaTeX](#installing-latex-pdflatex) above).
 
 ```bash
 git clone https://github.com/hyun9junn/mkcv.git
