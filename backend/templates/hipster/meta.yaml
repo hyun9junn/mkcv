@@ -1,0 +1,18 @@
+display_name: "Hipster"
+description: "Dark sidebar with colorbox section headers and circular photo, teal accent — creative, design, UX, startup roles"
+audience: general
+recommended_sections:
+  - experience
+  - skills
+  - projects
+default_section_order:
+  - summary
+  - experience
+  - projects
+  - education
+  - skills
+  - certifications
+  - awards
+  - languages
+  - publications
+  - extracurricular

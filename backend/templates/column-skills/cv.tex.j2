@@ -1,0 +1,224 @@
+% =============================================================
+% MKCV — Template: column-skills
+% Audience: engineering / data science
+% Compiler: pdfLaTeX
+% Layout: full-width header + two-column body (60% left, 40% right)
+%         left: experience / education / projects
+%         right: summary / skills-as-chips / languages / awards
+% Packages: paracol, tikz, microtype
+% =============================================================
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[a4paper,top=14mm,bottom=14mm,left=15mm,right=15mm]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage[hidelinks]{hyperref}
+\usepackage{microtype}
+\usepackage{paracol}
+\usepackage{tikz}
+
+% ---------- palette ------------------------------------------
+\definecolor{cvaccent}{HTML}{E07A5F}
+\definecolor{cvink}{HTML}{111827}
+\definecolor{cvrule}{HTML}{d1d5db}
+\definecolor{cvmute}{HTML}{6b7280}
+\definecolor{cvchipbg}{HTML}{fce9e5}
+
+\pagestyle{empty}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{3pt}
+
+% ---------- commands -----------------------------------------
+\newcommand{\cvrole}[1]{{\bfseries\color{cvink} #1}}
+\newcommand{\cvorg}[1]{{\itshape\color{cvmute} #1}}
+\newcommand{\cvdate}[1]{{\small\color{cvmute} #1}}
+
+\newcommand{\mainsection}[1]{%
+  \vspace{9pt}%
+  {\footnotesize\bfseries\sffamily\color{cvaccent}\MakeUppercase{#1}}%
+  \par\vspace{1pt}%
+  {\color{cvaccent}\rule{\linewidth}{1pt}}%
+  \par\vspace{4pt}%
+}
+
+\newenvironment{cvitems}{%
+  \begin{itemize}[leftmargin=1em,labelsep=0.4em,itemsep=0.5pt,topsep=1pt,parsep=0pt,label=\textendash]%
+}{\end{itemize}}
+
+% Skill chip (inline colorbox tag)
+\newcommand{\skillchip}[1]{%
+  \colorbox{cvchipbg}{\footnotesize\bfseries\color{cvaccent}#1}%
+}
+
+\begin{document}
+
+% =========================
+% FULL-WIDTH HEADER
+% =========================
+\begin{center}
+{\Huge\bfseries\color{cvaccent} << cv.personal.name >>}\\[5pt]
+<% if cv.personal.tagline %>{\normalsize\itshape\color{cvmute} << cv.personal.tagline >>}\\[4pt]<% endif %>
+{\small\color{cvmute}
+<% set parts = [] %>
+<% if cv.personal.email %><% set parts = parts + ['\\href{mailto:' + cv.personal.email + '}{' + cv.personal.email + '}'] %><% endif %>
+<% if cv.personal.phone %><% set parts = parts + [cv.personal.phone] %><% endif %>
+<% if cv.personal.location %><% set parts = parts + [cv.personal.location] %><% endif %>
+<% if cv.personal.github %><% set parts = parts + ['\\href{https://' + cv.personal.github + '}{' + cv.personal.github + '}'] %><% endif %>
+<% if cv.personal.linkedin %><% set parts = parts + ['\\href{https://' + cv.personal.linkedin + '}{LinkedIn}'] %><% endif %>
+<< parts | join(' \\textperiodcentered\\ ') >>
+}
+\end{center}
+{\color{cvaccent}\rule{\linewidth}{1.5pt}}
+\vspace{4pt}
+
+% =========================
+% TWO-COLUMN BODY
+% =========================
+\setlength{\columnsep}{12pt}
+\columnratio{0.60}
+\begin{paracol}{2}
+
+% ---------- LEFT: experience / education / projects ----------
+<% macro render_left(key) %>
+<% if key == 'experience' and cv.experience %>
+\mainsection{Experience}
+<% for job in cv.experience %>
+\cvrole{<< job.title >>} \hfill \cvdate{<< job.start_date >> -- << job.end_date if job.end_date else "Present" >>}\\
+\cvorg{<< job.company >>}<% if job.location %>, << job.location >><% endif %>
+<% if job.highlights %>
+\begin{cvitems}
+<% for item in job.highlights %>
+  \item << item >>
+<% endfor %>
+\end{cvitems}
+<% endif %>
+<% if not loop.last %>\vspace{5pt}<% endif %>
+<% endfor %>
+<% endif %>
+
+<% if key == 'education' and cv.education %>
+\mainsection{Education}
+<% for edu in cv.education %>
+\cvrole{<< edu.degree >>} \hfill \cvdate{<% if edu.year %><< edu.year >><% elif edu.start_date %><< edu.start_date >> -- << edu.end_date if edu.end_date else "Present" >><% endif %>}\\
+\cvorg{<< edu.institution >>}<% if edu.gpa %> \hfill \cvdate{GPA: << edu.gpa >>}<% endif %>
+<% if not loop.last %>\vspace{4pt}<% endif %>
+<% endfor %>
+<% endif %>
+
+<% if key == 'projects' and cv.projects %>
+\mainsection{Projects}
+<% for proj in cv.projects %>
+\cvrole{<% if proj.url %>\href{https://<< proj.url >>}{<< proj.name >>}<% else %><< proj.name >><% endif %>} --- \cvorg{<< proj.description >>}
+<% if proj.highlights %>
+\begin{cvitems}
+<% for item in proj.highlights %>
+  \item << item >>
+<% endfor %>
+\end{cvitems}
+<% endif %>
+<% if not loop.last %>\vspace{4pt}<% endif %>
+<% endfor %>
+<% endif %>
+
+<% if key == 'publications' and cv.publications %>
+\mainsection{Publications}
+\begin{enumerate}[leftmargin=1.5em,itemsep=3pt,topsep=2pt,label=\textup{[\arabic*]}]
+<% for pub in cv.publications %>
+  \item <% if pub.url %>\href{https://<< pub.url >>}{\textbf{<< pub.title >>}}<% else %>\textbf{<< pub.title >>}<% endif %>.<% if pub.authors %> << pub.authors | join(", ") >>.<% endif %><% if pub.venue %> \textit{<< pub.venue >>}<% endif %><% if pub.date %>, << pub.date >><% endif %>.
+<% endfor %>
+\end{enumerate}
+<% endif %>
+
+<% if key == 'certifications' and cv.certifications %>
+\mainsection{Certifications}
+<% for cert in cv.certifications %>
+\cvrole{<< cert.name >>}<% if cert.issuer %>, \cvorg{<< cert.issuer >>}<% endif %><% if cert.date %> \hfill \cvdate{<< cert.date >>}<% endif %>\\
+<% endfor %>
+<% endif %>
+
+<% if key == 'extracurricular' and cv.extracurricular %>
+\mainsection{Activities}
+<% for act in cv.extracurricular %>
+\cvrole{<< act.title >>}<% if act.date %> \hfill \cvdate{<< act.date >>}<% endif %>\\
+<% if act.organization %>\cvorg{<< act.organization >>}\\<% endif %>
+<% if act.highlights %>
+\begin{cvitems}
+<% for item in act.highlights %>
+  \item << item >>
+<% endfor %>
+\end{cvitems}
+<% endif %>
+<% if not loop.last %>\vspace{4pt}<% endif %>
+<% endfor %>
+<% endif %>
+
+<% if key in custom_by_key %>
+<% set cs = custom_by_key[key] %>
+\mainsection{<< cs.title >>}
+<% for block in cs.content %>
+<% set extras = block.model_extra %>
+<% if block.type == 'text' %>
+<< extras.get('value', '') >>
+<% elif block.type == 'bullets' %>
+\begin{cvitems}
+<% for item in extras.get('items', []) %>
+  \item << item >>
+<% endfor %>
+\end{cvitems}
+<% elif block.type == 'kv' %>
+\begin{tabular}{@{}p{3cm}l@{}}
+<% for pair in extras.get('pairs', []) %>
+\cvrole{<< pair.key >>} & \cvorg{<< pair.value >>} \\
+<% endfor %>
+\end{tabular}
+<% endif %>
+<% endfor %>
+<% endif %>
+<% endmacro %>
+
+<% set left_keys = ['experience', 'education', 'projects', 'publications', 'certifications', 'extracurricular'] %>
+<% for key in section_order %>
+<% if key in left_keys or key in custom_by_key %>
+<< render_left(key) >>
+<% endif %>
+<% endfor %>
+
+\switchcolumn
+
+% ---------- RIGHT: summary / skills / languages / awards -----
+<% if cv.summary %>
+\mainsection{Summary}
+{\small << cv.summary >>}
+<% endif %>
+
+<% if cv.skills %>
+\mainsection{Skills}
+<% for group in cv.skills %>
+{\footnotesize\bfseries\color{cvink} << group.category >>}\\[3pt]
+<% for item in group.items %>\skillchip{<< item >>} <% endfor %>\\[5pt]
+<% endfor %>
+<% endif %>
+
+<% if cv.languages %>
+\mainsection{Languages}
+<% for lang in cv.languages %>
+{\small\cvrole{<< lang.language >>}~--~<< lang.proficiency >>}\\[3pt]
+<% endfor %>
+<% endif %>
+
+<% if cv.awards %>
+\mainsection{Awards}
+<% for award in cv.awards %>
+\cvrole{<< award.name >>}<% if award.date %> \hfill \cvdate{<< award.date >>}<% endif %>\\
+<% if award.issuer %>\cvorg{<< award.issuer >>}\\<% endif %>
+<% if award.description %>{\small << award.description >>}\\<% endif %>
+<% if not loop.last %>\vspace{3pt}<% endif %>
+<% endfor %>
+<% endif %>
+
+\end{paracol}
+
+\end{document}

@@ -1,0 +1,17 @@
+display_name: "Resume Tech"
+description: "ATS-friendly single-column, bold uppercase section headers with full-width rule — software engineers, tech roles"
+audience: general
+recommended_sections:
+  - experience
+  - skills
+  - projects
+default_section_order:
+  - experience
+  - education
+  - skills
+  - projects
+  - publications
+  - certifications
+  - awards
+  - languages
+  - extracurricular
