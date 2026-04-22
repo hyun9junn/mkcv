@@ -60,16 +60,16 @@
     {\ebgaramond<< cv.personal.name | name_fontsize(26, 1.15) >> << cv.personal.name >>}\\[6pt]
 
     {\sffamily\small\color{cvmute}
-    <% set sep = joiner(" \,\textperiodcentered\, ") %>
+    <% set sep = joiner(" · ") %>
     <% if cv.personal.email %><< sep() >>\href{mailto:<< cv.personal.email >>}{<< cv.personal.email >>}<% endif %>
     <% if cv.personal.phone %><< sep() >><< cv.personal.phone >><% endif %>
     <% if cv.personal.location %><< sep() >><< cv.personal.location >><% endif %>
     }\\[3pt]
 
     {\sffamily\small\color{cvmute}
-    <% set sep2 = joiner(" \,\textperiodcentered\, ") %>
-    <% if cv.personal.github %><< sep2() >>\href{https://<< cv.personal.github >>}{<< cv.personal.github >>}<% endif %>
+    <% set sep2 = joiner(" · ") %>
     <% if cv.personal.linkedin %><< sep2() >>\href{https://<< cv.personal.linkedin >>}{LinkedIn}<% endif %>
+    <% if cv.personal.github %><< sep2() >>\href{https://<< cv.personal.github >>}{GitHub (<< cv.personal.github.rstrip('/').split('/')[-1] >>)}<% endif %>
     <% if cv.personal.huggingface %><< sep2() >>\href{https://<< cv.personal.huggingface >>}{Hugging Face}<% endif %>
     <% if cv.personal.website %><< sep2() >>\href{https://<< cv.personal.website >>}{Website}<% endif %>
     }

@@ -51,8 +51,9 @@
 <% if cv.personal.email %><% set parts = parts + [cv.personal.email] %><% endif %>
 <% if cv.personal.phone %><% set parts = parts + [cv.personal.phone] %><% endif %>
 <% if cv.personal.location %><% set parts = parts + [cv.personal.location] %><% endif %>
-<% if cv.personal.github %><% set parts = parts + [cv.personal.github] %><% endif %>
-<% if cv.personal.linkedin %><% set parts = parts + [cv.personal.linkedin] %><% endif %>
+<% if cv.personal.linkedin %><% set parts = parts + ['\\href{https://' + cv.personal.linkedin + '}{LinkedIn}'] %><% endif %>
+<% if cv.personal.github %><% set parts = parts + ['\\href{https://' + cv.personal.github + '}{GitHub (' + cv.personal.github.rstrip('/').split('/')[-1] + ')}'] %><% endif %>
+<% if cv.personal.huggingface %><% set parts = parts + ['\\href{https://' + cv.personal.huggingface + '}{Hugging Face}'] %><% endif %>
 << parts | join(' $|$ ') >>
 }
 \par}

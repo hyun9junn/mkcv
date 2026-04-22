@@ -63,9 +63,9 @@
     <% if cv.personal.email %>\href{mailto:<< cv.personal.email >>}{<< cv.personal.email >>}\\<% endif %>
     <% if cv.personal.phone %><< cv.personal.phone >>\\<% endif %>
     <% if cv.personal.location %><< cv.personal.location >>\\<% endif %>
-    <% if cv.personal.github %>\href{https://<< cv.personal.github >>}{<< cv.personal.github >>}\\<% endif %>
-    <% if cv.personal.linkedin %>\href{https://<< cv.personal.linkedin >>}{<< cv.personal.linkedin >>}\\<% endif %>
-    <% if cv.personal.huggingface %>\href{https://<< cv.personal.huggingface >>}{<< cv.personal.huggingface >>}\\<% endif %>
+    <% if cv.personal.linkedin %>\href{https://<< cv.personal.linkedin >>}{LinkedIn}\\<% endif %>
+    <% if cv.personal.github %>\href{https://<< cv.personal.github >>}{GitHub (<< cv.personal.github.rstrip('/').split('/')[-1] >>)}\\<% endif %>
+    <% if cv.personal.huggingface %>\href{https://<< cv.personal.huggingface >>}{Hugging Face}\\<% endif %>
     <% if cv.personal.website %>\href{https://<< cv.personal.website >>}{<< cv.personal.website >>}<% endif %>
 \end{minipage}\par\vspace{4pt}
 {\color{cvink}\hrule height 0.6pt}

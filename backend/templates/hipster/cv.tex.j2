@@ -120,7 +120,7 @@
 {\footnotesize\color{cvsidemute} << cv.personal.location >>}\\[3pt]
 <% endif %>
 <% if cv.personal.github %>
-{\footnotesize\color{cvsidemute}\href{https://<< cv.personal.github >>}{<< cv.personal.github >>}}\\[3pt]
+{\footnotesize\color{cvsidemute}\href{https://<< cv.personal.github >>}{GitHub (<< cv.personal.github.rstrip('/').split('/')[-1] >>)}}\\[3pt]
 <% endif %>
 <% if cv.personal.linkedin %>
 {\footnotesize\color{cvsidemute}\href{https://<< cv.personal.linkedin >>}{LinkedIn}}\\[3pt]

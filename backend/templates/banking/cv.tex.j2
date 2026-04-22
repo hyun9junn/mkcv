@@ -74,7 +74,8 @@
   <% if cv.personal.phone %>{\small << cv.personal.phone >>}\\<% endif %>
   <% if cv.personal.location %>{\small << cv.personal.location >>}\\<% endif %>
   <% if cv.personal.linkedin %>{\small\href{https://<< cv.personal.linkedin >>}{LinkedIn}}\\<% endif %>
-  <% if cv.personal.github %>{\small\href{https://<< cv.personal.github >>}{<< cv.personal.github >>}}\\<% endif %>
+  <% if cv.personal.github %>{\small\href{https://<< cv.personal.github >>}{GitHub (<< cv.personal.github.rstrip('/').split('/')[-1] >>)}}\\<% endif %>
+  <% if cv.personal.huggingface %>{\small\href{https://<< cv.personal.huggingface >>}{Hugging Face}}\\<% endif %>
 \end{minipage}
 \vspace{4pt}
 {\color{cvaccent}\rule{\linewidth}{1.5pt}}

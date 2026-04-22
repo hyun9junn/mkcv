@@ -51,7 +51,7 @@
 
     <% set sep2 = joiner(" \\textbar\\ ") %>
     <% if cv.personal.linkedin %><< sep2() >>\href{https://<< cv.personal.linkedin >>}{LinkedIn}<% endif %>
-    <% if cv.personal.github %><< sep2() >>\href{https://<< cv.personal.github >>}{GitHub}<% endif %>
+    <% if cv.personal.github %><< sep2() >>\href{https://<< cv.personal.github >>}{GitHub (<< cv.personal.github.rstrip('/').split('/')[-1] >>)}<% endif %>
     <% if cv.personal.huggingface %><< sep2() >>\href{https://<< cv.personal.huggingface >>}{Hugging Face}<% endif %>
     <% if cv.personal.website %><< sep2() >>\href{https://<< cv.personal.website >>}{Website}<% endif %>
 \end{center}
