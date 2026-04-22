@@ -84,7 +84,7 @@
 \section{Education}
 <% for edu in cv.education %>
 \cvrole{<< edu.institution >>} \hfill \cvdate{<% if edu.year %><< edu.year >><% elif edu.start_date %><< edu.start_date >> -- << edu.end_date if edu.end_date else "Present" >><% endif %>}\\
-\cvorg{<< edu.degree >>}<% if edu.gpa %> \hfill \cvdate{GPA: << edu.gpa >>}<% endif %>
+{<< edu.degree | shrink_if_long(48) >>\cvorg{<< edu.degree >>}}<% if edu.gpa %> \hfill \cvdate{GPA: << edu.gpa >>}<% endif %>
 <% if not loop.last %>\vspace{\cvvgap}<% endif %>
 <% endfor %>
 <% endif %>
@@ -93,7 +93,7 @@
 \section{Research \& Professional Experience}
 <% for job in cv.experience %>
 \cvrole{<< job.company >>} \hfill \cvdate{<< job.start_date >> -- << job.end_date if job.end_date else "Present" >>}\\
-\cvorg{<< job.title >>}
+{<< job.title | shrink_if_long(48) >>\cvorg{<< job.title >>}}
 <% if job.highlights %>
 \begin{cvitems}
 <% for item in job.highlights %>
@@ -119,7 +119,7 @@
 <% if key == 'projects' and cv.projects %>
 \section{Projects}
 <% for proj in cv.projects %>
-\cvrole{<% if proj.url %>\href{https://<< proj.url >>}{<< proj.name >>}<% else %><< proj.name >><% endif %>} --- \cvorg{<< proj.description >>}
+{<< proj.name | shrink_if_long(40) >>\cvrole{<% if proj.url %>\href{https://<< proj.url >>}{<< proj.name >>}<% else %><< proj.name >><% endif %>}} --- \cvorg{<< proj.description >>}
 <% if proj.highlights %>
 \begin{cvitems}
 <% for item in proj.highlights %>
