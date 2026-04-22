@@ -56,7 +56,7 @@
 % Header — flush two-column
 % =========================
 \begin{minipage}[t]{0.62\textwidth}
-    {\fontsize{22pt}{24pt}\selectfont << cv.personal.name >>}\\[2pt]
+    {<< cv.personal.name | name_fontsize(22, 1.09) >> << cv.personal.name >>}\\[2pt]
     <% if cv.summary %>{\itshape\color{cvmute}\small << cv.summary.split('.')[0] | trim >>.}<% endif %>
 \end{minipage}\hfill
 \begin{minipage}[t]{0.36\textwidth}\raggedleft\sffamily\footnotesize\color{cvmute}

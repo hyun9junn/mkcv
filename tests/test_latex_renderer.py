@@ -257,6 +257,23 @@ def test_classic_short_name_stays_huge():
     assert r'\Huge\bfseries' in output
 
 
+def test_modern_startup_long_name_steps_down():
+    from backend.models import CVData, PersonalInfo
+    cv = CVData(personal=PersonalInfo(
+        name="Alexander James Montgomery-Williams",  # 35 chars → 26-5=21pt
+        email="a@example.com",
+    ))
+    output = LaTeXRenderer(TEMPLATES_DIR, template="modern-startup").render(cv)
+    assert r'\fontsize{21pt}' in output
+
+
+def test_modern_startup_short_name_stays_26pt():
+    from backend.models import CVData, PersonalInfo
+    cv = CVData(personal=PersonalInfo(name="Jane Smith", email="j@example.com"))
+    output = LaTeXRenderer(TEMPLATES_DIR, template="modern-startup").render(cv)
+    assert r'\fontsize{26pt}' in output
+
+
 def test_filters_available_in_template(tmp_path, minimal_cv):
     # "Alice" = 5 chars → name_size returns \Huge\bfseries
     tmpl_dir = tmp_path / "mini"
