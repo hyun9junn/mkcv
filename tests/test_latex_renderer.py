@@ -378,6 +378,48 @@ def test_executive_corporate_long_job_title_triggers_shrink():
     assert r'\small' in output
 
 
+def test_academic_research_long_job_title_triggers_shrink():
+    from backend.models import CVData, PersonalInfo, ExperienceItem
+    cv = CVData(
+        personal=PersonalInfo(name="Jane Smith", email="j@example.com"),
+        experience=[ExperienceItem(
+            title="Principal Machine Learning Infrastructure Engineering Lead",  # 57 chars > 48
+            company="MIT CSAIL",
+            start_date="2020",
+        )],
+    )
+    output = LaTeXRenderer(TEMPLATES_DIR, template="academic-research").render(cv)
+    assert r'\small' in output
+
+
+def test_hipster_long_job_title_triggers_shrink():
+    from backend.models import CVData, PersonalInfo, ExperienceItem
+    cv = CVData(
+        personal=PersonalInfo(name="Jane Smith", email="j@example.com"),
+        experience=[ExperienceItem(
+            title="Principal Machine Learning Infrastructure Engineering Lead",  # 57 chars > 48
+            company="Acme Corp",
+            start_date="2020",
+        )],
+    )
+    output = LaTeXRenderer(TEMPLATES_DIR, template="hipster").render(cv)
+    assert r'\small' in output
+
+
+def test_modern_startup_long_job_title_triggers_shrink():
+    from backend.models import CVData, PersonalInfo, ExperienceItem
+    cv = CVData(
+        personal=PersonalInfo(name="Jane Smith", email="j@example.com"),
+        experience=[ExperienceItem(
+            title="Principal Machine Learning Infrastructure Engineering Lead",  # 57 chars > 48
+            company="Acme Corp",
+            start_date="2020",
+        )],
+    )
+    output = LaTeXRenderer(TEMPLATES_DIR, template="modern-startup").render(cv)
+    assert r'\small' in output
+
+
 def test_filters_available_in_template(tmp_path, minimal_cv):
     # "Alice" = 5 chars → name_size returns \Huge\bfseries
     tmpl_dir = tmp_path / "mini"
