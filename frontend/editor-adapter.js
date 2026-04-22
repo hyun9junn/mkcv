@@ -31,6 +31,14 @@ class CodeMirrorAdapter {
   onChange(callback) {
     this._editor.on("change", () => callback(this.getValue()));
   }
+
+  onCursorActivity(callback) {
+    this._editor.on("cursorActivity", () => callback(this._editor.getCursor()));
+  }
+
+  getCursor() {
+    return this._editor.getCursor();
+  }
 }
 
 // Tab: fast-accept if one candidate, open dropdown if many, else insert 2 spaces.

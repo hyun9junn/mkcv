@@ -819,6 +819,7 @@
     <span id="valid-text">YAML valid</span>
   </span>
   <span class="status-item" id="lines-stat"></span>
+  <span class="status-item" id="cursor-pos">ln 1, col 1</span>
   <span class="status-spacer"></span>
   <span class="status-item" id="last-export-stat">no export yet</span>
   <button class="status-theme" id="theme-toggle">
@@ -986,13 +987,23 @@ document.addEventListener('DOMContentLoaded', () => {
       updateLineCount();
     }, 1200);
   }
+  function updateCursorPos() {
+    const pos = window.editorAdapter.getCursor();
+    const el  = document.getElementById('cursor-pos');
+    if (el) el.textContent = `ln ${pos.line + 1}, col ${pos.ch + 1}`;
+  }
+
   if (window.editorAdapter) {
     window.editorAdapter.onChange(() => { updateLineCount(); markSaving(); });
+    window.editorAdapter.onCursorActivity(updateCursorPos);
     updateLineCount();
+    updateCursorPos();
   } else {
     document.addEventListener('editorReady', () => {
       window.editorAdapter.onChange(() => { updateLineCount(); markSaving(); });
+      window.editorAdapter.onCursorActivity(updateCursorPos);
       updateLineCount();
+      updateCursorPos();
     });
   }
 
