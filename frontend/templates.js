@@ -1,55 +1,21 @@
 document.addEventListener("DOMContentLoaded", async () => {
-    const wrapper     = document.getElementById("template-select-wrapper");
-    const trigger     = document.getElementById("template-trigger");
-    const dropdown    = document.getElementById("template-dropdown");
-    const tooltip     = document.getElementById("template-tooltip");
-    const tooltipName = document.getElementById("tooltip-name");
-    const tooltipDesc = document.getElementById("tooltip-desc");
-    const banner      = document.getElementById("error-banner");
-    const btnValidate = document.getElementById("btn-validate-template");
+    const wrapper      = document.getElementById("template-select-wrapper");
+    const trigger      = document.getElementById("template-trigger");
+    const dropdown     = document.getElementById("template-dropdown");
+    const nameDisplay  = document.getElementById("tpl-name-display");
+    const banner       = document.getElementById("error-banner");
+    const btnValidate  = document.getElementById("btn-validate-template");
 
     let allMeta = {};
-    let hoverTimer = null;
-
-    // ── helpers ───────────────────────────────────────────────────────────────
 
     function openDropdown() {
         dropdown.hidden = false;
-        trigger.style.borderColor = "#666";
+        trigger.style.borderColor = "var(--rule-2)";
     }
 
     function closeDropdown() {
         dropdown.hidden = true;
         trigger.style.borderColor = "";
-        hideTooltip();
-    }
-
-    function hideTooltip() {
-        clearTimeout(hoverTimer);
-        hoverTimer = null;
-        tooltip.hidden = true;
-        tooltip.classList.remove("flip-left");
-    }
-
-    function showTooltip(optionEl, name, description) {
-        tooltipName.textContent = name;
-        tooltipDesc.textContent = description;
-
-        // position vertically centred on the hovered option
-        const optRect  = optionEl.getBoundingClientRect();
-        const wrapRect = wrapper.getBoundingClientRect();
-        const offsetTop = optRect.top - wrapRect.top + optRect.height / 2;
-        tooltip.style.top = offsetTop + "px";
-        tooltip.style.transform = "translateY(-50%)";
-
-        tooltip.hidden = false;
-        tooltip.classList.remove("flip-left");
-
-        // flip left if tooltip overflows viewport right edge
-        const tipRect = tooltip.getBoundingClientRect();
-        if (tipRect.right > window.innerWidth - 8) {
-            tooltip.classList.add("flip-left");
-        }
     }
 
     function selectTemplate(name) {
@@ -57,59 +23,60 @@ document.addEventListener("DOMContentLoaded", async () => {
             el.classList.toggle("selected", el.dataset.name === name);
         });
         const meta = allMeta[name] || {};
-        trigger.textContent = meta.display_name || (name.charAt(0).toUpperCase() + name.slice(1));
+        const displayName = meta.display_name || (name.charAt(0).toUpperCase() + name.slice(1));
+        if (nameDisplay) nameDisplay.textContent = displayName;
         closeDropdown();
         app.setState({ template: name });
+
+        const paneTitle = document.getElementById("preview-pane-title");
+        if (paneTitle) paneTitle.textContent = `Preview — ${displayName}`;
+
         preview.refresh(sectionsState.getFilteredYaml(app.state.yaml), name);
     }
-
-    // ── toggle dropdown on trigger click ─────────────────────────────────────
 
     trigger.addEventListener("click", (e) => {
         e.stopPropagation();
         if (dropdown.hidden) openDropdown(); else closeDropdown();
     });
 
-    // ── close on outside click ────────────────────────────────────────────────
-
     document.addEventListener("click", (e) => {
         if (!wrapper.contains(e.target)) closeDropdown();
     });
 
-    // ── fetch templates and build option divs ─────────────────────────────────
+    /* Badge labels for well-known templates */
+    const BADGES = {
+        classic:            "Default",
+        "academic-research": "Popular",
+        "modern-startup":   "New",
+        "resume-tech":      "New",
+    };
 
     try {
         const data = await (await fetch("/api/templates")).json();
         const validationMap = data.validation || {};
         allMeta = data.meta || {};
 
-        data.templates.forEach((name) => {
-            const meta = allMeta[name] || {};
-            const isValid = validationMap[name] ? validationMap[name].valid : null;
-            const prefix = isValid === false ? "⚠ " : "";
+        data.templates.forEach((name, idx) => {
+            const meta        = allMeta[name] || {};
+            const isValid     = validationMap[name] ? validationMap[name].valid : null;
             const displayName = meta.display_name || (name.charAt(0).toUpperCase() + name.slice(1));
+            const description = meta.description  || "";
+            const badge       = BADGES[name] || (isValid === false ? "⚠ Error" : "");
+            const isFirst     = name === app.state.template;
 
             const opt = document.createElement("div");
-            opt.className = "tpl-option";
+            opt.className = "tpl-option" + (isFirst ? " selected" : "");
             opt.dataset.name = name;
-            opt.dataset.description = meta.description || "";
-            opt.textContent = prefix + displayName;
-            if (name === app.state.template) {
-                opt.classList.add("selected");
-                trigger.textContent = prefix + displayName;
-            }
 
-            opt.addEventListener("mouseenter", () => {
-                const desc = opt.dataset.description;
-                if (!desc) return;
-                hoverTimer = setTimeout(() => {
-                    showTooltip(opt, displayName, desc);
-                }, 600);
-            });
+            opt.innerHTML = `
+              <div>
+                <div class="tpl-option-name">${displayName}</div>
+                ${description ? `<div class="tpl-option-desc">${description}</div>` : ""}
+              </div>
+              ${badge ? `<span class="tpl-option-badge">${badge}</span>` : ""}
+            `;
 
-            opt.addEventListener("mouseleave", () => {
-                hideTooltip();
-            });
+            if (isFirst && nameDisplay) nameDisplay.textContent = displayName;
 
             opt.addEventListener("click", (e) => {
                 e.stopPropagation();
@@ -123,46 +90,61 @@ document.addEventListener("DOMContentLoaded", async () => {
         const opt = document.createElement("div");
         opt.className = "tpl-option selected";
         opt.dataset.name = "classic";
-        opt.dataset.description = "";
-        opt.textContent = "Classic";
+        opt.innerHTML = `<div><div class="tpl-option-name">Classic</div></div>`;
         opt.addEventListener("click", () => selectTemplate("classic"));
         dropdown.appendChild(opt);
-        trigger.textContent = "Classic";
+        if (nameDisplay) nameDisplay.textContent = "Classic";
     }
 
-    // ── validate button (unchanged) ───────────────────────────────────────────
-
+    /* Validate button (triggered by icon in masthead) */
     btnValidate.addEventListener("click", async () => {
         const name = app.state.template;
         btnValidate.disabled = true;
-        btnValidate.textContent = "Validating…";
+
+        const validDot  = document.getElementById("valid-dot");
+        const validText = document.getElementById("valid-text");
+        if (validDot)  { validDot.classList.add("warn"); validDot.classList.remove("idle"); }
+        if (validText)  validText.textContent = "Validating…";
+
         try {
             const resp = await fetch(`/api/templates/${name}/validate`, { method: "POST" });
             const data = await resp.json();
-            banner.style.display = "block";
+
             if (data.valid) {
-                banner.style.background = "#1a3a1a";
-                banner.style.color = "#86efac";
-                banner.textContent = `✓ Template '${name}' is valid (Jinja2 + pdflatex OK)`;
+                if (validDot)  { validDot.classList.remove("warn", "err"); }
+                if (validText)  validText.textContent = "Template valid";
+                _showToast("Template valid", `'${name}' compiled cleanly.`, "ok");
             } else {
-                banner.style.background = "#5c1f1f";
-                banner.style.color = "#fca5a5";
-                banner.textContent = `⚠ Template '${name}' invalid: ${data.errors.join(" · ")}`;
+                if (validDot)  { validDot.classList.add("err"); validDot.classList.remove("warn"); }
+                if (validText)  validText.textContent = "Template error";
+                banner.style.display = "block";
+                banner.textContent = `⚠ '${name}' invalid: ${data.errors.join(" · ")}`;
+                setTimeout(() => { banner.style.display = "none"; banner.textContent = ""; }, 10000);
             }
-            setTimeout(() => {
-                banner.style.display = "none";
-                banner.style.background = "";
-                banner.style.color = "";
-                banner.textContent = "";
-            }, 8000);
         } catch {
-            banner.style.display = "block";
-            banner.style.background = "#5c1f1f";
-            banner.style.color = "#fca5a5";
-            banner.textContent = "Validation request failed";
+            _showToast("Validation failed", "Network error — is the server running?", "err");
         } finally {
             btnValidate.disabled = false;
-            btnValidate.textContent = "✓ Validate Template";
         }
     });
+
+    function _showToast(title, msg, type = "info") {
+        const stack = document.getElementById("toast-stack");
+        if (!stack) return;
+        const t = document.createElement("div");
+        t.className = "toast " + type;
+        t.innerHTML = `
+          <div>
+            <div class="toast-title">${title}</div>
+            ${msg ? `<div class="toast-msg">${msg}</div>` : ""}
+          </div>
+          <button class="toast-close">×</button>
+        `;
+        t.querySelector(".toast-close").addEventListener("click", () => t.remove());
+        stack.appendChild(t);
+        setTimeout(() => {
+            t.style.animation = "toastIn .2s ease reverse both";
+            setTimeout(() => t.remove(), 220);
+        }, 4000);
+    }
 });

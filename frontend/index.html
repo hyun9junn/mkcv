@@ -1,9 +1,13 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>mkcv</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;0,6..72,700;1,6..72,400;1,6..72,500&family=Inter+Tight:wght@400;450;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/material-darker.min.css" />
@@ -14,429 +18,988 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js"></script>
 
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --font-serif: 'Newsreader', 'Times New Roman', serif;
+      --font-sans: 'Inter Tight', ui-sans-serif, system-ui, sans-serif;
+      --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', monospace;
 
+      --paper:   oklch(98.5% 0.006 85);
+      --paper-2: oklch(96%   0.008 85);
+      --paper-3: oklch(93%   0.01  85);
+      --rule:    oklch(86%   0.012 80);
+      --rule-2:  oklch(78%   0.015 75);
+      --ink:     oklch(20%   0.012 60);
+      --ink-2:   oklch(38%   0.012 60);
+      --ink-3:   oklch(55%   0.01  60);
+      --ink-4:   oklch(70%   0.008 70);
+      --accent:      oklch(52% 0.15 25);
+      --accent-soft: oklch(52% 0.15 25 / 0.08);
+      --ok:   oklch(50% 0.09 155);
+      --warn: oklch(62% 0.14 65);
+      --err:  oklch(50% 0.17 25);
+      --shadow-sm: 0 1px 2px rgba(40,20,10,.04), 0 0 0 0.5px rgba(40,20,10,.06);
+      --shadow-md: 0 10px 30px -8px rgba(40,20,10,.15), 0 0 0 0.5px rgba(40,20,10,.08);
+    }
+    [data-theme="dark"] {
+      --paper:   oklch(15% 0.008 60);
+      --paper-2: oklch(18% 0.009 60);
+      --paper-3: oklch(22% 0.01  60);
+      --rule:    oklch(28% 0.012 60);
+      --rule-2:  oklch(38% 0.014 60);
+      --ink:     oklch(94% 0.008 85);
+      --ink-2:   oklch(78% 0.01  75);
+      --ink-3:   oklch(62% 0.012 70);
+      --ink-4:   oklch(48% 0.012 65);
+      --accent:      oklch(68% 0.16 25);
+      --accent-soft: oklch(68% 0.16 25 / 0.14);
+      --ok:   oklch(70% 0.12 155);
+      --warn: oklch(76% 0.14 70);
+      --err:  oklch(68% 0.17 25);
+      --shadow-sm: 0 1px 2px rgba(0,0,0,.4), 0 0 0 0.5px rgba(255,240,220,.05);
+      --shadow-md: 0 16px 40px -10px rgba(0,0,0,.55), 0 0 0 0.5px rgba(255,240,220,.08);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
     body {
-      font-family: system-ui, sans-serif;
+      font-family: var(--font-sans);
+      font-size: 13px;
+      color: var(--ink);
+      background: var(--paper);
       display: flex;
       flex-direction: column;
       height: 100vh;
-      background: #1a1a1a;
-      color: #eee;
+      overflow: hidden;
+      -webkit-font-smoothing: antialiased;
+      transition: background .25s ease, color .25s ease;
     }
+    button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+    input, select { font-family: inherit; }
 
-    #toolbar {
-      display: flex;
+    /* ── Masthead ── */
+    .masthead {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
       align-items: center;
+      padding: 14px 22px 10px;
+      border-bottom: 1px solid var(--rule);
+      background: var(--paper);
       gap: 12px;
-      padding: 10px 16px;
-      background: #111;
-      border-bottom: 1px solid #333;
       flex-shrink: 0;
     }
+    .masthead-left  { display: flex; align-items: center; gap: 14px; justify-self: start; }
+    .masthead-center{ justify-self: center; }
+    .masthead-right { display: flex; align-items: center; gap: 6px; justify-self: end; }
 
-    #toolbar h1 { font-size: 1rem; font-weight: 600; color: #fff; margin-right: auto; }
-
-    #toolbar select, #toolbar button {
-      padding: 5px 12px;
-      border-radius: 4px;
-      border: 1px solid #444;
-      background: #222;
-      color: #eee;
-      font-size: 0.875rem;
-      cursor: pointer;
+    .wordmark {
+      font-family: var(--font-serif);
+      font-style: italic;
+      font-weight: 500;
+      font-size: 26px;
+      letter-spacing: -0.02em;
+      color: var(--ink);
+      line-height: 1;
+      display: inline-flex;
+      align-items: baseline;
+      gap: 6px;
+      user-select: none;
     }
-
-    #toolbar button:hover { background: #333; }
-
-    #template-select-wrapper {
-      position: relative;
+    .wordmark::after {
+      content: '';
       display: inline-block;
+      width: 4px; height: 4px;
+      border-radius: 50%;
+      background: var(--accent);
+      transform: translateY(-4px);
+    }
+    .masthead-tag {
+      font-family: var(--font-serif);
+      font-style: italic;
+      font-size: 12px;
+      color: var(--ink-3);
+      padding-left: 14px;
+      border-left: 1px solid var(--rule);
+      margin-left: 2px;
     }
 
-    #template-trigger {
-      padding: 5px 12px;
-      border-radius: 4px;
-      border: 1px solid #444;
-      background: #222;
-      color: #eee;
-      font-size: 0.875rem;
+    /* Template picker pill */
+    #template-select-wrapper { position: relative; }
+    .tpl-picker {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 14px;
+      border: 1px solid var(--rule);
+      border-radius: 999px;
+      background: var(--paper-2);
+      font-size: 12px;
+      color: var(--ink-2);
       cursor: pointer;
-      white-space: nowrap;
+      transition: border-color .15s, background .15s;
     }
-
-    #template-trigger:hover { background: #333; }
+    .tpl-picker:hover { border-color: var(--rule-2); }
+    .tpl-picker-label {
+      font-family: var(--font-serif);
+      font-size: 10.5px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--ink-4);
+    }
+    #tpl-name-display {
+      font-family: var(--font-serif);
+      font-weight: 500;
+      font-size: 14px;
+      color: var(--ink);
+      letter-spacing: -0.005em;
+    }
+    .tpl-caret { color: var(--ink-3); font-size: 10px; }
 
     #template-dropdown {
       position: absolute;
-      top: calc(100% + 4px);
-      left: 0;
-      background: #1e1e1e;
-      border: 1px solid #444;
-      border-radius: 6px;
-      min-width: 180px;
-      z-index: 100;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
-      overflow: hidden;
-    }
-
-    .tpl-option {
-      padding: 7px 12px;
-      color: #aaa;
-      font-size: 0.8rem;
-      cursor: pointer;
-      white-space: nowrap;
-    }
-
-    .tpl-option:hover,
-    .tpl-option.selected {
-      background: #2a2a2a;
-      color: #eee;
-    }
-
-    #template-tooltip {
-      position: absolute;
-      left: calc(100% + 10px);
-      top: 0;
-      background: #2d2d2d;
-      border: 1px solid #555;
+      top: calc(100% + 8px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--paper);
+      border: 1px solid var(--rule);
       border-radius: 10px;
-      padding: 10px 14px;
-      width: 220px;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.5);
-      pointer-events: none;
-      z-index: 101;
+      box-shadow: var(--shadow-md);
+      min-width: 270px;
+      padding: 6px;
+      z-index: 50;
     }
+    #template-dropdown[hidden] { display: none; }
+    .tpl-option {
+      padding: 10px 12px;
+      border-radius: 6px;
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 10px;
+      cursor: pointer;
+    }
+    .tpl-option:hover { background: var(--paper-2); }
+    .tpl-option.selected { background: var(--accent-soft); }
+    .tpl-option-name {
+      font-family: var(--font-serif);
+      font-size: 15px;
+      color: var(--ink);
+    }
+    .tpl-option-desc {
+      font-size: 11px;
+      color: var(--ink-3);
+      margin-top: 3px;
+      font-family: var(--font-sans);
+    }
+    .tpl-option-badge {
+      font-family: var(--font-mono);
+      font-size: 9.5px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--ink-4);
+      padding: 2px 6px;
+      border: 1px solid var(--rule);
+      border-radius: 4px;
+      flex-shrink: 0;
+    }
+    .tpl-option.selected .tpl-option-badge { color: var(--accent); border-color: var(--accent); }
+    /* Hide old tooltip — description is now inline in the dropdown */
+    #template-tooltip { display: none !important; }
 
-    #template-tooltip::before {
-      content: '';
+    /* Export button */
+    .export-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 14px 7px 16px;
+      background: var(--ink);
+      color: var(--paper);
+      border-radius: 999px;
+      font-weight: 500;
+      font-size: 12px;
+      letter-spacing: 0.01em;
+      position: relative;
+      transition: opacity .15s;
+    }
+    .export-btn:hover { opacity: .85; }
+    #export-menu {
       position: absolute;
-      left: -7px;
-      top: 50%;
-      transform: translateY(-50%);
-      border-top: 6px solid transparent;
-      border-bottom: 6px solid transparent;
-      border-right: 7px solid #555;
-    }
-
-    #template-tooltip::after {
-      content: '';
-      position: absolute;
-      left: -6px;
-      top: 50%;
-      transform: translateY(-50%);
-      border-top: 6px solid transparent;
-      border-bottom: 6px solid transparent;
-      border-right: 7px solid #2d2d2d;
-    }
-
-    #tooltip-name {
-      font-weight: 600;
-      color: #eee;
-      font-size: 0.78rem;
-      margin-bottom: 4px;
-    }
-
-    #tooltip-desc {
-      color: #aaa;
-      font-size: 0.73rem;
-      line-height: 1.4;
-    }
-
-    #template-tooltip.flip-left {
-      left: auto;
-      right: calc(100% + 10px);
-    }
-
-    #template-tooltip.flip-left::before {
-      left: auto;
-      right: -7px;
-      border-right: none;
-      border-left: 7px solid #555;
-    }
-
-    #template-tooltip.flip-left::after {
-      left: auto;
-      right: -6px;
-      border-right: none;
-      border-left: 7px solid #2d2d2d;
-    }
-
-    #error-banner {
+      top: calc(100% + 8px);
+      right: 0;
+      background: var(--paper);
+      border: 1px solid var(--rule);
+      border-radius: 10px;
+      box-shadow: var(--shadow-md);
+      min-width: 200px;
+      padding: 6px;
+      z-index: 50;
       display: none;
-      background: #5c1f1f;
-      color: #fca5a5;
-      padding: 8px 16px;
-      font-size: 0.8rem;
-      flex-shrink: 0;
     }
-
-    #sections-bar {
-      flex-shrink: 0;
-      background: #181818;
-      border-bottom: 1px solid #333;
-    }
-
-    #sections-header {
+    #export-menu.open { display: block; }
+    .export-option {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 6px 16px;
-      cursor: pointer;
-      user-select: none;
-      font-size: 0.8rem;
-      color: #aaa;
-    }
-
-    #sections-header:hover { color: #fff; }
-
-    #sections-panel {
-      padding: 5px 16px 6px;
-      display: none;
-      flex-direction: row;
-      align-items: flex-start;
-      gap: 8px;
-    }
-    .sections-chips {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 5px;
-      flex: 1;
-      align-items: center;
-    }
-    .section-row {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      padding: 3px 8px 3px 5px;
-      border: 1px solid #333;
-      border-radius: 20px;
-      background: #242424;
-      user-select: none;
-      white-space: nowrap;
-      flex-shrink: 0;
-      transition: border-color 0.15s, background 0.15s;
-    }
-    .section-row:hover { border-color: #555; background: #2c2c2c; }
-    .section-row.dragging { opacity: .35; }
-    .section-row.drag-over { border-color: #60a5fa; box-shadow: 0 0 0 1px #60a5fa44; }
-    .drag-handle { color: #444; cursor: grab; font-size: 10px; line-height: 1; }
-    .drag-handle:active { cursor: grabbing; }
-    .section-row input[type="checkbox"] { width: 12px; height: 12px; cursor: pointer; accent-color: #60a5fa; flex-shrink: 0; }
-    .section-row.hidden-section { opacity: .4; }
-    .section-label { font-size: 0.72rem; color: #bbb; cursor: default; letter-spacing: 0.01em; }
-    .btn-reset {
-      background: transparent;
-      border: none;
-      color: #777;
-      padding: 0;
-      font-size: 13px;
-      cursor: pointer;
-      line-height: 1;
-      flex-shrink: 0;
-      margin-left: 5px;
-    }
-    .btn-reset:hover { color: #fbbf24; }
-    .btn-reset-order {
-      background: transparent;
-      border: none;
-      color: #666;
-      padding: 2px 6px;
-      font-size: 0.72rem;
-      cursor: pointer;
-      line-height: 1;
-      flex-shrink: 0;
-      white-space: nowrap;
-      letter-spacing: 0.01em;
-      align-self: center;
-      margin-left: auto;
-    }
-    .btn-reset-order:hover { color: #60a5fa; }
-    #reset-modal {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,.6);
-      z-index: 100;
-      align-items: center;
-      justify-content: center;
-    }
-    #reset-modal-box {
-      background: #1a1a1a;
-      border: 1px solid #333;
-      border-radius: 8px;
-      padding: 24px;
-      max-width: 400px;
-      width: 90%;
-    }
-    #reset-modal-title { font-size: 1rem; font-weight: 600; color: #fff; margin-bottom: 8px; }
-    #reset-modal-body { font-size: .85rem; color: #aaa; margin-bottom: 20px; line-height: 1.5; }
-    #reset-modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
-    #reset-modal-cancel {
-      padding: 6px 16px; border-radius: 4px; border: 1px solid #444;
-      background: #222; color: #ccc; font-size: .85rem; cursor: pointer;
-    }
-    #reset-modal-confirm {
-      padding: 6px 16px; border-radius: 4px; border: 1px solid #b45309;
-      background: #92400e; color: #fde68a; font-size: .85rem; cursor: pointer; font-weight: 500;
-    }
-    #undo-toast {
-      display: none;
-      position: fixed;
-      top: 16px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: #2a2a2a;
-      border: 1px solid #444;
+      padding: 8px 12px;
       border-radius: 6px;
-      padding: 10px 16px;
+      color: var(--ink);
+      font-size: 12.5px;
+      cursor: pointer;
+    }
+    .export-option:hover { background: var(--paper-2); }
+    .export-option .kbd { font-family: var(--font-mono); font-size: 10px; color: var(--ink-4); }
+    .export-option.primary { font-weight: 500; }
+
+    /* Icon button */
+    .icon-btn {
+      width: 32px; height: 32px;
+      display: inline-flex; align-items: center; justify-content: center;
+      border-radius: 8px;
+      color: var(--ink-2);
+      transition: background .15s, color .15s;
+    }
+    .icon-btn:hover { background: var(--paper-2); color: var(--ink); }
+    .icon-btn svg { width: 16px; height: 16px; }
+
+    /* ── Error banner (file-sync / validation errors) ── */
+    #error-banner {
+      display: none;
+      padding: 8px 22px;
+      background: var(--err);
+      color: oklch(98% 0.004 85);
+      font-size: 12px;
+      font-family: var(--font-mono);
+      flex-shrink: 0;
+      border-bottom: 1px solid var(--rule);
+    }
+
+    /* ── Controls row ── */
+    .controls-row {
+      display: flex;
       align-items: center;
       gap: 16px;
-      font-size: .85rem;
-      color: #ccc;
-      z-index: 200;
-      box-shadow: 0 4px 16px rgba(0,0,0,.5);
+      padding: 8px 22px;
+      border-bottom: 1px solid var(--rule);
+      background: var(--paper);
+      flex-shrink: 0;
+      font-size: 12px;
+      color: var(--ink-2);
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .controls-row::-webkit-scrollbar { display: none; }
+    .ctrl-group { display: inline-flex; align-items: center; gap: 10px; }
+    .ctrl-label {
+      font-family: var(--font-serif);
+      font-style: italic;
+      font-size: 12px;
+      color: var(--ink-3);
       white-space: nowrap;
     }
-    #undo-toast-btn {
-      background: transparent;
-      border: 1px solid #555;
-      color: #93c5fd;
-      border-radius: 4px;
-      padding: 2px 10px;
-      font-size: .8rem;
-      cursor: pointer;
+    .ctrl-seg { display: inline-flex; align-items: center; gap: 2px; }
+    .ctrl-seg button {
+      padding: 3px 8px;
+      font-size: 11.5px;
+      font-weight: 450;
+      color: var(--ink-3);
+      border-radius: 5px;
+      letter-spacing: 0.005em;
+      transition: color .12s, background .12s;
+    }
+    .ctrl-seg button:hover { color: var(--ink); }
+    .ctrl-seg button.active {
+      color: var(--ink);
+      background: var(--paper-3);
+    }
+    .ctrl-sep {
+      width: 1px; height: 14px; background: var(--rule); flex-shrink: 0;
     }
 
-    #main {
+    /* Sections rail */
+    .sections-rail {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex: 1;
+      min-width: 0;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .sections-rail::-webkit-scrollbar { display: none; }
+
+    /* Chips */
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px 4px 8px;
+      border: 1px solid transparent;
+      border-radius: 999px;
+      cursor: pointer;
+      user-select: none;
+      transition: all .12s;
+      white-space: nowrap;
+    }
+    .chip:hover { background: var(--paper-2); }
+    .chip:hover .chip-grip { opacity: 1; }
+    .chip-grip {
+      width: 6px;
+      opacity: 0;
+      color: var(--ink-4);
+      transition: opacity .15s;
+      cursor: grab;
+      display: inline-flex;
+      flex-direction: column;
+      gap: 1.5px;
+    }
+    .chip-grip span { width: 3px; height: 3px; border-radius: 50%; background: currentColor; }
+    .chip-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: transparent;
+      border: 1.5px solid var(--rule-2);
+      flex-shrink: 0;
+      transition: all .12s;
+    }
+    .chip.on .chip-dot { background: var(--accent); border-color: var(--accent); }
+    .chip-name {
+      font-family: var(--font-serif);
+      font-size: 13px;
+      color: var(--ink-3);
+      letter-spacing: -0.005em;
+    }
+    .chip.on .chip-name { color: var(--ink); }
+    .chip.absent { opacity: 0.42; }
+    .chip.absent .chip-name { font-style: italic; }
+    .chip.dragging { opacity: .35; }
+    .chip.drag-over { border-color: var(--accent); }
+
+    .reset-sections-btn {
+      font-family: var(--font-serif);
+      font-style: italic;
+      font-size: 11.5px;
+      color: var(--ink-4);
+      margin-left: auto;
+      padding-left: 10px;
+      border-left: 1px solid var(--rule);
+      padding-top: 2px; padding-bottom: 2px;
+      flex-shrink: 0;
+      white-space: nowrap;
+    }
+    .reset-sections-btn:hover { color: var(--accent); }
+
+    /* ── Main split ── */
+    .split {
       display: flex;
       flex: 1;
-      overflow: hidden;
+      min-height: 0;
+      background: var(--paper);
     }
-
-    #editor-pane {
-      width: 50%;
+    .pane {
       display: flex;
       flex-direction: column;
-      border-right: 1px solid #333;
+      min-width: 0;
       overflow: hidden;
     }
+    .editor-pane {
+      background: var(--paper);
+      border-right: 1px solid var(--rule);
+    }
+    .preview-pane {
+      background: var(--paper-2);
+    }
+    .pane-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 18px;
+      border-bottom: 1px solid var(--rule);
+      flex-shrink: 0;
+      font-family: var(--font-serif);
+      font-style: italic;
+      font-size: 12px;
+      color: var(--ink-3);
+      background: var(--paper);
+    }
+    .pane-header .mini {
+      font-family: var(--font-mono);
+      font-style: normal;
+      font-size: 10px;
+      color: var(--ink-4);
+      letter-spacing: 0.04em;
+    }
 
+    /* CodeMirror overrides — adapts to design tokens */
     .CodeMirror {
       flex: 1;
       height: 100%;
-      font-size: 13px;
+      font-family: var(--font-mono) !important;
+      font-size: 12.5px !important;
+      line-height: 1.75 !important;
+      background: var(--paper) !important;
+      color: var(--ink) !important;
     }
+    .CodeMirror-scroll { padding-bottom: 48px; }
+    .CodeMirror-gutters {
+      background: var(--paper) !important;
+      border-right: 1px solid var(--rule) !important;
+      min-width: 48px;
+    }
+    .CodeMirror-linenumber { color: var(--ink-4) !important; padding: 0 10px 0 12px; }
+    .CodeMirror-cursor { border-left: 2px solid var(--accent) !important; }
+    .CodeMirror-selected { background: var(--accent-soft) !important; }
+    .CodeMirror-activeline-background { background: var(--accent-soft) !important; }
+    .cm-s-material-darker.CodeMirror { background: var(--paper) !important; color: var(--ink) !important; }
+    .cm-s-material-darker .CodeMirror-gutters { background: var(--paper) !important; border-color: var(--rule) !important; }
+    .cm-s-material-darker .CodeMirror-linenumber { color: var(--ink-4) !important; }
+    .cm-s-material-darker .cm-keyword  { color: var(--accent) !important; }
+    .cm-s-material-darker .cm-atom     { color: oklch(48% 0.12 240) !important; }
+    .cm-s-material-darker .cm-number   { color: oklch(48% 0.12 240) !important; }
+    .cm-s-material-darker .cm-string   { color: var(--ink-2) !important; }
+    .cm-s-material-darker .cm-string-2 { color: var(--ink-2) !important; }
+    .cm-s-material-darker .cm-variable { color: var(--ink) !important; }
+    .cm-s-material-darker .cm-comment  { color: var(--ink-4) !important; font-style: italic; }
+    .cm-s-material-darker .cm-meta    { color: var(--ink-3) !important; }
+    .cm-s-material-darker .cm-operator { color: var(--ink-3) !important; }
+    [data-theme="dark"] .cm-s-material-darker .cm-number { color: oklch(72% 0.12 240) !important; }
+    [data-theme="dark"] .cm-s-material-darker .cm-atom   { color: oklch(72% 0.12 240) !important; }
 
-    #preview-pane {
-      width: 50%;
+    /* Drag handle */
+    .gutter-handle {
+      width: 6px;
+      cursor: col-resize;
+      background: transparent;
       position: relative;
-      overflow: hidden;
-      background: #555;
+      flex-shrink: 0;
+      z-index: 5;
+    }
+    .gutter-handle::after {
+      content: '';
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 1px; height: 100%;
+      background: var(--rule);
+      transition: background .15s, width .15s;
+    }
+    .gutter-handle:hover::after,
+    .gutter-handle.dragging::after {
+      background: var(--accent);
+      width: 2px;
     }
 
-    #preview-frame {
-      width: 100%;
-      height: 100%;
+    /* Preview scroll */
+    .preview-scroll {
+      flex: 1;
       overflow-y: auto;
       overflow-x: hidden;
+      padding: 24px 16px 64px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background: var(--paper-2);
     }
-
     #preview-loading {
       display: none;
       position: absolute;
       inset: 0;
-      background: rgba(0,0,0,0.45);
-      color: #fff;
-      font-size: 0.9rem;
+      background: color-mix(in oklab, var(--paper-2), transparent 30%);
+      color: var(--ink-3);
+      font-family: var(--font-serif);
+      font-style: italic;
+      font-size: 14px;
       align-items: center;
       justify-content: center;
+      backdrop-filter: blur(2px);
+      z-index: 10;
     }
-
     #preview-error {
       display: none;
+      position: absolute;
+      inset: 0;
       padding: 24px 32px;
-      background: #fff;
-      color: #c00;
-      font-family: monospace;
-      font-size: 0.8rem;
+      background: var(--paper);
+      color: var(--err);
+      font-family: var(--font-mono);
+      font-size: 11px;
       overflow-y: auto;
-      height: 100%;
+      z-index: 10;
     }
+    #preview-error pre { white-space: pre-wrap; }
+
+    /* ── Status strip ── */
+    .status {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      padding: 6px 22px;
+      border-top: 1px solid var(--rule);
+      background: var(--paper);
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      color: var(--ink-3);
+      letter-spacing: 0.02em;
+      flex-shrink: 0;
+    }
+    .status-item { display: inline-flex; align-items: center; gap: 6px; }
+    .status-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--ok);
+    }
+    .status-dot.warn { background: var(--warn); }
+    .status-dot.err  { background: var(--err); }
+    .status-dot.idle {
+      background: transparent;
+      border: 1px solid var(--rule-2);
+    }
+    .status-spacer { flex: 1; }
+    .status-theme {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      border: 1px solid var(--rule);
+      font-family: var(--font-sans);
+      font-size: 10.5px;
+      color: var(--ink-2);
+      cursor: pointer;
+      transition: border-color .15s;
+    }
+    .status-theme:hover { border-color: var(--rule-2); }
+    .status-theme .sw {
+      width: 10px; height: 10px; border-radius: 50%;
+      background: linear-gradient(135deg, oklch(98% 0.004 85) 50%, oklch(18% 0.012 60) 50%);
+      border: 0.5px solid var(--rule-2);
+    }
+
+    /* ── Toast stack ── */
+    .toast-stack {
+      position: fixed;
+      bottom: 44px; left: 22px;
+      display: flex; flex-direction: column; gap: 8px;
+      z-index: 90;
+      pointer-events: none;
+    }
+    .toast {
+      pointer-events: auto;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      background: var(--paper);
+      border: 1px solid var(--rule);
+      border-left: 3px solid var(--ok);
+      border-radius: 8px;
+      box-shadow: var(--shadow-md);
+      font-size: 12.5px;
+      color: var(--ink);
+      min-width: 280px;
+      max-width: 420px;
+      animation: toastIn .25s ease both;
+    }
+    @keyframes toastIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+    .toast.info { border-left-color: var(--ink-3); }
+    .toast.warn { border-left-color: var(--warn); }
+    .toast.err  { border-left-color: var(--err); }
+    .toast-title { font-family: var(--font-serif); font-style: italic; font-size: 13px; color: var(--ink); }
+    .toast-msg   { color: var(--ink-2); font-size: 12px; }
+    .toast-action {
+      margin-left: auto;
+      font-size: 11.5px;
+      color: var(--accent);
+      font-weight: 500;
+      padding: 3px 8px;
+      border-radius: 5px;
+    }
+    .toast-action:hover { background: var(--accent-soft); }
+    .toast-close { color: var(--ink-4); padding: 2px 4px; font-size: 14px; }
+    .toast-close:hover { color: var(--ink-2); }
+
+    /* ── Unified modal ── */
+    .modal-backdrop {
+      position: fixed; inset: 0;
+      background: color-mix(in oklab, var(--paper), black 45%);
+      backdrop-filter: blur(2px);
+      z-index: 100;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      animation: fadeIn .2s ease both;
+    }
+    [data-theme="dark"] .modal-backdrop {
+      background: color-mix(in oklab, var(--paper), black 65%);
+    }
+    .modal-backdrop.open { display: flex; }
+    @keyframes fadeIn { from {opacity:0} to {opacity:1} }
+    .modal {
+      background: var(--paper);
+      border: 1px solid var(--rule);
+      border-radius: 10px;
+      box-shadow: var(--shadow-md);
+      width: 440px;
+      max-width: 90vw;
+      overflow: hidden;
+    }
+    .modal-head { padding: 18px 22px 6px; }
+    .modal-head .eyebrow {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--ink-4);
+      margin-bottom: 6px;
+    }
+    .modal-head h2 {
+      font-family: var(--font-serif);
+      font-size: 22px;
+      font-weight: 500;
+      letter-spacing: -0.01em;
+      color: var(--ink);
+    }
+    .modal-body { padding: 8px 22px 16px; font-size: 13px; color: var(--ink-2); line-height: 1.55; }
+    .modal-foot { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 18px 18px; }
+    .btn { padding: 7px 14px; border-radius: 7px; font-size: 12.5px; font-weight: 500; }
+    .btn-ghost { color: var(--ink-2); }
+    .btn-ghost:hover { background: var(--paper-2); color: var(--ink); }
+    .btn-accent { background: var(--accent); color: white; }
+    .btn-accent:hover { filter: brightness(1.08); }
+
+    /* ── Undo toast (managed by sections-ui.js) ── */
+    #undo-toast {
+      position: fixed;
+      bottom: 52px; left: 22px;
+      background: var(--paper);
+      border: 1px solid var(--rule);
+      border-left: 3px solid var(--ok);
+      border-radius: 8px;
+      padding: 10px 14px;
+      display: none;
+      align-items: center;
+      gap: 12px;
+      font-size: 12.5px;
+      color: var(--ink);
+      box-shadow: var(--shadow-md);
+      z-index: 95;
+      min-width: 280px;
+      animation: toastIn .25s ease both;
+    }
+    #undo-toast-message { flex: 1; font-family: var(--font-serif); font-style: italic; }
+    #undo-toast-btn {
+      font-size: 11.5px;
+      color: var(--accent);
+      font-weight: 500;
+      padding: 3px 8px;
+      border-radius: 5px;
+    }
+    #undo-toast-btn:hover { background: var(--accent-soft); }
   </style>
 </head>
 <body>
-  <div id="toolbar">
-    <h1>mkcv</h1>
+
+<!-- ═══ MASTHEAD ═══ -->
+<header class="masthead">
+  <div class="masthead-left">
+    <span class="wordmark">mkcv</span>
+    <span class="masthead-tag">a quiet résumé builder</span>
+  </div>
+
+  <div class="masthead-center">
     <div id="template-select-wrapper">
-      <button id="template-trigger" type="button">Template</button>
+      <button class="tpl-picker" id="template-trigger">
+        <span class="tpl-picker-label">Template</span>
+        <span id="tpl-name-display">Classic</span>
+        <span class="tpl-caret">▾</span>
+      </button>
       <div id="template-dropdown" hidden></div>
       <div id="template-tooltip" hidden>
         <div id="tooltip-name"></div>
         <div id="tooltip-desc"></div>
       </div>
     </div>
-    <div id="density-group" style="display:inline-flex;align-items:center;border:1px solid #444;border-radius:4px;overflow:hidden;">
-      <span style="padding:5px 8px;background:#1a1a1a;color:#666;font-size:0.7rem;letter-spacing:0.05em;text-transform:uppercase;border-right:1px solid #444;white-space:nowrap;">Density</span>
-      <button type="button" data-value="comfortable" style="background:#222;color:#aaa;border:none;border-right:1px solid #333;padding:5px 10px;cursor:pointer;font-size:0.8rem;font-family:inherit;">Comfortable</button>
-      <button type="button" data-value="balanced" style="background:#222;color:#aaa;border:none;border-right:1px solid #333;padding:5px 10px;cursor:pointer;font-size:0.8rem;font-family:inherit;">Balanced</button>
-      <button type="button" data-value="compact" style="background:#222;color:#aaa;border:none;padding:5px 10px;cursor:pointer;font-size:0.8rem;font-family:inherit;">Compact</button>
-    </div>
-    <div id="font-scale-group" style="display:inline-flex;align-items:center;border:1px solid #444;border-radius:4px;overflow:hidden;">
-      <span style="padding:5px 8px;background:#1a1a1a;color:#666;font-size:0.7rem;letter-spacing:0.05em;text-transform:uppercase;border-right:1px solid #444;">Font</span>
-      <button type="button" data-value="small" style="background:#222;color:#aaa;border:none;border-right:1px solid #333;padding:5px 10px;cursor:pointer;font-size:0.8rem;font-family:inherit;">S</button>
-      <button type="button" data-value="normal" style="background:#222;color:#aaa;border:none;border-right:1px solid #333;padding:5px 10px;cursor:pointer;font-size:0.8rem;font-family:inherit;">M</button>
-      <button type="button" data-value="large" style="background:#222;color:#aaa;border:none;padding:5px 10px;cursor:pointer;font-size:0.8rem;font-family:inherit;">L</button>
-    </div>
-    <button id="btn-validate-template">✓ Validate Template</button>
-    <button id="btn-md">↓ Markdown</button>
-    <button id="btn-tex">↓ LaTeX</button>
-    <button id="btn-pdf">↓ PDF</button>
   </div>
-  <div id="error-banner"></div>
-  <div id="sections-bar">
-    <div id="sections-header">
-      <span>Sections ▾</span>
+
+  <div class="masthead-right">
+    <button class="icon-btn" id="btn-validate-icon" title="Validate template (checks Jinja2 + pdflatex)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M20 6L9 17l-5-5"/>
+      </svg>
+    </button>
+    <!-- Hidden button for templates.js compat -->
+    <button id="btn-validate-template" style="display:none"></button>
+
+    <div style="position:relative">
+      <button class="export-btn" id="export-trigger">
+        Export
+        <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div id="export-menu">
+        <div class="export-option primary" data-export="pdf">↓ PDF <span class="kbd">⌘P</span></div>
+        <div class="export-option" data-export="tex">↓ LaTeX source <span class="kbd">⌘L</span></div>
+        <div class="export-option" data-export="md">↓ Markdown <span class="kbd">⌘M</span></div>
+      </div>
     </div>
-    <div id="sections-panel"></div>
+
+    <!-- Hidden export buttons for export.js compat -->
+    <button id="btn-pdf"  style="display:none"></button>
+    <button id="btn-tex"  style="display:none"></button>
+    <button id="btn-md"   style="display:none"></button>
   </div>
-  <div id="main">
-    <div id="editor-pane"></div>
-    <div id="preview-pane">
-      <div id="preview-frame"></div>
+</header>
+
+<!-- ═══ ERROR BANNER ═══ -->
+<div id="error-banner"></div>
+
+<!-- ═══ CONTROLS ROW ═══ -->
+<div class="controls-row">
+  <div class="ctrl-group">
+    <span class="ctrl-label">Density</span>
+    <div class="ctrl-seg" id="density-group">
+      <button data-value="comfortable">Comfortable</button>
+      <button data-value="balanced">Balanced</button>
+      <button data-value="compact">Compact</button>
+    </div>
+  </div>
+
+  <div class="ctrl-sep"></div>
+
+  <div class="ctrl-group">
+    <span class="ctrl-label">Type size</span>
+    <div class="ctrl-seg" id="font-scale-group">
+      <button data-value="small">Small</button>
+      <button data-value="normal">Regular</button>
+      <button data-value="large">Large</button>
+    </div>
+  </div>
+
+  <div class="ctrl-sep"></div>
+
+  <div class="ctrl-group" style="flex:1;min-width:0;overflow:hidden">
+    <span class="ctrl-label">Sections</span>
+    <!-- sections-ui.js renders chips into #sections-panel -->
+    <div class="sections-rail" id="sections-panel"></div>
+    <button class="reset-sections-btn" id="reset-sections-order-btn">Reset order</button>
+  </div>
+</div>
+
+<!-- ═══ MAIN SPLIT ═══ -->
+<main class="split" id="split">
+
+  <section class="pane editor-pane" id="editor-pane" style="flex:1 1 50%">
+    <div class="pane-header">
+      <span id="editor-filename">resume.yaml</span>
+      <span class="mini" id="editor-meta"></span>
+    </div>
+    <!-- CodeMirror appends here via editor-adapter.js -->
+  </section>
+
+  <div class="gutter-handle" id="gutter-handle"></div>
+
+  <section class="pane preview-pane" id="preview-pane" style="flex:1 1 50%">
+    <div class="pane-header">
+      <span id="preview-pane-title">Preview</span>
+      <span class="mini" id="preview-page-info"></span>
+    </div>
+    <div style="flex:1;position:relative;overflow:hidden;display:flex;flex-direction:column">
+      <div class="preview-scroll" id="preview-frame"></div>
       <div id="preview-loading">Generating preview…</div>
       <div id="preview-error"></div>
     </div>
-  </div>
+  </section>
 
-  <div id="reset-modal">
-    <div id="reset-modal-box">
-      <div id="reset-modal-title"></div>
-      <div id="reset-modal-body">This will replace the section content with the default template. You can undo immediately after.</div>
-      <div id="reset-modal-actions">
-        <button id="reset-modal-cancel">Cancel</button>
-        <button id="reset-modal-confirm">↺ Reset</button>
-      </div>
+</main>
+
+<!-- ═══ STATUS STRIP ═══ -->
+<footer class="status">
+  <span class="status-item">
+    <span class="status-dot idle" id="save-dot"></span>
+    <span id="save-text">All changes saved</span>
+  </span>
+  <span class="status-item">
+    <span class="status-dot" id="valid-dot"></span>
+    <span id="valid-text">YAML valid</span>
+  </span>
+  <span class="status-item" id="lines-stat"></span>
+  <span class="status-spacer"></span>
+  <span class="status-item" id="last-export-stat">no export yet</span>
+  <button class="status-theme" id="theme-toggle">
+    <span class="sw"></span>
+    <span id="theme-label">Light</span>
+  </button>
+</footer>
+
+<!-- ═══ TOAST STACK ═══ -->
+<div class="toast-stack" id="toast-stack"></div>
+
+<!-- ═══ RESET MODAL ═══ -->
+<div class="modal-backdrop" id="reset-modal">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="eyebrow">Reset</div>
+      <h2 id="reset-modal-title">Reset section?</h2>
+    </div>
+    <div class="modal-body" id="reset-modal-body">
+      This will replace the section content with the default template. You can undo immediately after.
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" id="reset-modal-cancel">Cancel</button>
+      <button class="btn btn-accent" id="reset-modal-confirm">Reset section</button>
     </div>
   </div>
+</div>
 
-  <div id="undo-toast">
-    <span id="undo-toast-message"></span>
-    <button id="undo-toast-btn">Undo</button>
-  </div>
+<!-- ═══ UNDO TOAST (managed by sections-ui.js) ═══ -->
+<div id="undo-toast">
+  <span id="undo-toast-message"></span>
+  <button id="undo-toast-btn">Undo</button>
+</div>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-  <script src="app.js"></script>
-  <script src="lib/show-hint.js"></script>
-  <script src="yaml-autocomplete.js"></script>
-  <script src="editor-adapter.js"></script>
-  <script src="file-sync.js"></script>
-  <script src="sections-state.js"></script>
-  <script src="sections-ui.js"></script>
-  <script src="templates.js"></script>
-  <script src="validator.js"></script>
-  <script src="preview.js"></script>
-  <script src="export.js"></script>
-  <script src="layout-controls.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="app.js"></script>
+<script src="lib/show-hint.js"></script>
+<script src="yaml-autocomplete.js"></script>
+<script src="editor-adapter.js"></script>
+<script src="file-sync.js"></script>
+<script src="sections-state.js"></script>
+<script src="sections-ui.js"></script>
+<script src="templates.js"></script>
+<script src="validator.js"></script>
+<script src="preview.js"></script>
+<script src="export.js"></script>
+<script src="layout-controls.js"></script>
+
+<script>
+/* ── UI wiring: new elements not covered by existing modules ── */
+document.addEventListener('DOMContentLoaded', () => {
+
+  /* Validate icon → hidden button */
+  document.getElementById('btn-validate-icon').addEventListener('click', () => {
+    document.getElementById('btn-validate-template').click();
+  });
+
+  /* Export dropdown */
+  const exportTrigger = document.getElementById('export-trigger');
+  const exportMenu    = document.getElementById('export-menu');
+  exportTrigger.addEventListener('click', (e) => {
+    e.stopPropagation();
+    exportMenu.classList.toggle('open');
+    if (document.getElementById('template-dropdown') && !document.getElementById('template-dropdown').hidden) {
+      document.getElementById('template-dropdown').hidden = true;
+    }
+  });
+  exportMenu.querySelectorAll('.export-option[data-export]').forEach(opt => {
+    opt.addEventListener('click', (e) => {
+      e.stopPropagation();
+      exportMenu.classList.remove('open');
+      const fmt = opt.dataset.export;
+      const map = { pdf: 'btn-pdf', tex: 'btn-tex', md: 'btn-md' };
+      if (map[fmt]) document.getElementById(map[fmt]).click();
+      const lastStat = document.getElementById('last-export-stat');
+      if (lastStat) lastStat.textContent = `last export: ${fmt.toUpperCase()} · just now`;
+    });
+  });
+  document.addEventListener('click', () => exportMenu.classList.remove('open'));
+
+  /* Keyboard shortcuts */
+  document.addEventListener('keydown', (e) => {
+    if (e.metaKey || e.ctrlKey) {
+      if (e.key === 'p') { e.preventDefault(); document.getElementById('btn-pdf').click(); }
+      if (e.key === 'l') { e.preventDefault(); document.getElementById('btn-tex').click(); }
+      if (e.key === 'm') { e.preventDefault(); document.getElementById('btn-md').click(); }
+    }
+  });
+
+  /* Reset sections order button (outside sections-ui.js) */
+  const resetOrderBtn = document.getElementById('reset-sections-order-btn');
+  if (resetOrderBtn) {
+    resetOrderBtn.addEventListener('click', () => {
+      sectionsState.resetAll();
+      sectionsUI.buildPanel();
+      preview.refresh(
+        sectionsState.getOrderedFilteredYaml(app.state.yaml),
+        app.state.template
+      );
+    });
+  }
+
+  /* Theme toggle */
+  const themeBtn   = document.getElementById('theme-toggle');
+  const themeLabel = document.getElementById('theme-label');
+  const stored = localStorage.getItem('mkcv_theme') || 'light';
+  document.documentElement.dataset.theme = stored;
+  themeLabel.textContent = stored === 'dark' ? 'Dark' : 'Light';
+  themeBtn.addEventListener('click', () => {
+    const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+    document.documentElement.dataset.theme = next;
+    themeLabel.textContent = next === 'dark' ? 'Dark' : 'Light';
+    localStorage.setItem('mkcv_theme', next);
+  });
+
+  /* Resizable split */
+  const handle      = document.getElementById('gutter-handle');
+  const split       = document.getElementById('split');
+  const editorPane  = document.getElementById('editor-pane');
+  const previewPane = document.getElementById('preview-pane');
+  let dragging = false;
+  handle.addEventListener('mousedown', (e) => {
+    dragging = true;
+    handle.classList.add('dragging');
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    e.preventDefault();
+  });
+  document.addEventListener('mousemove', (e) => {
+    if (!dragging) return;
+    const rect = split.getBoundingClientRect();
+    const pct  = Math.max(20, Math.min(80, ((e.clientX - rect.left) / rect.width) * 100));
+    editorPane.style.flex  = `1 1 ${pct}%`;
+    previewPane.style.flex = `1 1 ${100 - pct}%`;
+  });
+  document.addEventListener('mouseup', () => {
+    if (!dragging) return;
+    dragging = false;
+    handle.classList.remove('dragging');
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+  });
+
+  /* Status strip — lines + save state */
+  let saveTimer = null;
+  function updateLineCount() {
+    const yaml  = app.state.yaml || '';
+    const lines = yaml.split('\n').length;
+    const kb    = (new TextEncoder().encode(yaml).length / 1024).toFixed(1);
+    const stat  = document.getElementById('lines-stat');
+    const meta  = document.getElementById('editor-meta');
+    if (stat) stat.textContent = `${lines} ln · ${kb} kb`;
+    if (meta) meta.textContent = `${lines} lines`;
+  }
+  function markSaving() {
+    const dot  = document.getElementById('save-dot');
+    const text = document.getElementById('save-text');
+    const meta = document.getElementById('editor-meta');
+    if (dot)  { dot.classList.remove('idle'); dot.classList.add('warn'); }
+    if (text)  text.textContent = 'Saving…';
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => {
+      if (dot)  { dot.classList.remove('warn'); dot.classList.add('idle'); }
+      if (text)  text.textContent = 'All changes saved';
+      updateLineCount();
+    }, 1200);
+  }
+  if (window.editorAdapter) {
+    window.editorAdapter.onChange(() => { updateLineCount(); markSaving(); });
+    updateLineCount();
+  } else {
+    document.addEventListener('editorReady', () => {
+      window.editorAdapter.onChange(() => { updateLineCount(); markSaving(); });
+      updateLineCount();
+    });
+  }
+
+  /* Preview loading → update pane header */
+  const origShowLoading = preview && preview._showLoading;
+});
+</script>
+
 </body>
 </html>

@@ -3,13 +3,21 @@ const validator = (() => {
   let timer = null;
 
   function showErrors(errors) {
+    const dot  = document.getElementById("valid-dot");
+    const text = document.getElementById("valid-text");
+
     if (!errors.length) {
       banner.style.display = "none";
-      banner.textContent = "";
+      banner.textContent   = "";
+      if (dot)  { dot.className = "status-dot"; }
+      if (text)  text.textContent = "YAML valid";
       return;
     }
+
     banner.style.display = "block";
-    banner.textContent = errors.join(" · ");
+    banner.textContent   = errors.join(" · ");
+    if (dot)  { dot.className = "status-dot err"; }
+    if (text)  text.textContent = "YAML errors";
   }
 
   async function validate(yaml, template) {

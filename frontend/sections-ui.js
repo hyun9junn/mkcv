@@ -1,54 +1,46 @@
 const sectionsUI = (() => {
   const panel = document.getElementById("sections-panel");
-  const header = document.getElementById("sections-header");
-  let isPanelOpen = false;
   let dragSrcKey = null;
-  function togglePanel() {
-    isPanelOpen = !isPanelOpen;
-    panel.style.display = isPanelOpen ? "flex" : "none";
-    header.querySelector("span").textContent = isPanelOpen
-      ? "Sections ▴"
-      : "Sections ▾";
-  }
 
   function buildPanel() {
     const presentKeys = sectionsState.getExpandedPresentKeys(app.state.yaml);
 
-    // Any key present in YAML but missing from localStorage order gets appended.
     for (const key of presentKeys) {
       sectionsState.ensureInOrder(key);
     }
 
-    const order = sectionsState.getOrder();
+    const order    = sectionsState.getOrder();
     const presentSet = new Set(presentKeys);
 
     panel.innerHTML = "";
 
-    const chipsContainer = document.createElement("div");
-    chipsContainer.className = "sections-chips";
-
     for (const key of order) {
-      if (!presentSet.has(key)) continue;
-      const def = sectionsState.getDef(key, app.state.yaml);
+      const def    = sectionsState.getDef(key, app.state.yaml);
+      const present = presentSet.has(key);
       if (!def) continue;
 
-      const hidden = sectionsState.isHidden(key);
+      const hidden = present && sectionsState.isHidden(key);
 
-      const row = document.createElement("div");
-      row.className = "section-row" + (hidden ? " hidden-section" : "");
-      row.dataset.key = key;
-      row.draggable = true;
+      const chip = document.createElement("div");
+      chip.className = "chip" + ((!hidden && present) ? " on" : "") + (!present ? " absent" : "");
+      chip.dataset.key = key;
+      chip.draggable = present;
+      chip.title = present
+        ? (hidden ? `Show ${def.label}` : `Hide ${def.label}`)
+        : `${def.label} — not in YAML`;
 
-      const handle = document.createElement("span");
-      handle.className = "drag-handle";
-      handle.textContent = "⠿";
-      handle.title = "Drag to reorder (sidebar only)";
+      chip.innerHTML = `
+        <span class="chip-grip"><span></span><span></span><span></span></span>
+        <span class="chip-dot"></span>
+        <span class="chip-name">${def.label}</span>
+      `;
 
-      const cb = document.createElement("input");
-      cb.type = "checkbox";
-      cb.checked = !hidden;
-      cb.style.cursor = "pointer";
-      cb.addEventListener("change", () => {
+      chip.addEventListener("click", (e) => {
+        if (e.target.closest(".chip-grip")) return;
+        if (!present) {
+          showToast(`Add a \`${key}:\` key to include this section.`, "info");
+          return;
+        }
         sectionsState.toggleHidden(key);
         buildPanel();
         preview.refresh(
@@ -57,152 +49,116 @@ const sectionsUI = (() => {
         );
       });
 
-      const lbl = document.createElement("span");
-      lbl.className = "section-label";
-      lbl.textContent = def.label;
-      lbl.title = hidden ? `${def.label} (hidden)` : def.label;
-      lbl.addEventListener("click", () => cb.click());
-
-      if (sectionsState.SECTION_DEFS[key]) {
-          const btnReset = document.createElement("button");
-          btnReset.className = "btn-reset";
-          btnReset.textContent = "↺";
-          btnReset.title = `Reset ${def.label}`;
-          btnReset.addEventListener("click", () => showResetModal(key));
-          row.appendChild(btnReset);
+      if (present) {
+        chip.addEventListener("dragstart", (e) => {
+          dragSrcKey = key;
+          setTimeout(() => chip.classList.add("dragging"), 0);
+          e.dataTransfer.effectAllowed = "move";
+        });
+        chip.addEventListener("dragend", () => {
+          dragSrcKey = null;
+          chip.classList.remove("dragging");
+          panel.querySelectorAll(".chip").forEach(c => c.classList.remove("drag-over"));
+        });
+        chip.addEventListener("dragover", (e) => {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = "move";
+          panel.querySelectorAll(".chip").forEach(c => c.classList.remove("drag-over"));
+          if (dragSrcKey !== key) chip.classList.add("drag-over");
+        });
+        chip.addEventListener("drop", (e) => {
+          e.preventDefault();
+          if (!dragSrcKey || dragSrcKey === key) return;
+          const ord     = sectionsState.getOrder();
+          const fromIdx = ord.indexOf(dragSrcKey);
+          const toIdx   = ord.indexOf(key);
+          if (fromIdx === -1 || toIdx === -1) return;
+          ord.splice(fromIdx, 1);
+          ord.splice(toIdx, 0, dragSrcKey);
+          sectionsState.setOrder(ord);
+          dragSrcKey = null;
+          buildPanel();
+          preview.refresh(
+            sectionsState.getOrderedFilteredYaml(app.state.yaml),
+            app.state.template
+          );
+        });
       }
 
-      row.addEventListener("dragstart", (e) => {
-        dragSrcKey = key;
-        setTimeout(() => row.classList.add("dragging"), 0);
-        e.dataTransfer.effectAllowed = "move";
-      });
-      row.addEventListener("dragend", () => {
-        dragSrcKey = null;
-        row.classList.remove("dragging");
-        chipsContainer
-          .querySelectorAll(".section-row")
-          .forEach((r) => r.classList.remove("drag-over"));
-      });
-      row.addEventListener("dragover", (e) => {
-        e.preventDefault();
-        e.dataTransfer.dropEffect = "move";
-        chipsContainer
-          .querySelectorAll(".section-row")
-          .forEach((r) => r.classList.remove("drag-over"));
-        if (dragSrcKey !== key) row.classList.add("drag-over");
-      });
-      row.addEventListener("drop", (e) => {
-        e.preventDefault();
-        if (!dragSrcKey || dragSrcKey === key) return;
-        const ord = sectionsState.getOrder();
-        const fromIdx = ord.indexOf(dragSrcKey);
-        const toIdx = ord.indexOf(key);
-        if (fromIdx === -1 || toIdx === -1) return;
-        ord.splice(fromIdx, 1);
-        ord.splice(toIdx, 0, dragSrcKey);
-        sectionsState.setOrder(ord);
-        dragSrcKey = null;
-        buildPanel();
-        preview.refresh(
-          sectionsState.getOrderedFilteredYaml(app.state.yaml),
-          app.state.template
-        );
-      });
-
-      row.appendChild(handle);
-      row.appendChild(cb);
-      row.appendChild(lbl);
-      chipsContainer.appendChild(row);
+      panel.appendChild(chip);
     }
-
-    panel.appendChild(chipsContainer);
-
-    const btnResetOrder = document.createElement("button");
-    btnResetOrder.className = "btn-reset-order";
-    btnResetOrder.textContent = "↺ Reset Order";
-    btnResetOrder.title = "Reset section order and visibility to defaults";
-    btnResetOrder.addEventListener("click", () => {
-      sectionsState.resetAll();
-      buildPanel();
-      preview.refresh(
-        sectionsState.getOrderedFilteredYaml(app.state.yaml),
-        app.state.template
-      );
-    });
-    panel.appendChild(btnResetOrder);
-
   }
 
-  const modal = document.getElementById("reset-modal");
-  const modalTitle = document.getElementById("reset-modal-title");
-  const modalCancel = document.getElementById("reset-modal-cancel");
+  /* ── Modal ── */
+  const modal        = document.getElementById("reset-modal");
+  const modalTitle   = document.getElementById("reset-modal-title");
+  const modalCancel  = document.getElementById("reset-modal-cancel");
   const modalConfirm = document.getElementById("reset-modal-confirm");
 
-  const toast = document.getElementById("undo-toast");
-  const toastMsg = document.getElementById("undo-toast-message");
-  const toastBtn = document.getElementById("undo-toast-btn");
+  /* ── Undo toast ── */
+  const undoToast  = document.getElementById("undo-toast");
+  const undoMsg    = document.getElementById("undo-toast-message");
+  const undoBtn    = document.getElementById("undo-toast-btn");
+  let toastTimer   = null;
+  let pendingUndo  = null;
 
-  let toastTimer = null;
-  let pendingUndo = null; // { key, previousSectionYaml }
-
-  function hideToast() {
+  function hideUndoToast() {
     clearTimeout(toastTimer);
-    toast.style.display = "none";
+    undoToast.style.display = "none";
     pendingUndo = null;
   }
 
-  function showToast(label, key, previousSectionYaml) {
-    hideToast();
+  function showUndoToast(label, key, previousSectionYaml) {
+    hideUndoToast();
     pendingUndo = { key, previousSectionYaml };
-    toastMsg.textContent = `${label} reset`;
-    toast.style.display = "flex";
-    toastTimer = setTimeout(hideToast, 5000);
+    undoMsg.textContent = `${label} reset`;
+    undoToast.style.display = "flex";
+    toastTimer = setTimeout(hideUndoToast, 5000);
   }
 
-  toastBtn.addEventListener("click", () => {
+  undoBtn.addEventListener("click", () => {
     if (!pendingUndo) return;
     const { key, previousSectionYaml } = pendingUndo;
-    const restored = sectionsState.restoreSectionYaml(
-      key,
-      previousSectionYaml,
-      app.state.yaml
-    );
+    const restored = sectionsState.restoreSectionYaml(key, previousSectionYaml, app.state.yaml);
     if (restored) {
       window.editorAdapter.setValue(restored);
       app.setState({ yaml: restored });
     }
-    hideToast();
+    hideUndoToast();
   });
+
+  /* Shared toast (uses #toast-stack if available, else alert) */
+  function showToast(msg, type = "info") {
+    const stack = document.getElementById("toast-stack");
+    if (!stack) return;
+    const t = document.createElement("div");
+    t.className = "toast " + type;
+    t.innerHTML = `<div class="toast-msg">${msg}</div><button class="toast-close">×</button>`;
+    t.querySelector(".toast-close").addEventListener("click", () => t.remove());
+    stack.appendChild(t);
+    setTimeout(() => {
+      t.style.animation = "toastIn .2s ease reverse both";
+      setTimeout(() => t.remove(), 220);
+    }, 3800);
+  }
 
   function showResetModal(key) {
     const def = sectionsState.SECTION_DEFS[key];
     if (!def) return;
     modalTitle.textContent = `Reset ${def.label}?`;
-    modal.style.display = "flex";
+    modal.classList.add("open");
 
     function onConfirm() {
-      modal.style.display = "none";
+      modal.classList.remove("open");
       cleanup();
       const result = sectionsState.resetSectionYaml(key, app.state.yaml);
       if (!result) return;
       window.editorAdapter.setValue(result.newYaml);
       app.setState({ yaml: result.newYaml });
-      showToast(def.label, key, result.previousYaml);
+      showUndoToast(def.label, key, result.previousYaml);
     }
-
-    function onCancel() {
-      modal.style.display = "none";
-      cleanup();
-    }
-
-    function onBackdrop(e) {
-      if (e.target === modal) {
-        modal.style.display = "none";
-        cleanup();
-      }
-    }
-
+    function onCancel() { modal.classList.remove("open"); cleanup(); }
+    function onBackdrop(e) { if (e.target === modal) { modal.classList.remove("open"); cleanup(); } }
     function cleanup() {
       modalConfirm.removeEventListener("click", onConfirm);
       modalCancel.removeEventListener("click", onCancel);
@@ -215,7 +171,6 @@ const sectionsUI = (() => {
   }
 
   document.addEventListener("DOMContentLoaded", () => {
-    header.addEventListener("click", togglePanel);
     buildPanel();
     let buildTimer = null;
     window.editorAdapter.onChange(() => {
@@ -224,7 +179,7 @@ const sectionsUI = (() => {
     });
   });
 
-  return { buildPanel };
+  return { buildPanel, showResetModal };
 })();
 
 window.sectionsUI = sectionsUI;
