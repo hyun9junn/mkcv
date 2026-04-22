@@ -1,6 +1,5 @@
 const sectionsUI = (() => {
   const panel = document.getElementById("sections-panel");
-  let dragSrcKey = null;
 
   function buildPanel() {
     const presentKeys = sectionsState.getExpandedPresentKeys(app.state.yaml);
@@ -24,7 +23,6 @@ const sectionsUI = (() => {
       const chip = document.createElement("div");
       chip.className = "chip" + ((!hidden && present) ? " on" : "") + (!present ? " absent" : "");
       chip.dataset.key = key;
-      chip.draggable = present;
       chip.title = present
         ? (hidden ? `Show ${def.label}` : `Hide ${def.label}`)
         : `${def.label} — not in YAML`;
@@ -35,8 +33,11 @@ const sectionsUI = (() => {
         <span class="chip-name">${def.label}</span>
       `;
 
+      let justDragged = false;
+
       chip.addEventListener("click", (e) => {
         if (e.target.closest(".chip-grip")) return;
+        if (justDragged) { justDragged = false; return; }
         if (!present) {
           if (sectionsState.SECTION_DEFS[key]) {
             showAddSectionToast(key);
@@ -54,39 +55,62 @@ const sectionsUI = (() => {
       });
 
       if (present) {
-        chip.addEventListener("dragstart", (e) => {
-          dragSrcKey = key;
-          setTimeout(() => chip.classList.add("dragging"), 0);
-          e.dataTransfer.effectAllowed = "move";
+        let dragClone = null;
+        let offsetX = 0, offsetY = 0;
+        let startX = 0, startY = 0;
+        let dragging = false;
+
+        chip.addEventListener("pointerdown", (e) => {
+          if (e.button !== 0) return;
+          chip.setPointerCapture(e.pointerId);
+          const rect = chip.getBoundingClientRect();
+          offsetX = e.clientX - rect.left;
+          offsetY = e.clientY - rect.top;
+          startX = e.clientX;
+          startY = e.clientY;
         });
-        chip.addEventListener("dragend", () => {
-          dragSrcKey = null;
+
+        chip.addEventListener("pointermove", (e) => {
+          if (!chip.hasPointerCapture(e.pointerId)) return;
+          if (!dragging) {
+            if (Math.abs(e.clientX - startX) <= 4 && Math.abs(e.clientY - startY) <= 4) return;
+            dragging = true;
+            const rect = chip.getBoundingClientRect();
+            dragClone = chip.cloneNode(true);
+            dragClone.className = "chip on chip-drag-clone";
+            dragClone.style.width = rect.width + "px";
+            document.body.appendChild(dragClone);
+            chip.classList.add("dragging");
+          }
+          dragClone.style.left = (e.clientX - offsetX) + "px";
+          dragClone.style.top  = (e.clientY - offsetY) + "px";
+          const siblings = [...panel.querySelectorAll(".chip:not(.dragging)")];
+          const before = siblings.find(s => {
+            const r = s.getBoundingClientRect();
+            return e.clientX < r.left + r.width / 2;
+          });
+          if (before) panel.insertBefore(chip, before);
+          else panel.appendChild(chip);
+        });
+
+        function endDrag() {
+          if (!dragging) return;
+          dragging = false;
+          justDragged = true;
+          dragClone.remove();
+          dragClone = null;
           chip.classList.remove("dragging");
-          panel.querySelectorAll(".chip").forEach(c => c.classList.remove("drag-over"));
-        });
-        chip.addEventListener("dragover", (e) => {
-          e.preventDefault();
-          e.dataTransfer.dropEffect = "move";
-          panel.querySelectorAll(".chip").forEach(c => c.classList.remove("drag-over"));
-          if (dragSrcKey !== key) chip.classList.add("drag-over");
-        });
-        chip.addEventListener("drop", (e) => {
-          e.preventDefault();
-          if (!dragSrcKey || dragSrcKey === key) return;
-          const ord     = sectionsState.getOrder();
-          const fromIdx = ord.indexOf(dragSrcKey);
-          const toIdx   = ord.indexOf(key);
-          if (fromIdx === -1 || toIdx === -1) return;
-          ord.splice(fromIdx, 1);
-          ord.splice(toIdx, 0, dragSrcKey);
-          sectionsState.setOrder(ord);
-          dragSrcKey = null;
+          const newOrder = [...panel.querySelectorAll(".chip")].map(c => c.dataset.key);
+          sectionsState.setOrder(newOrder);
           buildPanel();
           preview.refresh(
             sectionsState.getOrderedFilteredYaml(app.state.yaml),
             app.state.template
           );
-        });
+        }
+
+        chip.addEventListener("pointerup",    endDrag);
+        chip.addEventListener("pointercancel", endDrag);
       }
 
       panel.appendChild(chip);
