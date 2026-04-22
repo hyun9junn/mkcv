@@ -425,13 +425,13 @@ def test_resume_tech_long_job_title_triggers_shrink():
     cv = CVData(
         personal=PersonalInfo(name="Jane Smith", email="j@example.com"),
         experience=[ExperienceItem(
-            title="Principal Machine Learning Infrastructure Engineering Lead",  # 57 chars > 48
+            title="Principal Machine Learning Infrastructure Engineering Lead",
             company="Acme Corp",
             start_date="2020",
         )],
     )
     output = LaTeXRenderer(TEMPLATES_DIR, template="resume-tech").render(cv)
-    assert r'\small' in output
+    assert r'\small \cvorg{Principal Machine Learning Infrastructure Engineering Lead}' in output
 
 
 def test_sidebar_minimal_long_job_title_triggers_shrink():
@@ -439,13 +439,13 @@ def test_sidebar_minimal_long_job_title_triggers_shrink():
     cv = CVData(
         personal=PersonalInfo(name="Jane Smith", email="j@example.com"),
         experience=[ExperienceItem(
-            title="Principal Machine Learning Infrastructure Engineering Lead",  # 57 chars > 48
+            title="Principal Machine Learning Infrastructure Engineering Lead",
             company="Acme Corp",
             start_date="2020",
         )],
     )
     output = LaTeXRenderer(TEMPLATES_DIR, template="sidebar-minimal").render(cv)
-    assert r'\small' in output
+    assert r'\small \cvrole{Principal Machine Learning Infrastructure Engineering Lead}' in output
 
 
 def test_sidebar_portrait_long_job_title_triggers_shrink():
@@ -453,13 +453,13 @@ def test_sidebar_portrait_long_job_title_triggers_shrink():
     cv = CVData(
         personal=PersonalInfo(name="Jane Smith", email="j@example.com"),
         experience=[ExperienceItem(
-            title="Principal Machine Learning Infrastructure Engineering Lead",  # 57 chars > 48
+            title="Principal Machine Learning Infrastructure Engineering Lead",
             company="Acme Corp",
             start_date="2020",
         )],
     )
     output = LaTeXRenderer(TEMPLATES_DIR, template="sidebar-portrait").render(cv)
-    assert r'\small' in output
+    assert r'\small \cvrole{Principal Machine Learning Infrastructure Engineering Lead}' in output
 
 
 def test_filters_available_in_template(tmp_path, minimal_cv):
