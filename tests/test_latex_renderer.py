@@ -308,6 +308,34 @@ def test_executive_corporate_short_name_stays_22pt():
     assert r'\fontsize{22pt}' in output
 
 
+def test_classic_long_job_title_triggers_shrink():
+    from backend.models import CVData, PersonalInfo, ExperienceItem
+    cv = CVData(
+        personal=PersonalInfo(name="Jane Smith", email="j@example.com"),
+        experience=[ExperienceItem(
+            title="Principal Machine Learning Infrastructure Engineering Lead",  # 57 chars
+            company="Acme Corp",
+            start_date="2020",
+        )],
+    )
+    output = LaTeXRenderer(TEMPLATES_DIR, template="classic").render(cv)
+    assert r'\small' in output
+
+
+def test_classic_short_job_title_no_shrink():
+    from backend.models import CVData, PersonalInfo, ExperienceItem
+    cv = CVData(
+        personal=PersonalInfo(name="Jane Smith", email="j@example.com"),
+        experience=[ExperienceItem(
+            title="Software Engineer",
+            company="Acme Corp",
+            start_date="2020",
+        )],
+    )
+    output = LaTeXRenderer(TEMPLATES_DIR, template="classic").render(cv)
+    assert r'\small' not in output
+
+
 def test_filters_available_in_template(tmp_path, minimal_cv):
     # "Alice" = 5 chars → name_size returns \Huge\bfseries
     tmpl_dir = tmp_path / "mini"

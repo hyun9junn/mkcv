@@ -48,7 +48,7 @@
 <% if key == 'experience' and cv.experience %>
 \section{Experience}
 <% for job in cv.experience %>
-\textbf{<< job.title >>} \hfill << job.start_date >> -- << job.end_date if job.end_date else "Present" >>\\
+{<< job.title | shrink_if_long(48) >>\textbf{<< job.title >>}} \hfill << job.start_date >> -- << job.end_date if job.end_date else "Present" >>\\
 \textit{<< job.company >>}
 <% if job.highlights %>
 \begin{itemize}[leftmargin=*,noitemsep,topsep=\cvitembefore]
@@ -64,7 +64,7 @@
 <% if key == 'education' and cv.education %>
 \section{Education}
 <% for edu in cv.education %>
-\textbf{<< edu.degree >>} \hfill <% if edu.year %><< edu.year >><% elif edu.start_date %><< edu.start_date >> -- << edu.end_date if edu.end_date else "Present" >><% endif %>\\
+{<< edu.degree | shrink_if_long(48) >>\textbf{<< edu.degree >>}} \hfill <% if edu.year %><< edu.year >><% elif edu.start_date %><< edu.start_date >> -- << edu.end_date if edu.end_date else "Present" >><% endif %>\\
 \textit{<< edu.institution >>}<% if edu.gpa %> \hfill GPA: << edu.gpa >><% endif %>
 <% if not loop.last %>\vspace{\cvvgap}<% endif %>
 <% endfor %>
@@ -80,7 +80,7 @@
 <% if key == 'projects' and cv.projects %>
 \section{Projects}
 <% for proj in cv.projects %>
-\textbf{<% if proj.url %>\href{https://<< proj.url >>}{<< proj.name >>}<% else %><< proj.name >><% endif %>} --- << proj.description >>
+{<< proj.name | shrink_if_long(40) >>\textbf{<% if proj.url %>\href{https://<< proj.url >>}{<< proj.name >>}<% else %><< proj.name >><% endif %>}} --- << proj.description >>
 <% if proj.highlights %>
 \begin{itemize}[leftmargin=*,noitemsep,topsep=\cvitembefore]
 <% for item in proj.highlights %>
