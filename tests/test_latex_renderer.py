@@ -420,6 +420,20 @@ def test_modern_startup_long_job_title_triggers_shrink():
     assert r'\small' in output
 
 
+def test_resume_tech_long_name_steps_down():
+    from backend.models import CVData, PersonalInfo
+    cv = CVData(personal=PersonalInfo(name="Bartholomew Christopherson Winthrop", email="b@example.com"))
+    output = LaTeXRenderer(TEMPLATES_DIR, template="resume-tech").render(cv)
+    assert r'\Large\bfseries Bartholomew Christopherson Winthrop' in output
+
+
+def test_resume_tech_short_name_stays_huge():
+    from backend.models import CVData, PersonalInfo
+    cv = CVData(personal=PersonalInfo(name="Jane Smith", email="j@example.com"))
+    output = LaTeXRenderer(TEMPLATES_DIR, template="resume-tech").render(cv)
+    assert r'\Huge\bfseries Jane Smith' in output
+
+
 def test_resume_tech_long_job_title_triggers_shrink():
     from backend.models import CVData, PersonalInfo, ExperienceItem
     cv = CVData(

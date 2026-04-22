@@ -76,6 +76,19 @@ During implementation, each template is inspected to determine whether it uses:
 - **Standard size commands** → use `name_size`: `{<< cv.personal.name | name_size >> << cv.personal.name >>}`
 - **Explicit `\fontsize{X}{Y}`** → use `name_fontsize` with the template's specific base pt and skip: `{<< cv.personal.name | name_fontsize(26, 1.18) >><< cv.personal.name >>}`
 
+Name scaling is **not applied** to templates where the name header lives inside a narrow column, because `name_size` returns `\Huge` for short names — which would make short names *larger* than the original size and overflow the column. Excluded templates and reasons:
+
+| Template | Reason |
+|---|---|
+| `banking` | Name in a 55% minipage; `\Huge` on a short name would overflow the column |
+| `hipster` | Name in a 28% dark sidebar; column is too narrow for any upscaling |
+| `sidebar-minimal` | Name in a sidebar panel; same constraint as `hipster` |
+| `sidebar-portrait` | Name in a sidebar panel; same constraint as `hipster` |
+
+### Threshold exceptions
+
+`executive-corporate` uses threshold **40** (not 48) for both `job.title` and `edu.degree`. This template places company, title, and date range all on the same line (e.g. `Company — Title \hfill Date`), leaving less horizontal room than a `\hfill` split across two elements. Threshold 40 prevents overflow on that tighter layout.
+
 ---
 
 ## 3. Explicit Out of Scope
