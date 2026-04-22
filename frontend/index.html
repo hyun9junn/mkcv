@@ -164,6 +164,8 @@
       border-radius: 10px;
       box-shadow: var(--shadow-md);
       min-width: 270px;
+      max-height: 60vh;
+      overflow-y: auto;
       padding: 6px;
       z-index: 50;
     }
@@ -338,6 +340,7 @@
       user-select: none;
       transition: all .12s;
       white-space: nowrap;
+      touch-action: none;
     }
     .chip:hover { background: var(--paper-2); }
     .chip:hover .chip-grip { opacity: 1; }
@@ -370,8 +373,15 @@
     .chip.on .chip-name { color: var(--ink); }
     .chip.absent { opacity: 0.42; }
     .chip.absent .chip-name { font-style: italic; }
-    .chip.dragging { opacity: .35; }
     .chip.drag-over { border-color: var(--accent); }
+    .chip.dragging { opacity: 0; }
+    .chip-drag-clone {
+      position: fixed;
+      pointer-events: none;
+      z-index: 200;
+      opacity: 0.85;
+      cursor: grabbing;
+    }
 
     .reset-sections-btn {
       font-family: var(--font-serif);
@@ -433,7 +443,7 @@
       flex: 1;
       height: 100%;
       font-family: var(--font-mono) !important;
-      font-size: 12.5px !important;
+      font-size: var(--editor-font-size, 12.5px) !important;
       line-height: 1.75 !important;
       background: var(--paper) !important;
       color: var(--ink) !important;
@@ -491,13 +501,43 @@
     .preview-scroll {
       flex: 1;
       overflow-y: auto;
-      overflow-x: hidden;
+      overflow-x: auto;
       padding: 24px 16px 64px;
       display: flex;
       flex-direction: column;
       align-items: center;
       background: var(--paper-2);
     }
+
+    /* Zoom controls */
+    .zoom-controls {
+      display: inline-flex;
+      align-items: center;
+      gap: 2px;
+    }
+    .zoom-btn {
+      width: 22px; height: 22px;
+      display: inline-flex; align-items: center; justify-content: center;
+      border-radius: 5px;
+      font-size: 14px;
+      line-height: 1;
+      color: var(--ink-3);
+      cursor: pointer;
+      transition: background .15s, color .15s;
+    }
+    .zoom-btn:hover { background: var(--paper-3); color: var(--ink); }
+    .zoom-label {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--ink-4);
+      letter-spacing: 0.04em;
+      min-width: 32px;
+      text-align: center;
+      cursor: pointer;
+      padding: 2px 4px;
+      border-radius: 4px;
+    }
+    .zoom-label:hover { background: var(--paper-3); color: var(--ink-2); }
     #preview-loading {
       display: none;
       position: absolute;
@@ -786,7 +826,14 @@
 
   <section class="pane editor-pane" id="editor-pane" style="flex:1 1 50%">
     <div class="pane-header">
-      <span id="editor-filename">resume.yaml</span>
+      <div style="display:inline-flex;align-items:center;gap:10px;">
+        <span id="editor-filename">resume.yaml</span>
+        <div class="zoom-controls">
+          <button class="zoom-btn" id="editor-zoom-out" title="Zoom out (Ctrl+scroll)">−</button>
+          <span class="zoom-label" id="editor-zoom-label" title="Click to reset zoom">100%</span>
+          <button class="zoom-btn" id="editor-zoom-in" title="Zoom in (Ctrl+scroll)">+</button>
+        </div>
+      </div>
       <span class="mini" id="editor-meta"></span>
     </div>
     <!-- CodeMirror appends here via editor-adapter.js -->
@@ -797,7 +844,11 @@
   <section class="pane preview-pane" id="preview-pane" style="flex:1 1 50%">
     <div class="pane-header">
       <span id="preview-pane-title">Preview</span>
-      <span class="mini" id="preview-page-info"></span>
+      <div class="zoom-controls">
+        <button class="zoom-btn" id="preview-zoom-out" title="Zoom out (Ctrl+scroll)">−</button>
+        <span class="zoom-label" id="preview-zoom-label" title="Click to reset zoom">100%</span>
+        <button class="zoom-btn" id="preview-zoom-in" title="Zoom in (Ctrl+scroll)">+</button>
+      </div>
     </div>
     <div style="flex:1;position:relative;overflow:hidden;display:flex;flex-direction:column">
       <div class="preview-scroll" id="preview-frame"></div>
@@ -900,12 +951,32 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   document.addEventListener('click', () => exportMenu.classList.remove('open'));
 
+  /* Preview zoom controls */
+  document.getElementById('preview-zoom-in').addEventListener('click', () => preview.zoomIn());
+  document.getElementById('preview-zoom-out').addEventListener('click', () => preview.zoomOut());
+  document.getElementById('preview-zoom-label').addEventListener('click', () => preview.resetZoom());
+
+  /* Editor zoom controls */
+  document.getElementById('editor-zoom-in').addEventListener('click', () => editorAdapter.zoomIn());
+  document.getElementById('editor-zoom-out').addEventListener('click', () => editorAdapter.zoomOut());
+  document.getElementById('editor-zoom-label').addEventListener('click', () => editorAdapter.resetZoom());
+  document.getElementById('editor-pane').addEventListener('wheel', (e) => {
+    if (e.ctrlKey || e.metaKey) {
+      e.preventDefault();
+      if (e.deltaY < 0) editorAdapter.zoomIn();
+      else editorAdapter.zoomOut();
+    }
+  }, { passive: false });
+
   /* Keyboard shortcuts */
   document.addEventListener('keydown', (e) => {
     if (e.metaKey || e.ctrlKey) {
       if (e.key === 'p') { e.preventDefault(); document.getElementById('btn-pdf').click(); }
       if (e.key === 'l') { e.preventDefault(); document.getElementById('btn-tex').click(); }
       if (e.key === 'm') { e.preventDefault(); document.getElementById('btn-md').click(); }
+      if (e.key === '=' || e.key === '+') { e.preventDefault(); preview.zoomIn(); }
+      if (e.key === '-') { e.preventDefault(); preview.zoomOut(); }
+      if (e.key === '0') { e.preventDefault(); preview.resetZoom(); }
     }
   });
 
@@ -941,6 +1012,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const editorPane  = document.getElementById('editor-pane');
   const previewPane = document.getElementById('preview-pane');
   let dragging = false;
+  let refitTimer = null;
   handle.addEventListener('mousedown', (e) => {
     dragging = true;
     handle.classList.add('dragging');
@@ -948,12 +1020,19 @@ document.addEventListener('DOMContentLoaded', () => {
     document.body.style.userSelect = 'none';
     e.preventDefault();
   });
+  handle.addEventListener('dblclick', () => {
+    editorPane.style.flex  = '1 1 50%';
+    previewPane.style.flex = '1 1 50%';
+    if (window.preview) preview.refit();
+  });
   document.addEventListener('mousemove', (e) => {
     if (!dragging) return;
     const rect = split.getBoundingClientRect();
     const pct  = Math.max(20, Math.min(80, ((e.clientX - rect.left) / rect.width) * 100));
     editorPane.style.flex  = `1 1 ${pct}%`;
     previewPane.style.flex = `1 1 ${100 - pct}%`;
+    clearTimeout(refitTimer);
+    refitTimer = setTimeout(() => { if (window.preview) preview.refit(); }, 80);
   });
   document.addEventListener('mouseup', () => {
     if (!dragging) return;
@@ -961,6 +1040,7 @@ document.addEventListener('DOMContentLoaded', () => {
     handle.classList.remove('dragging');
     document.body.style.cursor = '';
     document.body.style.userSelect = '';
+    if (window.preview) preview.refit();
   });
 
   /* Status strip — lines + save state */
