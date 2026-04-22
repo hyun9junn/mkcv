@@ -32,6 +32,36 @@ def _build_layout_preamble(density: str) -> str:
     )
 
 
+def _make_jinja_filters() -> dict:
+    def name_size(name: str) -> str:
+        n = len(name.strip())
+        if n <= 22:
+            return r'\Huge\bfseries'
+        if n <= 30:
+            return r'\LARGE\bfseries'
+        return r'\Large\bfseries'
+
+    def name_fontsize(name: str, normal_pt: float = 26.0, skip_ratio: float = 1.15) -> str:
+        n = len(name.strip())
+        if n <= 22:
+            pt = normal_pt
+        elif n <= 30:
+            pt = normal_pt - 3
+        else:
+            pt = normal_pt - 5
+        skip = round(pt * skip_ratio, 1)
+        return rf'\fontsize{{{pt:g}pt}}{{{skip:g}pt}}\selectfont'
+
+    def shrink_if_long(text: str, threshold: int = 48) -> str:
+        return r'\small ' if len(text.strip()) > threshold else ''
+
+    return {
+        'name_size': name_size,
+        'name_fontsize': name_fontsize,
+        'shrink_if_long': shrink_if_long,
+    }
+
+
 class LaTeXRenderer(BaseRenderer):
     def __init__(
         self,

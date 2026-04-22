@@ -1,6 +1,6 @@
 import pytest
 from pathlib import Path
-from backend.renderers.latex import LaTeXRenderer, _build_layout_preamble, _FONT_SIZE
+from backend.renderers.latex import LaTeXRenderer, _build_layout_preamble, _FONT_SIZE, _make_jinja_filters
 
 TEMPLATES_DIR = Path("backend/templates")
 
@@ -173,3 +173,68 @@ def test_renderer_unknown_font_scale_falls_back(tmp_path, minimal_cv):
     renderer = LaTeXRenderer(tmp_path, template="mini", font_scale="huge")
     result = renderer.render(minimal_cv)
     assert "\\documentclass[11pt]{article}" in result
+
+
+def test_name_size_short():
+    f = _make_jinja_filters()
+    # "Jane Smith" = 10 chars → ≤ 22 → Huge
+    assert f['name_size']('Jane Smith') == r'\Huge\bfseries'
+
+
+def test_name_size_medium():
+    f = _make_jinja_filters()
+    # "Alexander James Thompson" = 24 chars → 23-30 → LARGE
+    assert f['name_size']('Alexander James Thompson') == r'\LARGE\bfseries'
+
+
+def test_name_size_long():
+    f = _make_jinja_filters()
+    # "Alexander James Montgomery-Williams" = 35 chars → > 30 → Large
+    assert f['name_size']('Alexander James Montgomery-Williams') == r'\Large\bfseries'
+
+
+def test_name_fontsize_short():
+    f = _make_jinja_filters()
+    result = f['name_fontsize']('Jane Smith', 26.0, 1.15)
+    assert r'\fontsize{26pt}' in result
+    assert r'\selectfont' in result
+
+
+def test_name_fontsize_medium():
+    f = _make_jinja_filters()
+    # 24 chars → normal_pt - 3 = 23
+    result = f['name_fontsize']('Alexander James Thompson', 26.0, 1.15)
+    assert r'\fontsize{23pt}' in result
+
+
+def test_name_fontsize_long():
+    f = _make_jinja_filters()
+    # 35 chars → normal_pt - 5 = 21
+    result = f['name_fontsize']('Alexander James Montgomery-Williams', 26.0, 1.15)
+    assert r'\fontsize{21pt}' in result
+
+
+def test_name_fontsize_preserves_ratio():
+    f = _make_jinja_filters()
+    # academic-research: 22pt base, 1.18 ratio → short name → 22pt/26pt (same as original)
+    result = f['name_fontsize']('Jane Smith', 22.0, 1.18)
+    assert r'\fontsize{22pt}{26pt}\selectfont' == result
+
+
+def test_shrink_if_long_short():
+    f = _make_jinja_filters()
+    assert f['shrink_if_long']('Software Engineer', 48) == ''
+
+
+def test_shrink_if_long_over_threshold():
+    f = _make_jinja_filters()
+    long_title = 'Principal Machine Learning Infrastructure Engineering Lead'
+    assert f['shrink_if_long'](long_title, 48) == r'\small '
+
+
+def test_shrink_if_long_default_threshold():
+    f = _make_jinja_filters()
+    # Exactly at 48 chars — not over
+    assert f['shrink_if_long']('A' * 48, 48) == ''
+    # One over
+    assert f['shrink_if_long']('A' * 49, 48) == r'\small '
