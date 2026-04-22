@@ -1,9 +1,12 @@
 const preview = (() => {
-  const frame = document.getElementById("preview-frame");
+  const container = document.getElementById("preview-frame");
   const loading = document.getElementById("preview-loading");
   const errorEl = document.getElementById("preview-error");
   let timer = null;
-  let currentBlobUrl = null;
+  let activePdf = null;
+
+  pdfjsLib.GlobalWorkerOptions.workerSrc =
+    "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
 
   function showLoading() {
     loading.style.display = "flex";
@@ -20,12 +23,38 @@ const preview = (() => {
     errorEl.innerHTML = `<strong>Preview error:</strong> ${safeMsg}${detailHtml}`;
   }
 
-  function showFrame(url) {
+  async function renderPdf(arrayBuffer) {
+    const savedScroll = container.scrollTop;
+
+    if (activePdf) { activePdf.destroy(); activePdf = null; }
+
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    activePdf = pdf;
+
+    const dpr = window.devicePixelRatio || 1;
+    const availWidth = Math.max(container.clientWidth - 32, 400);
+    const scale = (availWidth / 612) * dpr;
+
+    const wrapper = document.createElement("div");
+    wrapper.style.cssText = "display:flex;flex-direction:column;align-items:center;padding:16px;gap:16px;";
+
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const viewport = page.getViewport({ scale });
+      const canvas = document.createElement("canvas");
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+      canvas.style.cssText = `width:${viewport.width / dpr}px;height:${viewport.height / dpr}px;display:block;box-shadow:0 2px 8px rgba(0,0,0,0.5);`;
+      await page.render({ canvasContext: canvas.getContext("2d"), viewport }).promise;
+      wrapper.appendChild(canvas);
+    }
+
+    container.innerHTML = "";
+    container.appendChild(wrapper);
+    container.scrollTop = savedScroll;
+
     loading.style.display = "none";
     errorEl.style.display = "none";
-    if (currentBlobUrl) URL.revokeObjectURL(currentBlobUrl);
-    currentBlobUrl = url;
-    frame.src = url + "#toolbar=0";
   }
 
   async function refresh(yaml, template) {
@@ -42,10 +71,9 @@ const preview = (() => {
         showError(err.message, err.details);
         return;
       }
-      const blob = await resp.blob();
-      showFrame(URL.createObjectURL(blob));
-    } catch {
-      showError("Preview unavailable — network error", []);
+      await renderPdf(await resp.arrayBuffer());
+    } catch (e) {
+      showError("Preview unavailable — " + (e.message || "network error"), []);
     }
   }
 
