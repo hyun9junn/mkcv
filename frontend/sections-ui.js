@@ -59,9 +59,13 @@ const sectionsUI = (() => {
         let offsetX = 0, offsetY = 0;
         let startX = 0, startY = 0;
         let dragging = false;
+        let activePointerId = -1;
+        let startOrder = [];
 
         chip.addEventListener("pointerdown", (e) => {
           if (e.button !== 0) return;
+          startOrder = sectionsState.getOrder().slice();
+          activePointerId = e.pointerId;
           chip.setPointerCapture(e.pointerId);
           const rect = chip.getBoundingClientRect();
           offsetX = e.clientX - rect.left;
@@ -97,6 +101,10 @@ const sectionsUI = (() => {
           if (!dragging) return;
           dragging = false;
           justDragged = true;
+          if (activePointerId !== -1) {
+            chip.releasePointerCapture(activePointerId);
+            activePointerId = -1;
+          }
           dragClone.remove();
           dragClone = null;
           chip.classList.remove("dragging");
@@ -109,8 +117,24 @@ const sectionsUI = (() => {
           );
         }
 
-        chip.addEventListener("pointerup",    endDrag);
-        chip.addEventListener("pointercancel", endDrag);
+        chip.addEventListener("pointerup", endDrag);
+        chip.addEventListener("pointercancel", () => {
+          if (!dragging) return;
+          dragging = false;
+          if (activePointerId !== -1) {
+            chip.releasePointerCapture(activePointerId);
+            activePointerId = -1;
+          }
+          dragClone.remove();
+          dragClone = null;
+          chip.classList.remove("dragging");
+          sectionsState.setOrder(startOrder);
+          buildPanel();
+          preview.refresh(
+            sectionsState.getOrderedFilteredYaml(app.state.yaml),
+            app.state.template
+          );
+        });
       }
 
       panel.appendChild(chip);
