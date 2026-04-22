@@ -38,7 +38,11 @@ const sectionsUI = (() => {
       chip.addEventListener("click", (e) => {
         if (e.target.closest(".chip-grip")) return;
         if (!present) {
-          showToast(`Add a \`${key}:\` key to include this section.`, "info");
+          if (sectionsState.SECTION_DEFS[key]) {
+            showAddSectionToast(key);
+          } else {
+            showToast(`Add a \`${key}:\` key to include this section.`, "info");
+          }
           return;
         }
         sectionsState.toggleHidden(key);
@@ -140,6 +144,48 @@ const sectionsUI = (() => {
       t.style.animation = "toastIn .2s ease reverse both";
       setTimeout(() => t.remove(), 220);
     }, 3800);
+  }
+
+  function appendDefaultSection(key) {
+    const def = sectionsState.SECTION_DEFS[key];
+    if (!def || !def.yaml) return false;
+    const current = app.state.yaml || '';
+    const newYaml = current.replace(/\n*$/, '\n') + def.yaml;
+    window.editorAdapter.setValue(newYaml);
+    app.setState({ yaml: newYaml });
+    return true;
+  }
+
+  function showAddSectionToast(key) {
+    const stack = document.getElementById("toast-stack");
+    if (!stack) return;
+    const t = document.createElement("div");
+    t.className = "toast info";
+    t.style.maxWidth = "520px";
+    t.innerHTML = `<div class="toast-msg">Add a \`${key}:\` key to include this section.</div><button class="toast-action">Add default context</button><button class="toast-close">×</button>`;
+
+    let autoTimer = null;
+
+    function removeToast() {
+      clearTimeout(autoTimer);
+      t.style.animation = "toastIn .2s ease reverse both";
+      setTimeout(() => t.remove(), 220);
+    }
+
+    t.querySelector(".toast-close").addEventListener("click", removeToast);
+    t.querySelector(".toast-action").addEventListener("click", () => {
+      removeToast();
+      if (appendDefaultSection(key)) {
+        buildPanel();
+        preview.refresh(
+          sectionsState.getOrderedFilteredYaml(app.state.yaml),
+          app.state.template
+        );
+      }
+    });
+
+    stack.appendChild(t);
+    autoTimer = setTimeout(removeToast, 5000);
   }
 
   function showResetModal(key) {
