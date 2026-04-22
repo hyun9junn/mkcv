@@ -4,7 +4,7 @@ A web app for authoring and exporting your CV from a single YAML source of truth
 
 Write your CV once in `mycv.yaml` — get a live PDF preview, export to Markdown, LaTeX, or PDF with one click.
 
-![Preview](./screenshot.png)
+![Preview](./preview.png)
 
 ## Features
 
