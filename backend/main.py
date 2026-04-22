@@ -16,7 +16,7 @@ from pydantic import BaseModel
 
 from backend.parsers.yaml_parser import parse_yaml, YAMLParseError, CVValidationError
 from backend.renderers.markdown import MarkdownRenderer
-from backend.renderers.latex import LaTeXRenderer, _build_layout_preamble, _FONT_SIZE
+from backend.renderers.latex import LaTeXRenderer, _build_layout_preamble, _FONT_SIZE, _make_jinja_filters
 from backend.models import (
     CVData, PersonalInfo, ExperienceItem, EducationItem, SkillGroup,
     ProjectItem, CertificationItem, PublicationItem, LanguageItem,
@@ -85,6 +85,7 @@ def _validate_template(name: str) -> dict:
             comment_end_string="#>",
             undefined=jinja2.StrictUndefined,
         )
+        env.filters.update(_make_jinja_filters())
         template = env.get_template("cv.tex.j2")
         default_order = ["summary", "experience", "education", "skills", "projects", "certifications", "publications", "languages", "awards", "extracurricular", "custom-sample"]
         custom_by_key = {cs.key: cs for cs in _SAMPLE_CV.custom_sections}
