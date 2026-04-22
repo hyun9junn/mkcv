@@ -13,16 +13,10 @@ templates/
 ├── classic/
 │   ├── cv.tex.j2      # required — Jinja2+LaTeX source
 │   └── meta.yaml      # required — display metadata
-├── academic-research/
+├── banking/
 │   ├── cv.tex.j2
 │   └── meta.yaml
-├── executive-corporate/
-│   ├── cv.tex.j2
-│   └── meta.yaml
-├── heritage/
-│   ├── cv.tex.j2
-│   └── meta.yaml
-└── modern-startup/
+└── <your-template>/
     ├── cv.tex.j2
     └── meta.yaml
 ```
@@ -43,7 +37,7 @@ The app configures a non-standard Jinja2 environment to avoid conflicts with LaT
 | Block tags (`if`, `for`, `macro`) | `<% tag %>` |
 | Comments | `<# comment #>` |
 
-`trim_blocks` and `lstrip_blocks` are both enabled, so block tags consume their trailing newline and leading whitespace. Do not add extra blank lines around block tags expecting them to appear in the output.
+Both `trim_blocks` and `lstrip_blocks` are enabled. `trim_blocks` removes the newline immediately after a block tag; `lstrip_blocks` strips leading whitespace before block tags. This means block tags consume their entire line without leaving blank lines in the output. Do not add extra blank lines around block tags expecting them to appear in the rendered `.tex`.
 
 ### Variables available in every template
 
@@ -52,6 +46,106 @@ The app configures a non-standard Jinja2 environment to avoid conflicts with LaT
 | `cv` | `CVData` | The parsed CV object (see field reference below) |
 | `section_order` | `list[str]` | Ordered list of section keys to render |
 | `custom_by_key` | `dict[str, CustomSection]` | Custom sections indexed by their `key` field |
+| `font_size` | `str` | LaTeX document class font size, e.g. `"11pt"` |
+| `layout_preamble` | `str` | LaTeX `\newcommand` block defining density spacing (see below) |
+
+Always place `<< layout_preamble >>` on its own line immediately after `\documentclass{...}`, before any `\usepackage` declarations. It emits the spacing commands that must be defined before the body uses them.
+
+```latex
+\documentclass[<< font_size >>,a4paper]{article}
+<< layout_preamble >>
+
+\usepackage{geometry}
+...
+```
+
+### Layout spacing system
+
+`layout_preamble` injects four `\newcommand` definitions that the template uses for density-aware spacing. Use these instead of hardcoded lengths:
+
+| Command | Meaning | comfortable | balanced | compact |
+|---|---|---|---|---|
+| `\cvvgap` | Vertical gap between entries within a section | `8pt` | `4pt` | `2pt` |
+| `\cvsecbefore` | Space before a section heading | `14pt` | `12pt` | `8pt` |
+| `\cvsecafter` | Space after a section heading (before content) | `7pt` | `6pt` | `4pt` |
+| `\cvitembefore` | `topsep` inside bullet lists | `4pt` | `2pt` | `1pt` |
+
+Typical usage:
+
+```latex
+\titlespacing*{\section}{0pt}{\cvsecbefore}{\cvsecafter}
+
+\newenvironment{cvitems}{%
+  \begin{itemize}[...,topsep=\cvitembefore,...]%
+}{\end{itemize}}
+
+<% if not loop.last %>\vspace{\cvvgap}<% endif %>
+```
+
+Templates that hardcode these lengths break when the user changes density. Always use the commands.
+
+### Jinja2 filters
+
+Three filters are registered on the environment by `_make_jinja_filters()` in `backend/renderers/latex.py`. They are available in every template and in the validation environment.
+
+#### `name_size` — standard LaTeX size commands
+
+Use on name headers that already rely on `\Huge`, `\LARGE`, `\Large` etc.
+
+| Name length | Returns |
+|---|---|
+| ≤ 22 chars | `\Huge\bfseries` |
+| 23–30 chars | `\LARGE\bfseries` |
+| > 30 chars | `\Large\bfseries` |
+
+Usage pattern — the filter replaces both the size command **and** the bfseries declaration; the name is output once inside the same brace group:
+
+```latex
+{<< cv.personal.name | name_size >> << cv.personal.name >>}\\[3pt]
+```
+
+**Column constraint:** `name_size` returns `\Huge` for short names. On a full-width centered header this is correct. On a narrow sidebar or minipage column, `\Huge` would make a short name *larger* than the template's intended size and overflow the column. Do not apply `name_size` on any header that lives inside a column narrower than roughly 60% of `\textwidth`. Use `name_fontsize` instead (it scales down only, never up), or leave the name header unstyled.
+
+Templates in this repo that are excluded from `name_size` for this reason: `banking` (55% minipage), `hipster` (28% sidebar), `sidebar-minimal` (34% sidebar panel), `sidebar-portrait` (sidebar panel).
+
+#### `name_fontsize` — explicit point size
+
+Use on name headers that specify an exact font size via `\fontsize{X}{Y}\selectfont`, e.g. `modern-startup`'s 26pt EB Garamond header.
+
+| Name length | Point size |
+|---|---|
+| ≤ 22 chars | `normal_pt` (unchanged) |
+| 23–30 chars | `normal_pt − 3` |
+| > 30 chars | `normal_pt − 5` |
+
+Call signature: `name_fontsize(normal_pt, skip_ratio)` where `skip_ratio` is the leading multiplier the template already uses.
+
+```latex
+{\ebgaramond<< cv.personal.name | name_fontsize(26, 1.15) >> << cv.personal.name >>}
+```
+
+This filter only ever scales the size down, so it is safe in narrow columns.
+
+#### `shrink_if_long` — one-liner field guard
+
+Returns `\small ` if `len(text.strip()) > threshold`, otherwise `''`. Use on one-liner fields that sit next to a `\hfill` — if the field is long the `\small` shrinks just that field; if it is normal length the empty string is a harmless no-op brace group.
+
+Default threshold is 48. Use 40 for fields where horizontal space is tighter (e.g. when company, title, and date share the same line).
+
+```latex
+{<< job.title | shrink_if_long(48) >>\cvorg{<< job.title >>}} \hfill \cvdate{...}
+{<< edu.degree | shrink_if_long(48) >>\cvorg{<< edu.degree >>}} \hfill \cvdate{...}
+{<< proj.name | shrink_if_long(40) >>\cvrole{<< proj.name >>}}
+```
+
+Apply these filters to the four danger-zone fields in every new template:
+
+| Field | Recommended threshold |
+|---|---|
+| `job.title` | 48 (40 if title shares a line with company + date) |
+| `edu.degree` | 48 (40 if degree shares a line with institution + date) |
+| `proj.name` | 40 |
+| `cv.personal.name` | — use `name_size` or `name_fontsize` instead |
 
 ### Required macro pattern
 
@@ -287,7 +381,7 @@ All templates must compile with **pdflatex** (`-interaction=nonstopmode`). XeLaT
 Allowed font packages (pre-installed on standard TeX Live):
 - `ebgaramond`, `libertine`, `tgheros`, `lmodern`
 - `titlesec`, `enumitem`, `hyperref`, `microtype`, `xcolor`
-- `array`, `parskip`, `etoolbox`, `tabularx`
+- `array`, `parskip`, `etoolbox`, `tabularx`, `paracol`, `eso-pic`
 
 Do not use `fontspec`, `unicode-math`, or any package that requires an engine other than pdflatex.
 
@@ -297,8 +391,10 @@ Do not use `fontspec`, `unicode-math`, or any package that requires an engine ot
 
 When the server starts, every template is validated in two stages:
 
-1. **Jinja2 render** — rendered against a sample `CVData` object with `StrictUndefined`. Any undefined variable reference or syntax error fails validation.
+1. **Jinja2 render** — rendered against a sample `CVData` object with `StrictUndefined`. Any undefined variable reference, undefined filter, or syntax error fails validation.
 2. **pdflatex compilation** — the rendered `.tex` is compiled. Any LaTeX error fails validation.
+
+The validation environment registers the same Jinja2 filters (`name_size`, `name_fontsize`, `shrink_if_long`) as the render environment. Any filter call that does not appear in `_make_jinja_filters()` in `backend/renderers/latex.py` will fail validation.
 
 The validation result is cached and exposed via `GET /api/templates`. A template with `"valid": false` is still listed but flagged in the UI. Always verify both stages pass before shipping a new template.
 
@@ -336,9 +432,13 @@ A section block only renders if its data exists (`and cv.experience`, `and cv.ed
 
 Users may supply either `year` (a graduation year string) or `start_date`/`end_date` (a date range). Both forms are valid. Templates must handle the fallback; see the field reference above.
 
-### The executive-corporate header is a special case
+### Spacing is driven by layout commands, not hardcoded lengths
 
-The two-column minipage header in `executive-corporate` displays the first sentence of `cv.summary` as a tagline. Consequently, the `summary` section is suppressed in `render_section` to avoid duplication. If you adapt this layout, decide explicitly which rendering location owns the summary.
+Every inter-entry gap and section spacing must use `\cvvgap`, `\cvsecbefore`, `\cvsecafter`, `\cvitembefore`. These are defined by `<< layout_preamble >>` and change when the user selects a different density. Hardcoded `\vspace{4pt}` values override the density system and should only appear where the spacing is structural (e.g. a fixed gap in a sidebar header), not content-driven.
+
+### Name headers use a filter, not a hardcoded size command
+
+Do not write `{\LARGE\bfseries << cv.personal.name >>}`. Instead use the appropriate filter so long names step down automatically. Use `name_size` for full-width headers; `name_fontsize` for headers using explicit point sizes. See the filter reference above for the column-width constraint.
 
 ### Accent color is per-template identity
 
@@ -351,8 +451,18 @@ Each template defines its own color palette via `\definecolor`. Accent colors ar
 | academic-research | Deep indigo | `#1E3A8A` |
 | executive-corporate | Burgundy | `#7F1D1D` |
 | modern-startup | Ink only | `#0A0A0A` |
+| banking | Navy | `#1E3A5F` |
+| column-skills | none | — |
+| hipster | Dark teal sidebar | `#1B4F4F` |
+| resume-tech | Ink only | `#111111` |
+| sidebar-minimal | Navy sidebar | `#1A1A2E` |
+| sidebar-portrait | varies | — |
 
 New templates should introduce a distinct accent rather than reusing an existing one.
+
+### The executive-corporate header is a special case
+
+The two-column minipage header in `executive-corporate` displays the first sentence of `cv.summary` as a tagline. Consequently, the `summary` section is suppressed in `render_section` to avoid duplication. If you adapt this layout, decide explicitly which rendering location owns the summary.
 
 ---
 
@@ -360,12 +470,17 @@ New templates should introduce a distinct accent rather than reusing an existing
 
 1. Create `templates/<your-name>/` — use lowercase with hyphens, no spaces.
 2. Write `cv.tex.j2`:
-   - Use the correct Jinja2 delimiters (`<< >>`, `<% %>`, `<# #>`)
-   - Define `\newcommand{\cvrole}`, `\newcommand{\cvorg}` (and `\newcommand{\cvdate}` if needed)
-   - Implement the `render_section(key)` macro covering all standard sections and the `custom_by_key` block
-   - Guard every optional field; use the date fallback pattern for `edu.year`
-   - Join all list fields before output
-   - Compile with pdflatex only
+   - Place `\documentclass[<< font_size >>,a4paper]{article}` and `<< layout_preamble >>` at the top.
+   - Use the correct Jinja2 delimiters (`<< >>`, `<% %>`, `<# #>`).
+   - Use `\cvvgap`, `\cvsecbefore`, `\cvsecafter`, `\cvitembefore` for all content spacing.
+   - Apply `name_size` (full-width header) or `name_fontsize` (explicit-pt header) to `cv.personal.name`. Skip both if the name lives in a narrow column (< ~60% textwidth).
+   - Apply `shrink_if_long` to `job.title`, `edu.degree`, and `proj.name` using the thresholds in the filter reference.
+   - Define `\newcommand{\cvrole}`, `\newcommand{\cvorg}`, `\newcommand{\cvdate}`.
+   - Implement the `render_section(key)` macro covering all standard sections and the `custom_by_key` block.
+   - Guard every optional field; use the two-form date fallback for `edu.year`.
+   - Join all list fields before output.
+   - Compile with pdflatex only — no `fontspec`, no XeLaTeX packages.
 3. Write `meta.yaml` with all required fields.
 4. Restart the server and confirm `"valid": true` in `GET /api/templates`.
 5. Test with a real YAML file — verify custom sections render, section reordering works, and optional fields (no phone, no github, etc.) produce no LaTeX errors.
+6. Test with a very long name (> 30 chars) and a very long job title (> 48 chars) to confirm the filter output is correct and the PDF compiles without overfull hbox warnings.
