@@ -274,6 +274,40 @@ def test_modern_startup_short_name_stays_26pt():
     assert r'\fontsize{26pt}' in output
 
 
+def test_academic_research_long_name_steps_down():
+    from backend.models import CVData, PersonalInfo
+    cv = CVData(personal=PersonalInfo(
+        name="Alexander James Montgomery-Williams",  # 35 chars → 22-5=17pt
+        email="a@example.com",
+    ))
+    output = LaTeXRenderer(TEMPLATES_DIR, template="academic-research").render(cv)
+    assert r'\fontsize{17pt}' in output
+
+
+def test_academic_research_short_name_stays_22pt():
+    from backend.models import CVData, PersonalInfo
+    cv = CVData(personal=PersonalInfo(name="Jane Smith", email="j@example.com"))
+    output = LaTeXRenderer(TEMPLATES_DIR, template="academic-research").render(cv)
+    assert r'\fontsize{22pt}' in output
+
+
+def test_executive_corporate_long_name_steps_down():
+    from backend.models import CVData, PersonalInfo
+    cv = CVData(personal=PersonalInfo(
+        name="Alexander James Montgomery-Williams",  # 35 chars → 22-5=17pt
+        email="a@example.com",
+    ))
+    output = LaTeXRenderer(TEMPLATES_DIR, template="executive-corporate").render(cv)
+    assert r'\fontsize{17pt}' in output
+
+
+def test_executive_corporate_short_name_stays_22pt():
+    from backend.models import CVData, PersonalInfo
+    cv = CVData(personal=PersonalInfo(name="Jane Smith", email="j@example.com"))
+    output = LaTeXRenderer(TEMPLATES_DIR, template="executive-corporate").render(cv)
+    assert r'\fontsize{22pt}' in output
+
+
 def test_filters_available_in_template(tmp_path, minimal_cv):
     # "Alice" = 5 chars → name_size returns \Huge\bfseries
     tmpl_dir = tmp_path / "mini"
