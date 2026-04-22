@@ -238,3 +238,21 @@ def test_shrink_if_long_default_threshold():
     assert f['shrink_if_long']('A' * 48, 48) == ''
     # One over
     assert f['shrink_if_long']('A' * 49, 48) == r'\small '
+
+
+def test_filters_available_in_template(tmp_path, minimal_cv):
+    # "Alice" = 5 chars → name_size returns \Huge\bfseries
+    tmpl_dir = tmp_path / "mini"
+    tmpl_dir.mkdir()
+    (tmpl_dir / "cv.tex.j2").write_text(
+        "\\documentclass[<< font_size >>]{article}\n"
+        "<< layout_preamble >>\n"
+        "\\begin{document}\n"
+        "<< cv.personal.name | name_size >>\n"
+        "<< cv.personal.name | shrink_if_long(3) >>\n"
+        "\\end{document}"
+    )
+    renderer = LaTeXRenderer(tmp_path, template="mini")
+    result = renderer.render(minimal_cv)
+    assert r'\Huge\bfseries' in result   # name_size filter worked
+    assert r'\small ' in result           # shrink_if_long(3) triggered (Alice=5>3)

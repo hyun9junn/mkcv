@@ -91,6 +91,7 @@ class LaTeXRenderer(BaseRenderer):
             trim_blocks=True,
             lstrip_blocks=True,
         )
+        env.filters.update(_make_jinja_filters())
         order = section_order if section_order else DEFAULT_SECTION_ORDER
         custom_by_key = {cs.key: cs for cs in cv.custom_sections}
         font_size = _FONT_SIZE.get(self.font_scale, _FONT_SIZE["normal"])
