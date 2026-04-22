@@ -240,6 +240,23 @@ def test_shrink_if_long_default_threshold():
     assert f['shrink_if_long']('A' * 49, 48) == r'\small '
 
 
+def test_classic_long_name_steps_down():
+    from backend.models import CVData, PersonalInfo
+    cv = CVData(personal=PersonalInfo(
+        name="Alexander James Montgomery-Williams",  # 35 chars → Large
+        email="a@example.com",
+    ))
+    output = LaTeXRenderer(TEMPLATES_DIR, template="classic").render(cv)
+    assert r'\Large\bfseries' in output
+
+
+def test_classic_short_name_stays_huge():
+    from backend.models import CVData, PersonalInfo
+    cv = CVData(personal=PersonalInfo(name="Jane Smith", email="j@example.com"))
+    output = LaTeXRenderer(TEMPLATES_DIR, template="classic").render(cv)
+    assert r'\Huge\bfseries' in output
+
+
 def test_filters_available_in_template(tmp_path, minimal_cv):
     # "Alice" = 5 chars → name_size returns \Huge\bfseries
     tmpl_dir = tmp_path / "mini"
