@@ -8,8 +8,42 @@ const exporter = (() => {
     URL.revokeObjectURL(url);
   }
 
-  async function exportFile(format) {
-    const filename = { markdown: "cv.md", latex: "cv.tex", pdf: "cv.pdf" }[format];
+  function defaultFilename(format) {
+    const ext = { markdown: "md", latex: "tex", pdf: "pdf" }[format];
+    try {
+      const parsed = jsyaml.load(app.state.yaml);
+      const name = parsed?.personal?.name;
+      if (name && typeof name === "string" && name.trim()) {
+        const slug = name.trim().toLowerCase().replace(/\s+/g, "_");
+        return `${slug}_cv.${ext}`;
+      }
+    } catch {}
+    return `cv.${ext}`;
+  }
+
+  let pendingFormat = null;
+
+  function openFilenameModal(format) {
+    pendingFormat = format;
+    const input = document.getElementById("filename-input");
+    input.value = defaultFilename(format);
+    document.getElementById("filename-modal").classList.add("open");
+    input.select();
+    input.focus();
+  }
+
+  function closeFilenameModal() {
+    document.getElementById("filename-modal").classList.remove("open");
+    pendingFormat = null;
+  }
+
+  async function exportFile(format, filename) {
+    const ext = { markdown: "md", latex: "tex", pdf: "pdf" }[format];
+    const trimmed = filename.trim();
+    const finalName = trimmed
+      ? (trimmed.includes(".") ? trimmed : `${trimmed}.${ext}`)
+      : `cv.${ext}`;
+
     const body = {
       yaml: sectionsState.getOrderedFilteredYaml(app.state.yaml),
       template: app.state.template,
@@ -30,15 +64,41 @@ const exporter = (() => {
         alert(`Export failed: ${err.message}`);
         return;
       }
-      triggerDownload(await resp.blob(), filename);
+      triggerDownload(await resp.blob(), finalName);
     } catch {
       alert("Export failed: network error");
     }
   }
 
   document.addEventListener("DOMContentLoaded", () => {
-    document.getElementById("btn-md").addEventListener("click", () => exportFile("markdown"));
-    document.getElementById("btn-tex").addEventListener("click", () => exportFile("latex"));
-    document.getElementById("btn-pdf").addEventListener("click", () => exportFile("pdf"));
+    document.getElementById("btn-md").addEventListener("click", () => openFilenameModal("markdown"));
+    document.getElementById("btn-tex").addEventListener("click", () => openFilenameModal("latex"));
+    document.getElementById("btn-pdf").addEventListener("click", () => openFilenameModal("pdf"));
+
+    document.getElementById("filename-modal-cancel").addEventListener("click", closeFilenameModal);
+
+    document.getElementById("filename-modal-confirm").addEventListener("click", () => {
+      const input = document.getElementById("filename-input");
+      if (!input.value.trim()) return;
+      const fmt = pendingFormat;
+      closeFilenameModal();
+      exportFile(fmt, input.value);
+    });
+
+    document.getElementById("filename-input").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        const input = e.currentTarget;
+        if (!input.value.trim()) return;
+        const fmt = pendingFormat;
+        closeFilenameModal();
+        exportFile(fmt, input.value);
+      } else if (e.key === "Escape") {
+        closeFilenameModal();
+      }
+    });
+
+    document.getElementById("filename-modal").addEventListener("click", (e) => {
+      if (e.target === e.currentTarget) closeFilenameModal();
+    });
   });
 })();
