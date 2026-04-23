@@ -28,8 +28,8 @@ const exporter = (() => {
     const input = document.getElementById("filename-input");
     input.value = defaultFilename(format);
     document.getElementById("filename-modal").classList.add("open");
-    input.select();
     input.focus();
+    input.select();
   }
 
   function closeFilenameModal() {
