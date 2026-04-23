@@ -898,6 +898,24 @@
   </div>
 </div>
 
+<!-- ═══ FILENAME MODAL ═══ -->
+<div class="modal-backdrop" id="filename-modal">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="eyebrow">Export</div>
+      <h2>Save as</h2>
+    </div>
+    <div class="modal-body">
+      <input id="filename-input" type="text"
+        style="width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid var(--rule);border-radius:6px;font-size:13px;background:var(--paper-2);color:var(--ink);">
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" id="filename-modal-cancel">Cancel</button>
+      <button class="btn btn-accent" id="filename-modal-confirm">Download</button>
+    </div>
+  </div>
+</div>
+
 <!-- ═══ UNDO TOAST (managed by sections-ui.js) ═══ -->
 <div id="undo-toast">
   <span id="undo-toast-message"></span>
