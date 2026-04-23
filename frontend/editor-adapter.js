@@ -1,5 +1,6 @@
 class CodeMirrorAdapter {
   constructor(container, initialValue = "") {
+    this._zoomLevel = 1.0;
     this._editor = CodeMirror(container, {
       value: initialValue,
       mode: "yaml",
@@ -28,6 +29,10 @@ class CodeMirrorAdapter {
     this._editor.setValue(str);
   }
 
+  clearHistory() {
+    this._editor.clearHistory();
+  }
+
   onChange(callback) {
     this._editor.on("change", () => callback(this.getValue()));
   }
@@ -39,6 +44,19 @@ class CodeMirrorAdapter {
   getCursor() {
     return this._editor.getCursor();
   }
+
+  _applyZoom() {
+    const size = 12.5 * this._zoomLevel;
+    document.documentElement.style.setProperty('--editor-font-size', size + 'px');
+    this._editor.refresh();
+    const el = document.getElementById('editor-zoom-label');
+    if (el) el.textContent = Math.round(this._zoomLevel * 100) + '%';
+  }
+
+  zoomIn()    { this._zoomLevel = Math.min(3.0, this._zoomLevel * 1.1); this._applyZoom(); }
+  zoomOut()   { this._zoomLevel = Math.max(0.5, this._zoomLevel / 1.1); this._applyZoom(); }
+  resetZoom() { this._zoomLevel = 1.0; this._applyZoom(); }
+  getZoomLevel() { return this._zoomLevel; }
 }
 
 // Tab: fast-accept if one candidate, open dropdown if many, else insert 2 spaces.

@@ -4,6 +4,7 @@ const preview = (() => {
   const errorEl = document.getElementById("preview-error");
   let timer = null;
   let activePdf = null;
+  let zoomLevel = 1.0;
 
   pdfjsLib.GlobalWorkerOptions.workerSrc =
     "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
@@ -23,23 +24,25 @@ const preview = (() => {
     errorEl.innerHTML = `<strong>Preview error:</strong> ${safeMsg}${detailHtml}`;
   }
 
-  async function renderPdf(arrayBuffer) {
-    const savedScroll = container.scrollTop;
+  function updateZoomDisplay() {
+    const el = document.getElementById("preview-zoom-label");
+    if (el) el.textContent = Math.round(zoomLevel * 100) + "%";
+  }
 
-    if (activePdf) { activePdf.destroy(); activePdf = null; }
-
-    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-    activePdf = pdf;
+  async function renderPages() {
+    if (!activePdf) return;
+    const savedScrollTop  = container.scrollTop;
+    const savedScrollLeft = container.scrollLeft;
 
     const dpr = window.devicePixelRatio || 1;
-    const availWidth = Math.max(container.clientWidth - 32, 400);
-    const scale = (availWidth / 612) * dpr;
+    const basePxWidth = Math.max(container.clientWidth - 32, 400);
+    const scale = (basePxWidth / 612) * dpr * zoomLevel;
 
     const wrapper = document.createElement("div");
-    wrapper.style.cssText = "display:flex;flex-direction:column;align-items:center;padding:16px;gap:16px;";
+    wrapper.style.cssText = "display:flex;flex-direction:column;align-items:center;padding:16px;gap:16px;min-width:fit-content;";
 
-    for (let i = 1; i <= pdf.numPages; i++) {
-      const page = await pdf.getPage(i);
+    for (let i = 1; i <= activePdf.numPages; i++) {
+      const page = await activePdf.getPage(i);
       const viewport = page.getViewport({ scale });
       const canvas = document.createElement("canvas");
       canvas.width = viewport.width;
@@ -51,11 +54,29 @@ const preview = (() => {
 
     container.innerHTML = "";
     container.appendChild(wrapper);
-    container.scrollTop = savedScroll;
+    container.scrollTop = savedScrollTop;
+    container.scrollLeft = savedScrollLeft;
 
     loading.style.display = "none";
     errorEl.style.display = "none";
+    updateZoomDisplay();
   }
+
+  async function renderPdf(arrayBuffer) {
+    if (activePdf) { activePdf.destroy(); activePdf = null; }
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    activePdf = pdf;
+    await renderPages();
+  }
+
+  function setZoom(level) {
+    zoomLevel = Math.max(0.25, Math.min(4.0, level));
+    renderPages();
+  }
+
+  function zoomIn()    { setZoom(zoomLevel * 1.1); }
+  function zoomOut()   { setZoom(zoomLevel / 1.1); }
+  function resetZoom() { setZoom(1.0); }
 
   async function refresh(yaml, template) {
     showLoading();
@@ -78,6 +99,14 @@ const preview = (() => {
   }
 
   document.addEventListener("DOMContentLoaded", () => {
+    container.addEventListener("wheel", (e) => {
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        if (e.deltaY < 0) zoomIn();
+        else zoomOut();
+      }
+    }, { passive: false });
+
     window.editorAdapter.onChange(() => {
       clearTimeout(timer);
       timer = setTimeout(() => {
@@ -93,7 +122,9 @@ const preview = (() => {
     }, 200);
   });
 
-  return { refresh };
+  function refit() { renderPages(); }
+
+  return { refresh, zoomIn, zoomOut, resetZoom, setZoom, refit };
 })();
 
 window.preview = preview;

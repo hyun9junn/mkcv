@@ -9,6 +9,7 @@ const fileSync = (() => {
       const { content } = await resp.json();
       if (content && content.trim()) {
         window.editorAdapter.setValue(content);
+        window.editorAdapter.clearHistory();
         app.setState({ yaml: content });
       }
     } catch {
