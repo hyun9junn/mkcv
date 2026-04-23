@@ -92,7 +92,7 @@ const sectionsUI = (() => {
         );
       });
 
-      if (present) {
+      {
         let dragClone = null;
         let cloneH = 0;
         let offsetX = 0, offsetY = 0;
