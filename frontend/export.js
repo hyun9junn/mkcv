@@ -27,6 +27,7 @@ const exporter = (() => {
     pendingFormat = format;
     const input = document.getElementById("filename-input");
     input.value = defaultFilename(format);
+    input.placeholder = defaultFilename(format);
     document.getElementById("filename-modal").classList.add("open");
     input.focus();
     input.select();
@@ -81,6 +82,7 @@ const exporter = (() => {
       const input = document.getElementById("filename-input");
       if (!input.value.trim()) return;
       const fmt = pendingFormat;
+      if (!fmt) return;
       closeFilenameModal();
       exportFile(fmt, input.value);
     });
@@ -90,6 +92,7 @@ const exporter = (() => {
         const input = e.currentTarget;
         if (!input.value.trim()) return;
         const fmt = pendingFormat;
+        if (!fmt) return;
         closeFilenameModal();
         exportFile(fmt, input.value);
       } else if (e.key === "Escape") {
