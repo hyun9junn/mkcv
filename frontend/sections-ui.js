@@ -2,6 +2,43 @@ const sectionsUI = (() => {
   const panel = document.getElementById("sections-panel");
   let panelDragActive = false;
 
+  /* ── Edge-scroll state ── */
+  let scrollRAF   = null;
+  let scrollDir   = 0;    // -1 = left, +1 = right, 0 = none
+  let scrollSpeed = 0;
+
+  function tickScroll() {
+    if (scrollDir === 0) { scrollRAF = null; return; }
+    panel.scrollLeft += scrollDir * scrollSpeed;
+    scrollRAF = requestAnimationFrame(tickScroll);
+  }
+
+  function updateScrollZone(clientX) {
+    const ZONE      = 60;
+    const MAX_SPEED = 8;
+    const pr        = panel.getBoundingClientRect();
+    const distLeft  = clientX - pr.left;
+    const distRight = pr.right - clientX;
+    if (distLeft < ZONE && distLeft <= distRight) {
+      scrollDir   = -1;
+      scrollSpeed = (1 - distLeft  / ZONE) * MAX_SPEED;
+    } else if (distRight < ZONE) {
+      scrollDir   = 1;
+      scrollSpeed = (1 - distRight / ZONE) * MAX_SPEED;
+    } else {
+      scrollDir   = 0;
+      scrollSpeed = 0;
+    }
+    if (scrollDir !== 0 && !scrollRAF) {
+      scrollRAF = requestAnimationFrame(tickScroll);
+    }
+  }
+
+  function stopScroll() {
+    scrollDir = 0; scrollSpeed = 0;
+    if (scrollRAF) { cancelAnimationFrame(scrollRAF); scrollRAF = null; }
+  }
+
   function buildPanel() {
     const presentKeys = sectionsState.getExpandedPresentKeys(app.state.yaml);
 
@@ -57,6 +94,7 @@ const sectionsUI = (() => {
 
       if (present) {
         let dragClone = null;
+        let cloneH = 0;
         let offsetX = 0, offsetY = 0;
         let startX = 0, startY = 0;
         let dragging = false;
@@ -70,14 +108,20 @@ const sectionsUI = (() => {
             dragging = true;
             panelDragActive = true;
             const rect = chip.getBoundingClientRect();
+            cloneH = rect.height;
             dragClone = chip.cloneNode(true);
             dragClone.className = chip.className.replace(/\bdragging\b/, "").trim() + " chip-drag-clone";
             dragClone.style.width = rect.width + "px";
             document.body.appendChild(dragClone);
             chip.classList.add("dragging");
           }
-          dragClone.style.left = (e.clientX - offsetX) + "px";
-          dragClone.style.top  = (e.clientY - offsetY) + "px";
+          updateScrollZone(e.clientX);
+          const pr      = panel.getBoundingClientRect();
+          const cloneW  = parseFloat(dragClone.style.width);
+          const rawLeft = e.clientX - offsetX;
+          const rawTop  = e.clientY - offsetY;
+          dragClone.style.left = Math.max(pr.left, Math.min(rawLeft, pr.right  - cloneW)) + "px";
+          dragClone.style.top  = Math.max(pr.top,  Math.min(rawTop,  pr.bottom - cloneH)) + "px";
           const siblings = [...panel.querySelectorAll(".chip:not(.dragging)")];
           const before = siblings.find(s => {
             const r = s.getBoundingClientRect();
@@ -92,6 +136,7 @@ const sectionsUI = (() => {
           document.removeEventListener("pointerup", onUp);
           document.removeEventListener("pointercancel", onCancel);
           activePointerId = -1;
+          stopScroll();
         }
 
         function endDrag() {
