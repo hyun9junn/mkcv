@@ -1,5 +1,6 @@
 const sectionsUI = (() => {
   const panel = document.getElementById("sections-panel");
+  let panelDragActive = false;
 
   function buildPanel() {
     const presentKeys = sectionsState.getExpandedPresentKeys(app.state.yaml);
@@ -81,7 +82,8 @@ const sectionsUI = (() => {
             dragging = true;
             const rect = chip.getBoundingClientRect();
             dragClone = chip.cloneNode(true);
-            dragClone.className = "chip on chip-drag-clone";
+            dragClone.className = chip.className.replace(/\bdragging\b/, "").trim() + " chip-drag-clone";
+            panelDragActive = true;
             dragClone.style.width = rect.width + "px";
             document.body.appendChild(dragClone);
             chip.classList.add("dragging");
@@ -100,6 +102,7 @@ const sectionsUI = (() => {
         function endDrag() {
           if (!dragging) return;
           dragging = false;
+          panelDragActive = false;
           justDragged = true;
           if (activePointerId !== -1) {
             chip.releasePointerCapture(activePointerId);
@@ -121,6 +124,7 @@ const sectionsUI = (() => {
         chip.addEventListener("pointercancel", () => {
           if (!dragging) return;
           dragging = false;
+          panelDragActive = false;
           if (activePointerId !== -1) {
             chip.releasePointerCapture(activePointerId);
             activePointerId = -1;
@@ -269,7 +273,7 @@ const sectionsUI = (() => {
     let buildTimer = null;
     window.editorAdapter.onChange(() => {
       clearTimeout(buildTimer);
-      buildTimer = setTimeout(buildPanel, 300);
+      buildTimer = setTimeout(() => { if (!panelDragActive) buildPanel(); }, 300);
     });
   });
 
