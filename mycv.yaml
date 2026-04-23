@@ -1,119 +1,163 @@
 personal:
-  name: Alex Jordan
-  email: alex.jordan@example.com
-  phone: "+1-415-555-0192"
-  location: San Francisco, CA
-  linkedin: linkedin.com/in/alexjordan
-  github: github.com/alexjordan
-  website: alexjordan.dev
+  name: Hyungjun Kim
+  email: khjmove@snu.ac.kr
+  phone: "+82-10-5489-0173"
+  location: Seoul, Korea
+  linkedin: www.linkedin.com/in/hyungjun-kim-200581389/?locale=en-US
+  github: github.com/hyun9junn
+  huggingface: huggingface.co/Hyun9junn
 
-summary: >
-  Software engineer with 5 years of experience building distributed backend systems
-  and developer tooling. Passionate about performance engineering, open-source
-  contribution, and making complex infrastructure approachable. Previously at two
-  Y Combinator companies; currently focused on reliability and observability tooling.
+summary:
+  Undergraduate student at Seoul National University majoring in Civil and
+  Environmental Engineering with an interdisciplinary major in Artificial
+  Intelligence. Strong interest in Large Language Models (LLMs), especially
+  quantization, efficient inference, and deploying AI systems to real-world
+  industrial environments. Hands-on experience through internships at AI startups,
+  research labs, and production engineering teams.
 
 experience:
-  - title: Senior Software Engineer
-    company: Streamline AI
-    start_date: "2023-04"
+  - title: Solution Architect Intern
+    company: SqueezeBits
+    start_date: "2026.03"
     end_date: null
-    location: San Francisco, CA
+    location: Seoul, Korea
     highlights:
-      - Redesigned the ingestion pipeline to handle 10x peak traffic with no latency regression
-      - Led migration from a monolith to event-driven microservices (Kafka, Go)
-      - Reduced P99 API latency from 420 ms to 95 ms through query optimization and caching
-      - Mentored two junior engineers; introduced structured on-call rotation and runbooks
+      - Worked on hardware-aware software optimization for efficient model inference
+      - Collaborated with Modular (Mojo / MAX framework) to accelerate diffusion model inference
+      - Investigated FP8 quantization slowdowns in FLUX-based diffusion models
+      - Profiled GPU kernel dispatch efficiency, memory movement, and scaling overhead
+      - Adapted rapidly to large production codebases with frequent upstream changes
 
-  - title: Software Engineer
-    company: Heron Data
-    start_date: "2021-07"
-    end_date: "2023-03"
-    location: New York, NY (Remote)
+  - title: ML Research Engineer Intern 
+    company: AsteroMorph
+    start_date: "2026.01"
+    end_date: "2026.02"
+    location: Seoul, Korea
     highlights:
-      - Built a real-time financial transaction classifier serving 50 M events/day
-      - Owned the Python SDK used by 300+ enterprise customers
-      - Shipped async job queue (Celery + Redis) cutting report generation time by 70%
-      - Contributed to open-source fintech tooling (1.2 k GitHub stars)
+      - Optimized repeated inference and weight-update loops using vLLM
+      - Tuned FP8 kernels for efficient execution on NVIDIA B200 GPUs
+      - Improved RAG retrieval performance and trained reranker models
+      - Built automated synthetic data pipelines using LLMs
+      - Designed multi-LLM ensemble ranking systems for evaluation workflows
 
-  - title: Software Engineering Intern
-    company: Dropbase
-    start_date: "2020-05"
-    end_date: "2020-08"
-    location: San Francisco, CA
+  - title: Undergraduate Research Intern
+    company: Seoul National University MLLab
+    start_date: "2025.06"
+    end_date: "2025.12"
+    location: Seoul, Korea
     highlights:
-      - Implemented CSV-to-Postgres bulk import feature used in product launch
-      - Wrote integration tests that caught 12 regressions before release
+      - Conducted research on LLM quantization for efficient inference
+      - Investigated performance gaps between theoretical and real GPU speedups
+      - Contributed to FlatQuant open-source repository
+      - Studied research methodology and paper writing for top conferences
+
+  - title: Undergraduate Research Intern
+    company: Seoul National University CMALab
+    start_date: "2024.10"
+    end_date: "2025.06"
+    location: Seoul, Korea
+    highlights:
+      - Studied GPTQ, AWQ, QuaRot and related quantization methods
+      - Implemented research ideas using PyTorch and Transformers
+      - Assisted research on reasoning-oriented LLM optimization
+      - Developed collaborative research experience in academic environments
 
 education:
-  - degree: B.S. Computer Science
-    institution: University of Illinois Urbana-Champaign
-    start_date: "2017"
-    end_date: "2021"
-    gpa: "3.87"
+  - degree: B.S. Civil and Environmental Engineering / I.M. Artificial Intelligence
+    institution: Seoul National University
+    start_date: "2020.03"
+    end_date: "Present"
+    gpa: "3.92"
 
 skills:
   - category: Languages
-    items: [Go, Python, TypeScript, SQL, Bash]
-  - category: Infrastructure
-    items: [Kubernetes, Docker, Terraform, AWS, GCP]
-  - category: Data and Messaging
-    items: [PostgreSQL, Redis, Kafka, Elasticsearch]
-  - category: Observability
-    items: [Prometheus, Grafana, OpenTelemetry, Datadog]
+    items: [Python, C++, SQL, Bash, MATLAB]
+
+  - category: AI / Deep Learning
+    items: [PyTorch, Transformers, LoRA, Fine-tuning, Quantization]
+
+  - category: LLM Systems
+    items: [vLLM, CUDA, TensorRT-LLM, Efficient Inference, Prompt Engineering]
+
+  - category: Backend / Infra
+    items: [Linux, Git, Docker, FastAPI, REST API]
 
 projects:
-  - name: tinyqueue
-    description: Minimal persistent job queue in Go with at-least-once delivery guarantees
-    url: github.com/alexjordan/tinyqueue
+  - name: K-EXAONE Quantization
+    description: Quantized LG AI Research K-EXAONE model into W4A16 AWQ format
+    url: huggingface.co/Hyun9junn/K-EXAONE-236B-A23B-W4A16-G128
     highlights:
-      - 800+ GitHub stars; used in production by 3 startups
-      - Sub-millisecond enqueue latency under 10 k concurrent workers
-      - Zero external dependencies, single binary deployment
+      - Published deployable checkpoints on Hugging Face
+      - Validated compatibility with vLLM serving stack
+      - Benchmarked latency and throughput against competing models
 
-  - name: pg-explain-viewer
-    description: Browser tool for visualizing PostgreSQL EXPLAIN ANALYZE output as flame graphs
-    url: github.com/alexjordan/pg-explain-viewer
+  - name: FlatQuant Optimization
+    description: Performance analysis and optimization of FlatQuant post-training quantization
+    url: github.com/ruikangliu/FlatQuant
     highlights:
-      - Supports EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) output
-      - Highlights sequential scans and missing index opportunities automatically
+      - Investigated why theoretical quantization speedups were not achieved in real GPU inference
+      - Analyzed kernel bottlenecks, memory movement, and dispatch overhead
+      - Contributed fixes and improvements to open-source repository
 
-certifications:
-  - name: AWS Certified Solutions Architect - Associate
-    issuer: Amazon Web Services
-    date: "2022"
-  - name: Certified Kubernetes Administrator (CKA)
-    issuer: Cloud Native Computing Foundation
-    date: "2023"
+  - name: H-Trust
+    description: AI trust decision support platform powered by Gemini API
+    url: github.com/Sselrats/h-trust
+    highlights:
+      - Built modular reasoning pipeline and deployable web architecture
+      - Used AI coding agents for planning, coding, debugging, and refactoring
+      - Won 1st place in Hanwha Life Future Talent Contest
+  
+  - name: MKCV
+    description: YAML-driven CV / resume generation platform built with AI coding agents
+    url: github.com/hyun9junn/mkcv
+    highlights:
+      - Designed a single-source-of-truth resume system using YAML schemas
+      - Leveraged Claude Code agent workflows for rapid planning, frontend/backend coding, refactoring, and iteration
+      - This CV was also generated using the MKCV platform
 
-publications:
-  - title: "Practical At-Least-Once Delivery Without a Message Broker"
-    venue: Medium - Towards Data Engineering
-    date: "2024"
-    url: medium.com/@alexjordan/at-least-once-delivery
+  - name: ARC Reasoning LLM
+    description: Lightweight Abstract Reasoning Corpus solver using quantized Qwen LLM
+    url: https://github.com/2025DL-Team1/DL-ARC-Project
+    highlights:
+      - Used 4-bit quantization and LoRA fine-tuning on 0.6B model
+      - Proposed shape-grid decoupled custom loss for better generalization
+      - Applied geometric augmentation and ensemble decoding
 
-languages:
-  - language: English
-    proficiency: Native
-  - language: Spanish
-    proficiency: Conversational
+  - name: Pacman Game
+    description: Full C++ Pac-Man clone with gameplay systems and AI ghost logic
+    url: github.com/hyun9junn/pacman
+    highlights:
+      - Implemented maze navigation, collisions, score system, and life resets
+      - Built target-based movement logic for multiple ghost characters
+      - Delivered fully playable end-to-end desktop game
 
 awards:
-  - name: 1st Place, Cal Hacks 9.0
-    issuer: UC Berkeley
-    date: "2022"
-    description: Built an AI-powered accessibility tool for low-vision users in 36 hours
+  - name: 1st Place, Hanwha Life Future Talent Contest - AI sector
+    issuer: Hanwha Life
+    date: "2026"
+
+  - name: Excellence Award, 40th SNU Liberal Education Report Competition
+    issuer: Seoul National University
+    date: "2024"
+
+  - name: Special Award, Future Marine Science and Technology Talent Award
+    issuer: KAOSTS
+    date: "2024"
+
+  - name: Silver Prize, 32th Korea Mathematical Olympiad
+    issuer: KMO
+    date: "2018"
+
+  - name: Gold Prize, 30th Korea Junior Mathematical Olympiad 
+    issuer: KMO
+    date: "2016"
 
 extracurricular:
-  - title: Open Source Maintainer
-    organization: tinyqueue (personal project)
-    date: "2022-Present"
+  - title: Reporter / Vice President
+    organization: Gongsang, SNU College of Engineering
+    date: "2020-2024"
     highlights:
-      - Triages issues and reviews PRs from 40+ external contributors
-      - Writes release notes and maintains CHANGELOG for each version
-  - title: Technical Mentor
-    organization: Code2040
-    date: "2023-Present"
-    highlights:
-      - Mentors two Black and Latinx early-career engineers each cohort
-      - Runs monthly system-design mock interview sessions
+      - Wrote official promotional articles for College of Engineering
+      - Mentored students in outreach engineering programs
+      - Developed leadership, writing, and communication skills
+
