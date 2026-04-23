@@ -60,30 +60,18 @@ const sectionsUI = (() => {
         let offsetX = 0, offsetY = 0;
         let startX = 0, startY = 0;
         let dragging = false;
-        let activePointerId = -1;
         let startOrder = [];
+        let activePointerId = -1;
 
-        chip.addEventListener("pointerdown", (e) => {
-          if (e.button !== 0) return;
-          startOrder = sectionsState.getOrder().slice();
-          activePointerId = e.pointerId;
-          chip.setPointerCapture(e.pointerId);
-          const rect = chip.getBoundingClientRect();
-          offsetX = e.clientX - rect.left;
-          offsetY = e.clientY - rect.top;
-          startX = e.clientX;
-          startY = e.clientY;
-        });
-
-        chip.addEventListener("pointermove", (e) => {
-          if (!chip.hasPointerCapture(e.pointerId)) return;
+        function onMove(e) {
+          if (e.pointerId !== activePointerId) return;
           if (!dragging) {
             if (Math.abs(e.clientX - startX) <= 4 && Math.abs(e.clientY - startY) <= 4) return;
             dragging = true;
+            panelDragActive = true;
             const rect = chip.getBoundingClientRect();
             dragClone = chip.cloneNode(true);
             dragClone.className = chip.className.replace(/\bdragging\b/, "").trim() + " chip-drag-clone";
-            panelDragActive = true;
             dragClone.style.width = rect.width + "px";
             document.body.appendChild(dragClone);
             chip.classList.add("dragging");
@@ -97,17 +85,21 @@ const sectionsUI = (() => {
           });
           if (before) panel.insertBefore(chip, before);
           else panel.appendChild(chip);
-        });
+        }
+
+        function cleanUp() {
+          document.removeEventListener("pointermove", onMove);
+          document.removeEventListener("pointerup", onUp);
+          document.removeEventListener("pointercancel", onCancel);
+          activePointerId = -1;
+        }
 
         function endDrag() {
+          cleanUp();
           if (!dragging) return;
           dragging = false;
           panelDragActive = false;
           justDragged = true;
-          if (activePointerId !== -1) {
-            chip.releasePointerCapture(activePointerId);
-            activePointerId = -1;
-          }
           dragClone.remove();
           dragClone = null;
           chip.classList.remove("dragging");
@@ -120,15 +112,17 @@ const sectionsUI = (() => {
           );
         }
 
-        chip.addEventListener("pointerup", endDrag);
-        chip.addEventListener("pointercancel", () => {
+        function onUp(e) {
+          if (e.pointerId !== activePointerId) return;
+          endDrag();
+        }
+
+        function onCancel(e) {
+          if (e.pointerId !== activePointerId) return;
+          cleanUp();
           if (!dragging) return;
           dragging = false;
           panelDragActive = false;
-          if (activePointerId !== -1) {
-            chip.releasePointerCapture(activePointerId);
-            activePointerId = -1;
-          }
           dragClone.remove();
           dragClone = null;
           chip.classList.remove("dragging");
@@ -138,6 +132,20 @@ const sectionsUI = (() => {
             sectionsState.getOrderedFilteredYaml(app.state.yaml),
             app.state.template
           );
+        }
+
+        chip.addEventListener("pointerdown", (e) => {
+          if (e.button !== 0) return;
+          startOrder = sectionsState.getOrder().slice();
+          activePointerId = e.pointerId;
+          const rect = chip.getBoundingClientRect();
+          offsetX = e.clientX - rect.left;
+          offsetY = e.clientY - rect.top;
+          startX = e.clientX;
+          startY = e.clientY;
+          document.addEventListener("pointermove", onMove);
+          document.addEventListener("pointerup", onUp);
+          document.addEventListener("pointercancel", onCancel);
         });
       }
 
