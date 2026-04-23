@@ -1,163 +1,56 @@
 personal:
-  name: Hyungjun Kim
-  email: khjmove@snu.ac.kr
-  phone: "+82-10-5489-0173"
+  name: John Doe
+  email: john@example.com
+  phone: "+82-10-1234-5678"
   location: Seoul, Korea
-  linkedin: www.linkedin.com/in/hyungjun-kim-200581389/?locale=en-US
-  github: github.com/hyun9junn
-  huggingface: huggingface.co/Hyun9junn
+  linkedin: linkedin.com/in/johndoe
+  github: github.com/johndoe
 
-summary:
-  Undergraduate student at Seoul National University majoring in Civil and
-  Environmental Engineering with an interdisciplinary major in Artificial
-  Intelligence. Strong interest in Large Language Models (LLMs), especially
-  quantization, efficient inference, and deploying AI systems to real-world
-  industrial environments. Hands-on experience through internships at AI startups,
-  research labs, and production engineering teams.
+summary: >
+  Software engineer with 5+ years of experience building scalable backend
+  systems and developer tools. Passionate about clean architecture and open source.
 
 experience:
-  - title: Solution Architect Intern
-    company: SqueezeBits
-    start_date: "2026.03"
+  - title: Senior Software Engineer
+    company: Acme Corp
+    start_date: "2021"
     end_date: null
-    location: Seoul, Korea
     highlights:
-      - Worked on hardware-aware software optimization for efficient model inference
-      - Collaborated with Modular (Mojo / MAX framework) to accelerate diffusion model inference
-      - Investigated FP8 quantization slowdowns in FLUX-based diffusion models
-      - Profiled GPU kernel dispatch efficiency, memory movement, and scaling overhead
-      - Adapted rapidly to large production codebases with frequent upstream changes
-
-  - title: ML Research Engineer Intern 
-    company: AsteroMorph
-    start_date: "2026.01"
-    end_date: "2026.02"
-    location: Seoul, Korea
-    highlights:
-      - Optimized repeated inference and weight-update loops using vLLM
-      - Tuned FP8 kernels for efficient execution on NVIDIA B200 GPUs
-      - Improved RAG retrieval performance and trained reranker models
-      - Built automated synthetic data pipelines using LLMs
-      - Designed multi-LLM ensemble ranking systems for evaluation workflows
-
-  - title: Undergraduate Research Intern
-    company: Seoul National University MLLab
-    start_date: "2025.06"
-    end_date: "2025.12"
-    location: Seoul, Korea
-    highlights:
-      - Conducted research on LLM quantization for efficient inference
-      - Investigated performance gaps between theoretical and real GPU speedups
-      - Contributed to FlatQuant open-source repository
-      - Studied research methodology and paper writing for top conferences
-
-  - title: Undergraduate Research Intern
-    company: Seoul National University CMALab
-    start_date: "2024.10"
-    end_date: "2025.06"
-    location: Seoul, Korea
-    highlights:
-      - Studied GPTQ, AWQ, QuaRot and related quantization methods
-      - Implemented research ideas using PyTorch and Transformers
-      - Assisted research on reasoning-oriented LLM optimization
-      - Developed collaborative research experience in academic environments
+      - Led backend platform redesign reducing latency by 40%
+      - Mentored a team of 4 junior engineers
 
 education:
-  - degree: B.S. Civil and Environmental Engineering / I.M. Artificial Intelligence
+  - degree: B.S. Computer Science
     institution: Seoul National University
-    start_date: "2020.03"
-    end_date: "Present"
-    gpa: "3.92"
+    year: "2019"
+    gpa: "3.8"
 
 skills:
   - category: Languages
-    items: [Python, C++, SQL, Bash, MATLAB]
-
-  - category: AI / Deep Learning
-    items: [PyTorch, Transformers, LoRA, Fine-tuning, Quantization]
-
-  - category: LLM Systems
-    items: [vLLM, CUDA, TensorRT-LLM, Efficient Inference, Prompt Engineering]
-
-  - category: Backend / Infra
-    items: [Linux, Git, Docker, FastAPI, REST API]
+    items: [Python, TypeScript, Go]
+  - category: Tools
+    items: [FastAPI, PostgreSQL, Docker, Kubernetes]
 
 projects:
-  - name: K-EXAONE Quantization
-    description: Quantized LG AI Research K-EXAONE model into W4A16 AWQ format
-    url: huggingface.co/Hyun9junn/K-EXAONE-236B-A23B-W4A16-G128
+  - name: mkcv
+    description: CV management tool supporting Markdown, LaTeX, and PDF output
+    url: github.com/johndoe/mkcv
     highlights:
-      - Published deployable checkpoints on Hugging Face
-      - Validated compatibility with vLLM serving stack
-      - Benchmarked latency and throughput against competing models
+      - Single YAML source generates multiple output formats
 
-  - name: FlatQuant Optimization
-    description: Performance analysis and optimization of FlatQuant post-training quantization
-    url: github.com/ruikangliu/FlatQuant
-    highlights:
-      - Investigated why theoretical quantization speedups were not achieved in real GPU inference
-      - Analyzed kernel bottlenecks, memory movement, and dispatch overhead
-      - Contributed fixes and improvements to open-source repository
+certifications:
+  - name: AWS Certified Solutions Architect
+    issuer: Amazon Web Services
+    date: "2022"
 
-  - name: H-Trust
-    description: AI trust decision support platform powered by Gemini API
-    url: github.com/Sselrats/h-trust
-    highlights:
-      - Built modular reasoning pipeline and deployable web architecture
-      - Used AI coding agents for planning, coding, debugging, and refactoring
-      - Won 1st place in Hanwha Life Future Talent Contest
-  
-  - name: MKCV
-    description: YAML-driven CV / resume generation platform built with AI coding agents
-    url: github.com/hyun9junn/mkcv
-    highlights:
-      - Designed a single-source-of-truth resume system using YAML schemas
-      - Leveraged Claude Code agent workflows for rapid planning, frontend/backend coding, refactoring, and iteration
-      - This CV was also generated using the MKCV platform
+publications:
+  - title: "Building Scalable APIs with FastAPI"
+    venue: Medium Engineering Blog
+    date: "2023"
+    url: medium.com/@johndoe/fastapi-scaling
 
-  - name: ARC Reasoning LLM
-    description: Lightweight Abstract Reasoning Corpus solver using quantized Qwen LLM
-    url: https://github.com/2025DL-Team1/DL-ARC-Project
-    highlights:
-      - Used 4-bit quantization and LoRA fine-tuning on 0.6B model
-      - Proposed shape-grid decoupled custom loss for better generalization
-      - Applied geometric augmentation and ensemble decoding
-
-  - name: Pacman Game
-    description: Full C++ Pac-Man clone with gameplay systems and AI ghost logic
-    url: github.com/hyun9junn/pacman
-    highlights:
-      - Implemented maze navigation, collisions, score system, and life resets
-      - Built target-based movement logic for multiple ghost characters
-      - Delivered fully playable end-to-end desktop game
-
-awards:
-  - name: 1st Place, Hanwha Life Future Talent Contest - AI sector
-    issuer: Hanwha Life
-    date: "2026"
-
-  - name: Excellence Award, 40th SNU Liberal Education Report Competition
-    issuer: Seoul National University
-    date: "2024"
-
-  - name: Special Award, Future Marine Science and Technology Talent Award
-    issuer: KAOSTS
-    date: "2024"
-
-  - name: Silver Prize, 32th Korea Mathematical Olympiad
-    issuer: KMO
-    date: "2018"
-
-  - name: Gold Prize, 30th Korea Junior Mathematical Olympiad 
-    issuer: KMO
-    date: "2016"
-
-extracurricular:
-  - title: Reporter / Vice President
-    organization: Gongsang, SNU College of Engineering
-    date: "2020-2024"
-    highlights:
-      - Wrote official promotional articles for College of Engineering
-      - Mentored students in outreach engineering programs
-      - Developed leadership, writing, and communication skills
-
+languages:
+  - language: Korean
+    proficiency: Native
+  - language: English
+    proficiency: Fluent
