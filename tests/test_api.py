@@ -286,3 +286,11 @@ async def test_export_latex_no_disk_write(app, tmp_path, monkeypatch):
         resp = await client.post("/api/export/latex", json={"yaml": VALID_YAML, "template": "classic"})
     assert resp.status_code == 200
     assert not (tmp_path / "output").exists()
+
+
+async def test_export_pdf_no_disk_write(app, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        resp = await client.post("/api/export/pdf", json={"yaml": VALID_YAML, "template": "classic"})
+    # PDF generation may fail if pdflatex is absent, but no output/ dir should be created regardless
+    assert not (tmp_path / "output").exists()
