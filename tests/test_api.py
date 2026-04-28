@@ -270,3 +270,19 @@ async def test_export_latex_invalid_density_returns_422(app):
             "density": "INVALID",
         })
     assert resp.status_code == 422
+
+
+async def test_export_markdown_no_disk_write(app, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        resp = await client.post("/api/export/markdown", json={"yaml": VALID_YAML, "template": "classic"})
+    assert resp.status_code == 200
+    assert not (tmp_path / "output").exists()
+
+
+async def test_export_latex_no_disk_write(app, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        resp = await client.post("/api/export/latex", json={"yaml": VALID_YAML, "template": "classic"})
+    assert resp.status_code == 200
+    assert not (tmp_path / "output").exists()
