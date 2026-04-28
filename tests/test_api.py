@@ -268,3 +268,8 @@ async def test_file_endpoint_removed(app):
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         resp = await client.get("/api/file")
     assert resp.status_code == 404
+
+async def test_file_post_endpoint_removed(app):
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        resp = await client.post("/api/file", json={"content": "test"})
+    assert resp.status_code in (404, 405)

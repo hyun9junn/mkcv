@@ -11,7 +11,11 @@ const fileSync = (() => {
   }
 
   function saveFile(content) {
-    localStorage.setItem(STORAGE_KEY, content);
+    try {
+      localStorage.setItem(STORAGE_KEY, content);
+    } catch {
+      // QuotaExceededError: browser storage full, edit not persisted
+    }
   }
 
   document.addEventListener("DOMContentLoaded", () => {
