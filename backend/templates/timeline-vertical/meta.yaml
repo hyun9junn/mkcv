@@ -1,0 +1,18 @@
+display_name: "Vertical Timeline"
+description: "Date-rail timeline with dots — entries hang from a left margin chronology, forest-green accent — product, design, data, research"
+audience: general
+recommended_sections:
+  - experience
+  - projects
+  - education
+default_section_order:
+  - summary
+  - experience
+  - projects
+  - education
+  - skills
+  - publications
+  - awards
+  - certifications
+  - languages
+  - extracurricular

@@ -1,0 +1,19 @@
+display_name: "The Gazette"
+description: "Newspaper-style nameplate with double rules, small-caps section heads, Roman-numeral publications list, deep aubergine accent — lawyers, classicists, writers, senior academics"
+audience: academic
+recommended_sections:
+  - publications
+  - experience
+  - education
+  - awards
+default_section_order:
+  - summary
+  - education
+  - experience
+  - publications
+  - awards
+  - projects
+  - skills
+  - certifications
+  - languages
+  - extracurricular

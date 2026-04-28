@@ -1,0 +1,19 @@
+display_name: "Editorial Magazine"
+description: "Magazine masthead with oversized serif nameplate, drop-cap summary, small-caps section heads, crimson accent — writers, editors, brand & design leads"
+audience: general
+recommended_sections:
+  - summary
+  - experience
+  - publications
+  - awards
+default_section_order:
+  - summary
+  - experience
+  - education
+  - publications
+  - projects
+  - skills
+  - awards
+  - languages
+  - certifications
+  - extracurricular

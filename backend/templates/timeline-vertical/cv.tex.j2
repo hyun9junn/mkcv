@@ -1,0 +1,244 @@
+% =============================================================
+% MKCV — Template: timeline-vertical
+% Audience: product / design / data — info-design forward
+% Compiler: pdfLaTeX
+% Layout: left date-rail with dots, content hanging on the right
+% =============================================================
+\documentclass[<< font_size >>,a4paper]{article}
+<< layout_preamble >>
+
+\usepackage[a4paper,top=18mm,bottom=18mm,left=18mm,right=18mm]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{tgheros}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage[hidelinks]{hyperref}
+\usepackage{titlesec}
+\usepackage{microtype}
+\usepackage{array}
+\usepackage{parskip}
+\usepackage{etoolbox}
+\usepackage{tikz}
+
+% ---------- palette: forest green accent on warm white -------
+\definecolor{cvink}{HTML}{14181B}
+\definecolor{cvmute}{HTML}{6B7280}
+\definecolor{cvaccent}{HTML}{116B4F}
+\definecolor{cvaccent2}{HTML}{D9E5DF}
+\definecolor{cvrule}{HTML}{D8D5CF}
+
+\renewcommand{\familydefault}{\sfdefault}
+\color{cvink}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{3pt}
+\pagestyle{empty}
+\linespread{1.08}
+
+% ---------- section heads: lowercase + accent + heavy rule ---
+\titleformat{\section}
+  {\large\bfseries\color{cvaccent}}
+  {}{0em}
+  {}
+  [\vspace{2pt}{\color{cvaccent}\titlerule[1.2pt]}]
+\titlespacing*{\section}{0pt}{\cvsecbefore}{\cvsecafter}
+
+% ---------- helpers ------------------------------------------
+\newcommand{\cvrole}[1]{{\bfseries #1}}
+\newcommand{\cvorg}[1]{{\color{cvaccent} #1}}
+\newcommand{\cvdate}[1]{{\footnotesize\color{cvmute} #1}}
+
+% Timeline entry: date column on left, dot, content on right
+% Args: 1 = date string, 2 = body
+\newcommand{\timelineentry}[2]{%
+  \noindent\begin{minipage}[t]{0.20\linewidth}\raggedleft
+    {\footnotesize\bfseries\color{cvmute}\MakeUppercase{#1}}
+  \end{minipage}%
+  \hspace{4pt}%
+  \begin{minipage}[t]{0.025\linewidth}\centering
+    \begin{tikzpicture}[baseline=(d.base)]
+      \node[circle,draw=cvaccent,fill=cvaccent2,line width=0.8pt,inner sep=1.6pt] (d) at (0,0) {};
+    \end{tikzpicture}
+  \end{minipage}%
+  \hspace{4pt}%
+  \begin{minipage}[t]{0.72\linewidth}
+    #2
+  \end{minipage}\par%
+}
+
+\newenvironment{cvitems}
+  {\begin{itemize}[leftmargin=1.0em,labelsep=0.4em,itemsep=1pt,topsep=\cvitembefore,parsep=0pt,label=\textbullet]}
+  {\end{itemize}}
+
+\begin{document}
+
+% =========================
+% Header
+% =========================
+\noindent
+\begin{minipage}[t]{0.62\linewidth}
+{<< cv.personal.name | name_fontsize(28, 1.10) >>\color{cvink} << cv.personal.name >>}
+<% if cv.personal.tagline %>
+\\[2pt]{\normalsize\color{cvaccent} << cv.personal.tagline >>}
+<% endif %>
+\end{minipage}\hfill
+\begin{minipage}[t]{0.36\linewidth}
+\raggedleft
+{\footnotesize\color{cvink}
+<% if cv.personal.email %>\href{mailto:<< cv.personal.email >>}{<< cv.personal.email >>}\\<% endif %>
+<% if cv.personal.phone %><< cv.personal.phone >>\\<% endif %>
+<% if cv.personal.location %><< cv.personal.location >>\\<% endif %>
+<% if cv.personal.linkedin %>\href{https://<< cv.personal.linkedin >>}{<< cv.personal.linkedin >>}\\<% endif %>
+<% if cv.personal.github %>\href{https://<< cv.personal.github >>}{<< cv.personal.github >>}\\<% endif %>
+<% if cv.personal.website %>\href{https://<< cv.personal.website >>}{<< cv.personal.website >>}\\<% endif %>
+}
+\end{minipage}
+
+\vspace{4pt}
+{\color{cvrule}\rule{\linewidth}{0.4pt}}
+
+% =========================
+% Sections
+% =========================
+<% macro render_section(key) %>
+<% if key == 'summary' and cv.summary %>
+\section{summary}
+<< cv.summary >>
+<% endif %>
+
+<% if key == 'experience' and cv.experience %>
+\section{experience}
+<% for job in cv.experience %>
+\timelineentry{<< job.start_date >>\\--\\<< job.end_date if job.end_date else "Present" >>}{%
+{<< job.title | shrink_if_long(48) >>\cvrole{<< job.title >>}} \,\textbullet\, \cvorg{<< job.company >>}<% if job.location %> \hfill \cvdate{<< job.location >>}<% endif %>%
+<% if job.highlights %>
+\begin{cvitems}
+<% for item in job.highlights %>
+    \item << item >>
+<% endfor %>
+\end{cvitems}
+<% endif %>
+}
+<% if not loop.last %>\vspace{\cvvgap}<% endif %>
+<% endfor %>
+<% endif %>
+
+<% if key == 'education' and cv.education %>
+\section{education}
+<% for edu in cv.education %>
+\timelineentry{<% if edu.year %><< edu.year >><% elif edu.start_date %><< edu.start_date >>\\--\\<< edu.end_date if edu.end_date else "Present" >><% endif %>}{%
+{<< edu.degree | shrink_if_long(48) >>\cvrole{<< edu.degree >>}} \,\textbullet\, \cvorg{<< edu.institution >>}%
+<% if edu.gpa %>\\{\footnotesize GPA: << edu.gpa >>}<% endif %>
+<% if edu.details %>\\{\footnotesize\itshape << edu.details >>}<% endif %>
+}
+<% if not loop.last %>\vspace{\cvvgap}<% endif %>
+<% endfor %>
+<% endif %>
+
+<% if key == 'skills' and cv.skills %>
+\section{skills}
+\begin{tabular}{@{}>{\raggedleft\arraybackslash}p{0.20\linewidth}@{\hspace{8pt}}p{0.76\linewidth}@{}}
+<% for group in cv.skills %>
+{\bfseries\color{cvmute}\MakeUppercase{<< group.category >>}} & << group.items | join(" \,/\, ") >> \\[3pt]
+<% endfor %>
+\end{tabular}
+<% endif %>
+
+<% if key == 'projects' and cv.projects %>
+\section{projects}
+<% for proj in cv.projects %>
+\timelineentry{<% if proj.date %><< proj.date >><% else %>\textemdash<% endif %>}{%
+{<< proj.name | shrink_if_long(40) >>\cvrole{<% if proj.url %>\href{https://<< proj.url >>}{<< proj.name >>}<% else %><< proj.name >><% endif %>}} --- {\color{cvmute}<< proj.description >>}%
+<% if proj.highlights %>
+\begin{cvitems}
+<% for item in proj.highlights %>
+    \item << item >>
+<% endfor %>
+\end{cvitems}
+<% endif %>
+}
+<% if not loop.last %>\vspace{\cvvgap}<% endif %>
+<% endfor %>
+<% endif %>
+
+<% if key == 'publications' and cv.publications %>
+\section{publications}
+<% for pub in cv.publications %>
+\timelineentry{<% if pub.date %><< pub.date >><% else %>\textemdash<% endif %>}{%
+<% if pub.url %>\href{https://<< pub.url >>}{\textbf{<< pub.title >>}}<% else %>\textbf{<< pub.title >>}<% endif %><% if pub.authors %>\\{\footnotesize << pub.authors | join(", ") >>}<% endif %><% if pub.venue %>\\{\itshape\color{cvaccent} << pub.venue >>}<% endif %>%
+}
+<% if not loop.last %>\vspace{\cvvgap}<% endif %>
+<% endfor %>
+<% endif %>
+
+<% if key == 'awards' and cv.awards %>
+\section{awards}
+<% for award in cv.awards %>
+\timelineentry{<% if award.date %><< award.date >><% else %>\textemdash<% endif %>}{%
+\cvrole{<< award.name >>}<% if award.issuer %> --- \cvorg{<< award.issuer >>}<% endif %><% if award.description %>\\{\footnotesize << award.description >>}<% endif %>%
+}
+<% if not loop.last %>\vspace{\cvvgap}<% endif %>
+<% endfor %>
+<% endif %>
+
+<% if key == 'certifications' and cv.certifications %>
+\section{certifications}
+<% for cert in cv.certifications %>
+\timelineentry{<% if cert.date %><< cert.date >><% else %>\textemdash<% endif %>}{%
+\cvrole{<< cert.name >>}<% if cert.issuer %> --- \cvorg{<< cert.issuer >>}<% endif %>%
+}
+<% endfor %>
+<% endif %>
+
+<% if key == 'languages' and cv.languages %>
+\section{languages}
+<% for lang in cv.languages %>\cvrole{<< lang.language >>}~--~{\color{cvmute}<< lang.proficiency >>}<% if not loop.last %>\quad\textbullet\quad <% endif %><% endfor %>
+<% endif %>
+
+<% if key == 'extracurricular' and cv.extracurricular %>
+\section{activities}
+<% for act in cv.extracurricular %>
+\timelineentry{<% if act.date %><< act.date >><% else %>\textemdash<% endif %>}{%
+\cvrole{<< act.title >>}<% if act.organization %> --- \cvorg{<< act.organization >>}<% endif %>%
+<% if act.highlights %>
+\begin{cvitems}
+<% for item in act.highlights %>
+    \item << item >>
+<% endfor %>
+\end{cvitems}
+<% endif %>
+}
+<% if not loop.last %>\vspace{\cvvgap}<% endif %>
+<% endfor %>
+<% endif %>
+
+<% if key in custom_by_key %>
+<% set cs = custom_by_key[key] %>
+\section{<< cs.title | lower >>}
+<% for block in cs.content %>
+<% set extras = block.model_extra %>
+<% if block.type == 'text' %>
+<< extras.get('value', '') >>
+<% elif block.type == 'bullets' %>
+\begin{cvitems}
+<% for item in extras.get('items', []) %>
+    \item << item >>
+<% endfor %>
+\end{cvitems}
+<% elif block.type == 'kv' %>
+\begin{tabular}{@{}p{3cm}l@{}}
+<% for pair in extras.get('pairs', []) %>
+\cvrole{<< pair.key >>} & {\color{cvmute}<< pair.value >>} \\
+<% endfor %>
+\end{tabular}
+<% endif %>
+<% endfor %>
+<% endif %>
+<% endmacro %>
+
+<% for key in section_order %>
+<< render_section(key) >>
+<% endfor %>
+
+\end{document}

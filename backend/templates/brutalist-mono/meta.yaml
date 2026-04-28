@@ -1,0 +1,18 @@
+display_name: "Brutalist Mono"
+description: "All-monospace brutalist look — boxed header, ASCII dividers, asterisk bullets, safety-orange accent — indie devs, hackers, tools-makers"
+audience: engineering
+recommended_sections:
+  - experience
+  - projects
+  - skills
+default_section_order:
+  - summary
+  - experience
+  - projects
+  - skills
+  - education
+  - publications
+  - certifications
+  - awards
+  - languages
+  - extracurricular
