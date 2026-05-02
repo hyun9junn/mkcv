@@ -94,6 +94,73 @@
   }
 
   // ---------------------------------------------------------------------------
+  // Value context detection
+  // ---------------------------------------------------------------------------
+
+  const VALUE_FIELDS = new Set(['start_date', 'end_date', 'date', 'proficiency']);
+
+  // Returns the field name if cursor is in value position for a known value field, else null.
+  // Handles empty value (key: |) and partially typed values including quoted (key: "Pre|).
+  function detectValueContext(editor) {
+    try {
+      const cursor = editor.getCursor();
+      const lineText = editor.getLine(cursor.line);
+      const textBeforeCursor = lineText.slice(0, cursor.ch);
+      // Matches: optional indent + key + ': ' + optional opening quote + partial word/date
+      const m = textBeforeCursor.match(/^\s*(\w[\w_]*):\s*["']?([\w.-]*)$/);
+      if (!m) return null;
+      const field = m[1];
+      return VALUE_FIELDS.has(field) ? field : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  // Returns {from, to} covering the value token including any opening quote.
+  // Accepting a suggestion replaces from the opening quote to the cursor — no doubled quotes.
+  function getValueToken(editor) {
+    try {
+      const cursor = editor.getCursor();
+      const lineText = editor.getLine(cursor.line);
+      const textBeforeCursor = lineText.slice(0, cursor.ch);
+      const keyColonMatch = textBeforeCursor.match(/^\s*\w[\w_]*:\s*/);
+      if (!keyColonMatch) return null;
+      return {
+        from: { line: cursor.line, ch: keyColonMatch[0].length },
+        to:   { line: cursor.line, ch: cursor.ch },
+      };
+    } catch (_) {
+      return null;
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Value suggestions
+  // ---------------------------------------------------------------------------
+
+  function generateDateSuggestions(field) {
+    const now   = new Date();
+    const year  = now.getFullYear();
+    const month = now.getMonth() + 1; // 1–12
+    const months = [];
+    for (let i = 0; i < 6; i++) {
+      let m = month - i;
+      let y = year;
+      if (m <= 0) { m += 12; y -= 1; }
+      months.push(`"${y}.${String(m).padStart(2, '0')}"`);
+    }
+    if (field === 'end_date')   return ['"Present"', ...months, `"${year}"`];
+    if (field === 'start_date') return [...months, `"${year}"`];
+    if (field === 'date')       return [`"${year}"`, `"${year-1}"`, `"${year-2}"`, `"${year-3}"`];
+    return [];
+  }
+
+  function getValueSuggestions(field) {
+    if (field === 'proficiency') return ['"Native"', '"Fluent"', '"Intermediate"', '"Basic"'];
+    return generateDateSuggestions(field);
+  }
+
+  // ---------------------------------------------------------------------------
   // Token extraction
   // ---------------------------------------------------------------------------
 
@@ -206,35 +273,52 @@
 
   function yamlHint(editor) {
     if (!schema) return null;
+
+    // --- Key completion ---
     const contextKey = detectContext(editor);
-    if (!contextKey) return null;
-    const contextDef = schema[contextKey];
-    if (!contextDef || !Array.isArray(contextDef.keys)) return null;
+    if (contextKey) {
+      const contextDef = schema[contextKey];
+      if (contextDef && Array.isArray(contextDef.keys)) {
+        const token   = getToken(editor);
+        const cursor  = editor.getCursor();
+        const siblings = getSiblingKeys(editor, contextKey, cursor.line);
+        const required = new Set(contextDef.required  || []);
+        const listKeys = new Set(contextDef.list_keys || []);
 
-    const token = getToken(editor);
-    const siblings = getSiblingKeys(editor, contextKey, editor.getCursor().line);
-    const required = new Set(contextDef.required || []);
-    const listKeys = new Set(contextDef.list_keys || []);
+        const candidates = contextDef.keys
+          .filter((k) => !siblings.has(k))
+          .map((k) => ({ key: k, score: fuzzyScore(token.prefix, k) }))
+          .filter(({ score }) => score > 0)
+          .sort((a, b) => b.score - a.score || a.key.length - b.key.length);
 
-    const candidates = contextDef.keys
-      .filter((k) => !siblings.has(k))
-      .map((k) => ({ key: k, score: fuzzyScore(token.prefix, k) }))
-      .filter(({ score }) => score > 0)
-      .sort((a, b) => b.score - a.score || a.key.length - b.key.length);
+        const list = candidates.map(({ key }) => ({
+          text: listKeys.has(key) ? key + ":" : key + ": ",
+          displayText: required.has(key) ? key + " *" : key,
+          render(el, _self, data) { el.textContent = data.displayText; },
+        }));
 
-    if (candidates.length === 0) return null;
+        if (list.length > 0) return { list, from: token.from, to: token.to };
+      }
+    }
 
-    const list = candidates.map(({ key }) => ({
-      // text inserted on accept: "key: " for scalars, "key:" for list-value fields
-      text: listKeys.has(key) ? key + ":" : key + ": ",
-      // displayText shows "*" for required — visual only, never inserted
-      displayText: required.has(key) ? key + " *" : key,
-      render(el, _self, data) {
-        el.textContent = data.displayText;
-      },
-    }));
+    // --- Value completion fallback ---
+    const valueField = detectValueContext(editor);
+    if (!valueField) return null;
+    const suggestions = getValueSuggestions(valueField);
+    if (!suggestions.length) return null;
+    const valueToken = getValueToken(editor);
+    if (!valueToken) return null;
 
-    return { list, from: token.from, to: token.to };
+    const typed = editor.getLine(editor.getCursor().line)
+      .slice(valueToken.from.ch, editor.getCursor().ch)
+      .replace(/^["']/, '');
+
+    const list = suggestions
+      .filter(s => s.replace(/^["']/, '').toLowerCase().startsWith(typed.toLowerCase()))
+      .map(s => ({ text: s, displayText: s }));
+
+    if (!list.length) return null;
+    return { list, from: valueToken.from, to: valueToken.to };
   }
 
   // ---------------------------------------------------------------------------
@@ -250,7 +334,7 @@
       if (!schema) return;
       if (change.origin === "+delete" || change.origin === "paste" || change.origin === "setValue" || change.origin === "complete") return;
       setTimeout(() => {
-        if (detectContext(editor)) {
+        if (detectContext(editor) || detectValueContext(editor)) {
           editor.showHint({ hint: yamlHint, completeSingle: false });
         }
       }, 50);
