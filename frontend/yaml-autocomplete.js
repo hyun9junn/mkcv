@@ -123,7 +123,7 @@
       const cursor = editor.getCursor();
       const lineText = editor.getLine(cursor.line);
       const textBeforeCursor = lineText.slice(0, cursor.ch);
-      const keyColonMatch = textBeforeCursor.match(/^\s*\w[\w_]*:\s*/);
+      const keyColonMatch = textBeforeCursor.match(/^\s*(?:-\s+)?\w[\w_]*:\s*/);
       if (!keyColonMatch) return null;
       return {
         from: { line: cursor.line, ch: keyColonMatch[0].length },
@@ -334,7 +334,7 @@
   function yamlHint(editor) {
     // --- Key completion ---
     const contextKey = detectContext(editor);
-    if (contextKey && schema) {
+    if (contextKey) {
       const token    = getToken(editor);
       const cursor   = editor.getCursor();
       const siblings = getSiblingKeys(editor, contextKey, cursor.line);
@@ -384,25 +384,27 @@
       }
 
       // Build schema-based key candidates
-      const contextDef = schema[contextKey];
       const candidates = [];
-      if (contextDef && Array.isArray(contextDef.keys)) {
-        const required = new Set(contextDef.required  || []);
-        const listKeys = new Set(contextDef.list_keys || []);
+      if (schema) {
+        const contextDef = schema[contextKey];
+        if (contextDef && Array.isArray(contextDef.keys)) {
+          const required = new Set(contextDef.required  || []);
+          const listKeys = new Set(contextDef.list_keys || []);
 
-        const rawCandidates = contextDef.keys
-          .filter((k) => !siblings.has(k))
-          .map((k) => ({ key: k, score: fuzzyScore(token.prefix, k) }))
-          .filter(({ score }) => score > 0)
-          .sort((a, b) => b.score - a.score || a.key.length - b.key.length);
+          const rawCandidates = contextDef.keys
+            .filter((k) => !siblings.has(k))
+            .map((k) => ({ key: k, score: fuzzyScore(token.prefix, k) }))
+            .filter(({ score }) => score > 0)
+            .sort((a, b) => b.score - a.score || a.key.length - b.key.length);
 
-        rawCandidates.forEach(({ key }) => {
-          candidates.push({
-            text: listKeys.has(key) ? key + ":" : key + ": ",
-            displayText: required.has(key) ? key + " *" : key,
-            render(el, _self, data) { el.textContent = data.displayText; },
+          rawCandidates.forEach(({ key }) => {
+            candidates.push({
+              text: listKeys.has(key) ? key + ":" : key + ": ",
+              displayText: required.has(key) ? key + " *" : key,
+              render(el, _self, data) { el.textContent = data.displayText; },
+            });
           });
-        });
+        }
       }
 
       const list = [...templateItems, ...candidates];
