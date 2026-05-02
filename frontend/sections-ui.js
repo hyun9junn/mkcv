@@ -78,7 +78,14 @@ const sectionsUI = (() => {
         if (justDragged) { justDragged = false; return; }
         if (!present) {
           if (sectionsState.SECTION_DEFS[key]) {
-            showAddSectionToast(key);
+            if (appendDefaultSection(key)) {
+              buildPanel();
+              preview.refresh(
+                sectionsState.getOrderedFilteredYaml(app.state.yaml),
+                app.state.template
+              );
+              showToast(`${def.label} added`, "info");
+            }
           } else {
             showToast(`Add a \`${key}:\` key to include this section.`, "info");
           }
