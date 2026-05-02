@@ -107,7 +107,7 @@
       const lineText = editor.getLine(cursor.line);
       const textBeforeCursor = lineText.slice(0, cursor.ch);
       // Matches: optional indent + key + ': ' + optional opening quote + partial word/date
-      const m = textBeforeCursor.match(/^\s*(\w[\w_]*):\s*["']?([\w.-]*)$/);
+      const m = textBeforeCursor.match(/^\s*(?:-\s+)?(\w[\w_]*):\s*["']?([\w.-]*)$/);
       if (!m) return null;
       const field = m[1];
       return VALUE_FIELDS.has(field) ? field : null;
@@ -332,11 +332,9 @@
   // ---------------------------------------------------------------------------
 
   function yamlHint(editor) {
-    if (!schema) return null;
-
     // --- Key completion ---
     const contextKey = detectContext(editor);
-    if (contextKey) {
+    if (contextKey && schema) {
       const token    = getToken(editor);
       const cursor   = editor.getCursor();
       const siblings = getSiblingKeys(editor, contextKey, cursor.line);
@@ -441,7 +439,6 @@
 
     // Auto-trigger on every insertion keystroke when in key position
     cmEditor.on("change", (editor, change) => {
-      if (!schema) return;
       if (change.origin === "+delete" || change.origin === "paste" || change.origin === "setValue" || change.origin === "complete") return;
       setTimeout(() => {
         if (detectContext(editor) || detectValueContext(editor)) {
