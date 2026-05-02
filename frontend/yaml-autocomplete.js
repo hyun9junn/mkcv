@@ -178,7 +178,7 @@
 
   // Builds the full root-level section block text for insertion.
   // Example for 'experience':
-  //   experience:\n  - title:\n    company:\n    ...\n    highlights:\n      -
+  //   experience:\n  - title:\n    company:\n    ...\n    highlights:\n      - 
   function buildRootTemplate(name) {
     const tmpl = SECTION_TEMPLATES[name];
     if (!tmpl) return name + ': ';
@@ -314,47 +314,58 @@
     // --- Key completion ---
     const contextKey = detectContext(editor);
     if (contextKey) {
+      const token    = getToken(editor);
+      const cursor   = editor.getCursor();
+      const siblings = getSiblingKeys(editor, contextKey, cursor.line);
+
+      // Build template items (static, no schema dependency)
+      const templateItems = [];
+      if (contextKey === '__root__') {
+        const scoredTemplates = [];
+        Object.keys(SECTION_TEMPLATES).forEach(name => {
+          const score = fuzzyScore(token.prefix, name);
+          if (!siblings.has(name) && score > 0) {
+            scoredTemplates.push({ name, score });
+          }
+        });
+        scoredTemplates
+          .sort((a, b) => b.score - a.score || a.name.length - b.name.length)
+          .forEach(({ name }) => {
+            templateItems.push({
+              text: buildRootTemplate(name),
+              displayText: name + ' [template]',
+              render(el, _self, data) {
+                el.classList.add('yaml-hint-template');
+                el.textContent = data.displayText;
+              },
+            });
+          });
+      }
+
+      // Build schema-based key candidates
       const contextDef = schema[contextKey];
+      const candidates = [];
       if (contextDef && Array.isArray(contextDef.keys)) {
-        const token   = getToken(editor);
-        const cursor  = editor.getCursor();
-        const siblings = getSiblingKeys(editor, contextKey, cursor.line);
         const required = new Set(contextDef.required  || []);
         const listKeys = new Set(contextDef.list_keys || []);
 
-        const candidates = contextDef.keys
+        const rawCandidates = contextDef.keys
           .filter((k) => !siblings.has(k))
           .map((k) => ({ key: k, score: fuzzyScore(token.prefix, k) }))
           .filter(({ score }) => score > 0)
           .sort((a, b) => b.score - a.score || a.key.length - b.key.length);
 
-        const templateItems = [];
-        if (contextKey === '__root__') {
-          Object.keys(SECTION_TEMPLATES).forEach(name => {
-            if (!siblings.has(name) && fuzzyScore(token.prefix, name) > 0) {
-              templateItems.push({
-                text: buildRootTemplate(name),
-                displayText: name + ' [template]',
-                render(el, _self, data) {
-                  el.classList.add('yaml-hint-template');
-                  el.textContent = data.displayText;
-                },
-              });
-            }
-          });
-        }
-
-        const list = [
-          ...templateItems,
-          ...candidates.map(({ key }) => ({
+        rawCandidates.forEach(({ key }) => {
+          candidates.push({
             text: listKeys.has(key) ? key + ":" : key + ": ",
             displayText: required.has(key) ? key + " *" : key,
             render(el, _self, data) { el.textContent = data.displayText; },
-          })),
-        ];
-
-        if (list.length > 0) return { list, from: token.from, to: token.to };
+          });
+        });
       }
+
+      const list = [...templateItems, ...candidates];
+      if (list.length > 0) return { list, from: token.from, to: token.to };
     }
 
     // --- Value completion fallback ---
