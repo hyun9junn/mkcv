@@ -200,7 +200,7 @@
   // Builds the item skeleton text inserted right after the existing '  - ' on the cursor line.
   // baseIndent: number of leading spaces before the '-' (e.g. 2 for '  - ').
   // Example for experience, baseIndent=2:
-  //   title:\n    company:\n    start_date:\n    end_date:\n    location:\n    highlights:\n      -
+  //   title:\n    company:\n    start_date:\n    end_date:\n    location:\n    highlights:\n      - 
   function buildItemTemplate(sectionName, baseIndent) {
     const tmpl = SECTION_TEMPLATES[sectionName];
     if (!tmpl) return null;
@@ -367,8 +367,8 @@
         const sectionName = contextKey.slice(0, -2);
         if (SECTION_TEMPLATES[sectionName]) {
           const lineText  = editor.getLine(cursor.line);
-          const isNewItem = /^\s*-\s/.test(lineText);
-          if (isNewItem) {
+          const isNewItem = /^\s*-\s*$/.test(lineText);
+          if (isNewItem && !token.prefix) {
             const baseIndent   = (lineText.match(/^(\s*)/) || ['', ''])[1].length;
             const templateText = buildItemTemplate(sectionName, baseIndent);
             if (templateText) {
