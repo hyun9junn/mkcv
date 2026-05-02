@@ -151,7 +151,7 @@
     }
     if (field === 'end_date')   return ['"Present"', ...months, `"${year}"`];
     if (field === 'start_date') return [...months, `"${year}"`];
-    if (field === 'date')       return [`"${year}"`, `"${year-1}"`, `"${year-2}"`, `"${year-3}"`];
+    if (field === 'date')       return [`"${year}"`, `"${year-1}"`, `"${year-2}"`, `"${year-3}"`, `"${year-4}"`];
     return [];
   }
 
