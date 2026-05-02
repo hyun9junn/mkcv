@@ -268,38 +268,6 @@ const sectionsUI = (() => {
     return true;
   }
 
-  function showAddSectionToast(key) {
-    const stack = document.getElementById("toast-stack");
-    if (!stack) return;
-    const t = document.createElement("div");
-    t.className = "toast info";
-    t.style.maxWidth = "520px";
-    t.innerHTML = `<div class="toast-msg">Add a \`${key}:\` key to include this section.</div><button class="toast-action">Add default context</button><button class="toast-close">×</button>`;
-
-    let autoTimer = null;
-
-    function removeToast() {
-      clearTimeout(autoTimer);
-      t.style.animation = "toastIn .2s ease reverse both";
-      setTimeout(() => t.remove(), 220);
-    }
-
-    t.querySelector(".toast-close").addEventListener("click", removeToast);
-    t.querySelector(".toast-action").addEventListener("click", () => {
-      removeToast();
-      if (appendDefaultSection(key)) {
-        buildPanel();
-        preview.refresh(
-          sectionsState.getOrderedFilteredYaml(app.state.yaml),
-          app.state.template
-        );
-      }
-    });
-
-    stack.appendChild(t);
-    autoTimer = setTimeout(removeToast, 5000);
-  }
-
   function showResetModal(key) {
     const def = sectionsState.SECTION_DEFS[key];
     if (!def) return;
