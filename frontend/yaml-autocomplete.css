@@ -23,3 +23,8 @@ li.CodeMirror-hint-active {
   background: var(--accent-soft, rgba(180,68,47,.08));
   color: var(--accent, #b4442f);
 }
+
+.yaml-hint-template {
+  color: #82aaff;
+  font-style: italic;
+}

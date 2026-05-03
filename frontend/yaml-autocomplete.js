@@ -94,6 +94,133 @@
   }
 
   // ---------------------------------------------------------------------------
+  // Value context detection
+  // ---------------------------------------------------------------------------
+
+  const VALUE_FIELDS = new Set(['start_date', 'end_date', 'date', 'proficiency']);
+
+  // Returns the field name if cursor is in value position for a known value field, else null.
+  // Handles empty value (key: |) and partially typed values including quoted (key: "Pre|).
+  function detectValueContext(editor) {
+    try {
+      const cursor = editor.getCursor();
+      const lineText = editor.getLine(cursor.line);
+      const textBeforeCursor = lineText.slice(0, cursor.ch);
+      // Matches: optional indent + key + ': ' + optional opening quote + partial word/date
+      const m = textBeforeCursor.match(/^\s*(?:-\s+)?(\w[\w_]*):\s*["']?([\w.-]*)$/);
+      if (!m) return null;
+      const field = m[1];
+      return VALUE_FIELDS.has(field) ? field : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  // Returns {from, to} covering the value token including any opening quote.
+  // Accepting a suggestion replaces from the opening quote to the cursor — no doubled quotes.
+  function getValueToken(editor) {
+    try {
+      const cursor = editor.getCursor();
+      const lineText = editor.getLine(cursor.line);
+      const textBeforeCursor = lineText.slice(0, cursor.ch);
+      const keyColonMatch = textBeforeCursor.match(/^\s*(?:-\s+)?\w[\w_]*:\s*/);
+      if (!keyColonMatch) return null;
+      return {
+        from: { line: cursor.line, ch: keyColonMatch[0].length },
+        to:   { line: cursor.line, ch: cursor.ch },
+      };
+    } catch (_) {
+      return null;
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Value suggestions
+  // ---------------------------------------------------------------------------
+
+  function generateDateSuggestions(field) {
+    const now   = new Date();
+    const year  = now.getFullYear();
+    const month = now.getMonth() + 1; // 1–12
+    const months = [];
+    for (let i = 0; i < 6; i++) {
+      let m = month - i;
+      let y = year;
+      if (m <= 0) { m += 12; y -= 1; }
+      months.push(`"${y}.${String(m).padStart(2, '0')}"`);
+    }
+    if (field === 'end_date')   return ['"Present"', ...months, `"${year}"`];
+    if (field === 'start_date') return [...months, `"${year}"`];
+    if (field === 'date')       return [`"${year}"`, `"${year-1}"`, `"${year-2}"`, `"${year-3}"`, `"${year-4}"`];
+    return [];
+  }
+
+  function getValueSuggestions(field) {
+    if (field === 'proficiency') return ['"Native"', '"Fluent"', '"Intermediate"', '"Basic"'];
+    return generateDateSuggestions(field);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Section templates
+  // ---------------------------------------------------------------------------
+
+  const SECTION_TEMPLATES = {
+    experience:     { fields: ['title', 'company', 'start_date', 'end_date', 'location', 'highlights'], listFields: ['highlights'] },
+    education:      { fields: ['degree', 'institution', 'start_date', 'end_date', 'gpa'],              listFields: [] },
+    skills:         { fields: ['category', 'items'],                                                    listFields: ['items'] },
+    projects:       { fields: ['name', 'description', 'url', 'highlights'],                            listFields: ['highlights'] },
+    certifications: { fields: ['name', 'issuer', 'date'],                                              listFields: [] },
+    publications:   { fields: ['title', 'venue', 'date', 'url'],                                       listFields: [] },
+    languages:      { fields: ['language', 'proficiency'],                                              listFields: [] },
+    awards:         { fields: ['name', 'issuer', 'date'],                                              listFields: [] },
+    extracurricular:{ fields: ['title', 'organization', 'date', 'highlights'],                         listFields: ['highlights'] },
+  };
+
+  // Builds the full root-level section block text for insertion.
+  // Example for 'experience':
+  //   experience:\n  - title:\n    company:\n    ...\n    highlights:\n      - 
+  function buildRootTemplate(name) {
+    const tmpl = SECTION_TEMPLATES[name];
+    if (!tmpl) return name + ': ';
+    const { fields, listFields } = tmpl;
+    const lines = [name + ':'];
+    lines.push('  - ' + fields[0] + ':');
+    for (let i = 1; i < fields.length; i++) {
+      const f = fields[i];
+      if (listFields.includes(f)) {
+        lines.push('    ' + f + ':');
+        lines.push('      - ');
+      } else {
+        lines.push('    ' + f + ':');
+      }
+    }
+    return lines.join('\n');
+  }
+
+  // Builds the item skeleton text inserted right after the existing '  - ' on the cursor line.
+  // baseIndent: number of leading spaces before the '-' (e.g. 2 for '  - ').
+  // Example for experience, baseIndent=2:
+  //   title:\n    company:\n    start_date:\n    end_date:\n    location:\n    highlights:\n      - 
+  function buildItemTemplate(sectionName, baseIndent) {
+    const tmpl = SECTION_TEMPLATES[sectionName];
+    if (!tmpl) return null;
+    const { fields, listFields } = tmpl;
+    const contIndent   = ' '.repeat(baseIndent + 2);
+    const bulletIndent = ' '.repeat(baseIndent + 4);
+    const parts = [fields[0] + ':'];
+    for (let i = 1; i < fields.length; i++) {
+      const f = fields[i];
+      if (listFields.includes(f)) {
+        parts.push(contIndent + f + ':');
+        parts.push(bulletIndent + '- ');
+      } else {
+        parts.push(contIndent + f + ':');
+      }
+    }
+    return parts.join('\n');
+  }
+
+  // ---------------------------------------------------------------------------
   // Token extraction
   // ---------------------------------------------------------------------------
 
@@ -205,36 +332,103 @@
   // ---------------------------------------------------------------------------
 
   function yamlHint(editor) {
-    if (!schema) return null;
+    // --- Key completion ---
     const contextKey = detectContext(editor);
-    if (!contextKey) return null;
-    const contextDef = schema[contextKey];
-    if (!contextDef || !Array.isArray(contextDef.keys)) return null;
+    if (contextKey) {
+      const token    = getToken(editor);
+      const cursor   = editor.getCursor();
+      const siblings = getSiblingKeys(editor, contextKey, cursor.line);
 
-    const token = getToken(editor);
-    const siblings = getSiblingKeys(editor, contextKey, editor.getCursor().line);
-    const required = new Set(contextDef.required || []);
-    const listKeys = new Set(contextDef.list_keys || []);
+      // Build template items (static, no schema dependency)
+      const templateItems = [];
+      if (contextKey === '__root__') {
+        const scoredTemplates = [];
+        Object.keys(SECTION_TEMPLATES).forEach(name => {
+          const score = fuzzyScore(token.prefix, name);
+          if (!siblings.has(name) && score > 0) {
+            scoredTemplates.push({ name, score });
+          }
+        });
+        scoredTemplates
+          .sort((a, b) => b.score - a.score || a.name.length - b.name.length)
+          .forEach(({ name }) => {
+            templateItems.push({
+              text: buildRootTemplate(name),
+              displayText: name + ' [template]',
+              render(el, _self, data) {
+                el.classList.add('yaml-hint-template');
+                el.textContent = data.displayText;
+              },
+            });
+          });
+      } else if (contextKey.endsWith('[]')) {
+        const sectionName = contextKey.slice(0, -2);
+        if (SECTION_TEMPLATES[sectionName]) {
+          const lineText  = editor.getLine(cursor.line);
+          const isNewItem = /^\s*-\s*$/.test(lineText);
+          if (isNewItem && !token.prefix) {
+            const baseIndent   = (lineText.match(/^(\s*)/) || ['', ''])[1].length;
+            const templateText = buildItemTemplate(sectionName, baseIndent);
+            if (templateText) {
+              templateItems.push({
+                text: templateText,
+                displayText: '[+ new item]',
+                render(el, _self, data) {
+                  el.classList.add('yaml-hint-template');
+                  el.textContent = data.displayText;
+                },
+              });
+            }
+          }
+        }
+      }
 
-    const candidates = contextDef.keys
-      .filter((k) => !siblings.has(k))
-      .map((k) => ({ key: k, score: fuzzyScore(token.prefix, k) }))
-      .filter(({ score }) => score > 0)
-      .sort((a, b) => b.score - a.score || a.key.length - b.key.length);
+      // Build schema-based key candidates
+      const candidates = [];
+      if (schema) {
+        const contextDef = schema[contextKey];
+        if (contextDef && Array.isArray(contextDef.keys)) {
+          const required = new Set(contextDef.required  || []);
+          const listKeys = new Set(contextDef.list_keys || []);
 
-    if (candidates.length === 0) return null;
+          const rawCandidates = contextDef.keys
+            .filter((k) => !siblings.has(k))
+            .map((k) => ({ key: k, score: fuzzyScore(token.prefix, k) }))
+            .filter(({ score }) => score > 0)
+            .sort((a, b) => b.score - a.score || a.key.length - b.key.length);
 
-    const list = candidates.map(({ key }) => ({
-      // text inserted on accept: "key: " for scalars, "key:" for list-value fields
-      text: listKeys.has(key) ? key + ":" : key + ": ",
-      // displayText shows "*" for required — visual only, never inserted
-      displayText: required.has(key) ? key + " *" : key,
-      render(el, _self, data) {
-        el.textContent = data.displayText;
-      },
-    }));
+          rawCandidates.forEach(({ key }) => {
+            candidates.push({
+              text: listKeys.has(key) ? key + ":" : key + ": ",
+              displayText: required.has(key) ? key + " *" : key,
+              render(el, _self, data) { el.textContent = data.displayText; },
+            });
+          });
+        }
+      }
 
-    return { list, from: token.from, to: token.to };
+      const list = [...templateItems, ...candidates];
+      if (list.length > 0) return { list, from: token.from, to: token.to };
+    }
+
+    // --- Value completion fallback ---
+    const valueField = detectValueContext(editor);
+    if (!valueField) return null;
+    const suggestions = getValueSuggestions(valueField);
+    if (!suggestions.length) return null;
+    const valueToken = getValueToken(editor);
+    if (!valueToken) return null;
+
+    const typed = editor.getLine(editor.getCursor().line)
+      .slice(valueToken.from.ch, editor.getCursor().ch)
+      .replace(/^["']/, '');
+
+    const list = suggestions
+      .filter(s => s.replace(/^["']/, '').toLowerCase().startsWith(typed.toLowerCase()))
+      .map(s => ({ text: s, displayText: s }));
+
+    if (!list.length) return null;
+    return { list, from: valueToken.from, to: valueToken.to };
   }
 
   // ---------------------------------------------------------------------------
@@ -247,10 +441,9 @@
 
     // Auto-trigger on every insertion keystroke when in key position
     cmEditor.on("change", (editor, change) => {
-      if (!schema) return;
       if (change.origin === "+delete" || change.origin === "paste" || change.origin === "setValue" || change.origin === "complete") return;
       setTimeout(() => {
-        if (detectContext(editor)) {
+        if (detectContext(editor) || detectValueContext(editor)) {
           editor.showHint({ hint: yamlHint, completeSingle: false });
         }
       }, 50);

@@ -13,6 +13,7 @@ class CodeMirrorAdapter {
       extraKeys: {
         Tab: _tabOrComplete,
         "Shift-Tab": _shiftTab,
+        Enter: _enterSmartIndent,
       },
     });
 
@@ -76,6 +77,46 @@ function _tabOrComplete(editor) {
   }
   // No completions available: YAML-safe indent (spaces only, never \t)
   editor.replaceSelection("  ");
+}
+
+// Enter: smart indent for YAML — handles empty bullets, colon-terminated lines,
+// key-value list items, string-value bullets, and default indent preservation.
+function _enterSmartIndent(editor) {
+  const cursor = editor.getCursor();
+  const line = editor.getLine(cursor.line);
+  const lineIndent = (line.match(/^(\s*)/) || ['', ''])[1].length;
+
+  // Case 1: Empty bullet — remove bullet marker and place cursor at parent indent
+  if (/^\s*-\s*$/.test(line)) {
+    const parentIndent = Math.max(0, lineIndent - 2);
+    editor.replaceRange(
+      ' '.repeat(parentIndent),
+      { line: cursor.line, ch: 0 },
+      { line: cursor.line, ch: line.length }
+    );
+    return;
+  }
+
+  // Case 2: Line ends with ':' — indent +2
+  if (line.trimEnd().endsWith(':')) {
+    editor.replaceRange('\n' + ' '.repeat(lineIndent + 2), { line: cursor.line, ch: line.length });
+    return;
+  }
+
+  // Case 3: List item with key-value pattern (e.g. '  - title: Job Title') — field level
+  if (/^\s*-\s+\w[\w_]*\s*:/.test(line)) {
+    editor.replaceRange('\n' + ' '.repeat(lineIndent + 2), { line: cursor.line, ch: line.length });
+    return;
+  }
+
+  // Case 4: List item with string content (e.g. '      - Key Achievement') — new bullet
+  if (/^\s*-\s+\S/.test(line)) {
+    editor.replaceRange('\n' + ' '.repeat(lineIndent) + '- ', { line: cursor.line, ch: line.length });
+    return;
+  }
+
+  // Case 5: Default — preserve current indent
+  editor.replaceRange('\n' + ' '.repeat(lineIndent), { line: cursor.line, ch: line.length });
 }
 
 // Shift+Tab: dismiss hint menu if open, else remove up to 2 leading spaces.
