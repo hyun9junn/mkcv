@@ -40,6 +40,14 @@ const sectionsUI = (() => {
   }
 
   function buildPanel() {
+    function escHtml(s) {
+      return String(s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
     const presentKeys = sectionsState.getExpandedPresentKeys(app.state.yaml);
 
     for (const key of presentKeys) {
@@ -48,15 +56,15 @@ const sectionsUI = (() => {
 
     const order    = sectionsState.getOrder();
     const presentSet = new Set(presentKeys);
+    const settings = window.settingsSync ? settingsSync.getSettings() : null;
 
     panel.innerHTML = "";
 
     for (const key of order) {
       const def    = sectionsState.getDef(key, app.state.yaml);
-      const settings = window.settingsSync ? settingsSync.getSettings() : null;
-      const sectionTitle = settings?.sections?.find(s => s.key === key)?.title ?? def.label;
       const present = presentSet.has(key);
       if (!def) continue;
+      const sectionTitle = settings?.sections?.find(s => s.key === key)?.title ?? def.label;
 
       const hidden = present && sectionsState.isHidden(key);
 
@@ -67,7 +75,7 @@ const sectionsUI = (() => {
       chip.innerHTML = `
         <span class="chip-grip"><span></span><span></span><span></span></span>
         <span class="chip-dot"></span>
-        <span class="chip-name">${sectionTitle}</span>
+        <span class="chip-name">${escHtml(sectionTitle)}</span>
       `;
 
       const dot = chip.querySelector(".chip-dot");
@@ -108,6 +116,7 @@ const sectionsUI = (() => {
         }
         sectionsState.toggleHidden(key);
         buildPanel();
+        // preview refresh is handled by notifySectionStateChange via monkey-patched toggleHidden
       });
 
       {
