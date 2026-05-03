@@ -79,6 +79,9 @@ function _tabOrComplete(editor) {
   editor.replaceSelection("  ");
 }
 
+// Fields whose value is always a list — Enter after these inserts a bullet.
+const YAML_LIST_FIELDS = new Set(['highlights', 'items']);
+
 // Enter: smart indent for YAML — handles empty bullets, colon-terminated lines,
 // key-value list items, string-value bullets, and default indent preservation.
 function _enterSmartIndent(editor) {
@@ -97,9 +100,11 @@ function _enterSmartIndent(editor) {
     return;
   }
 
-  // Case 2: Line ends with ':' — indent +2
+  // Case 2: Line ends with ':' — indent +2, with bullet if it's a list field
   if (line.trimEnd().endsWith(':')) {
-    editor.replaceRange('\n' + ' '.repeat(lineIndent + 2), { line: cursor.line, ch: line.length });
+    const fieldMatch = line.trim().match(/^(\w[\w_]*):\s*$/);
+    const bullet = fieldMatch && YAML_LIST_FIELDS.has(fieldMatch[1]) ? '- ' : '';
+    editor.replaceRange('\n' + ' '.repeat(lineIndent + 2) + bullet, { line: cursor.line, ch: line.length });
     return;
   }
 
