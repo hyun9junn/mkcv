@@ -43,6 +43,7 @@ const fileSync = (() => {
   document.addEventListener("DOMContentLoaded", async () => {
     await loadFile();
     window.editorAdapter.onChange((val) => {
+      if (window.settingsSync && window.settingsSync.activeTab === 'settings') return;
       clearTimeout(saveTimer);
       saveTimer = setTimeout(() => saveFile(val), 1000);
     });

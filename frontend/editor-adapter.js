@@ -178,5 +178,9 @@ document.addEventListener("DOMContentLoaded", () => {
   );
   window.editorAdapter = editor;
   app.setState({ yaml: editor.getValue() });
-  editor.onChange((val) => app.setState({ yaml: val }));
+  editor.onChange((val) => {
+    if (!window.settingsSync || window.settingsSync.activeTab === 'resume') {
+      app.setState({ yaml: val });
+    }
+  });
 });

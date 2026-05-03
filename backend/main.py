@@ -25,7 +25,8 @@ from backend.models import (
 
 TEMPLATES_DIR = Path(__file__).parent / "templates"
 OUTPUT_DIR = Path("output")
-CV_FILE = Path("mycv.yaml")
+CV_FILE       = Path("mycv.yaml")
+SETTINGS_FILE = Path("settings.yaml")
 
 _SAMPLE_CV = CVData(
     personal=PersonalInfo(name="Test User", email="test@example.com", phone="+1-000-0000", location="City, Country"),
@@ -97,6 +98,7 @@ def _validate_template(name: str) -> dict:
             custom_by_key=custom_by_key,
             font_size=_FONT_SIZE["normal"],
             layout_preamble=_build_layout_preamble("balanced"),
+            section_titles={},
         )
     except jinja2.TemplateSyntaxError as e:
         return {"valid": False, "errors": [f"Jinja2 syntax error: {e}"]}
@@ -148,6 +150,7 @@ class CVRequest(BaseModel):
     yaml: str
     template: str = "classic"
     section_order: Optional[List[str]] = None
+    section_titles: Optional[dict] = None
     density: Literal["comfortable", "balanced", "compact"] = "balanced"
     font_scale: Literal["small", "normal", "large"] = "normal"
 
@@ -294,7 +297,7 @@ async def export_latex(req: CVRequest):
         return _error("unknown_template", f"Template '{req.template}' not found")
 
     renderer = LaTeXRenderer(TEMPLATES_DIR, template=req.template, density=req.density, font_scale=req.font_scale)
-    content = renderer.render(cv, req.section_order)
+    content = renderer.render(cv, req.section_order, req.section_titles)
     OUTPUT_DIR.mkdir(exist_ok=True)
     (OUTPUT_DIR / "cv.tex").write_text(content)
     return Response(
@@ -317,7 +320,7 @@ async def export_pdf(req: CVRequest):
         return _error("unknown_template", f"Template '{req.template}' not found")
 
     renderer = LaTeXRenderer(TEMPLATES_DIR, template=req.template, density=req.density, font_scale=req.font_scale)
-    latex_content = renderer.render(cv, req.section_order)
+    latex_content = renderer.render(cv, req.section_order, req.section_titles)
 
     with tempfile.TemporaryDirectory() as tmpdir:
         tex_path = Path(tmpdir) / "cv.tex"
@@ -364,7 +367,7 @@ async def preview_pdf(req: CVRequest):
         return _error("unknown_template", f"Template '{req.template}' not found")
 
     renderer = LaTeXRenderer(TEMPLATES_DIR, template=req.template, density=req.density, font_scale=req.font_scale)
-    latex_content = renderer.render(cv, req.section_order)
+    latex_content = renderer.render(cv, req.section_order, req.section_titles)
 
     with tempfile.TemporaryDirectory() as tmpdir:
         tex_path = Path(tmpdir) / "cv.tex"
@@ -403,6 +406,22 @@ async def get_file():
 async def save_file(req: FileRequest):
     try:
         CV_FILE.write_text(req.content)
+        return {"ok": True}
+    except OSError as e:
+        return _error("file_write_failed", str(e), status=500)
+
+
+@app.get("/api/settings")
+async def get_settings():
+    if not SETTINGS_FILE.exists():
+        return {"content": ""}
+    return {"content": SETTINGS_FILE.read_text()}
+
+
+@app.post("/api/settings")
+async def save_settings(req: FileRequest):
+    try:
+        SETTINGS_FILE.write_text(req.content)
         return {"ok": True}
     except OSError as e:
         return _error("file_write_failed", str(e), status=500)

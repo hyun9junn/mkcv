@@ -37,6 +37,7 @@ const validator = (() => {
 
   document.addEventListener("DOMContentLoaded", () => {
     window.editorAdapter.onChange(() => {
+      if (window.settingsSync && window.settingsSync.activeTab === 'settings') return;
       clearTimeout(timer);
       timer = setTimeout(() => {
         validate(app.state.yaml, app.state.template);

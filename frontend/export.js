@@ -45,10 +45,15 @@ const exporter = (() => {
       ? (trimmed.includes(".") ? trimmed : `${trimmed}.${ext}`)
       : `cv.${ext}`;
 
+    const _settings = window.settingsSync ? settingsSync.getSettings() : null;
+    const section_titles = _settings
+      ? Object.fromEntries(_settings.sections.map(s => [s.key, s.title]))
+      : {};
     const body = {
       yaml: sectionsState.getOrderedFilteredYaml(app.state.yaml),
       template: app.state.template,
       section_order: sectionsState.getVisibleOrder(app.state.yaml),
+      section_titles,
     };
     if (format !== "markdown") {
       body.density = app.state.density;

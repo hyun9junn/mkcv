@@ -1,0 +1,40 @@
+# settings.yaml — layout & section state
+# auto-synced with toolbar controls; edit either side
+
+template: classic
+
+layout:
+  density:    balanced        # comfortable | balanced | compact
+  font_scale: normal          # small | normal | large
+
+sections:
+  - key: projects
+    title: "PROJECTS"
+    visible: true
+  - key: summary
+    title: "SUMMARY"
+    visible: true
+  - key: experience
+    title: "EXPERIENCE"
+    visible: true
+  - key: education
+    title: "EDUCATION"
+    visible: true
+  - key: skills
+    title: "SKILLS"
+    visible: true
+  - key: certifications
+    title: "CERTIFICATIONS"
+    visible: true
+  - key: publications
+    title: "PUBLICATIONS"
+    visible: true
+  - key: languages
+    title: "LANGUAGES"
+    visible: true
+  - key: awards
+    title: "AWARDS"
+    visible: true
+  - key: extracurricular
+    title: "EXTRACURRICULAR"
+    visible: true

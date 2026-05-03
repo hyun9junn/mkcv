@@ -82,10 +82,14 @@ const preview = (() => {
     showLoading();
     try {
       const section_order = sectionsState.getVisibleOrder(app.state.yaml);
+      const _settings = window.settingsSync ? settingsSync.getSettings() : null;
+      const section_titles = _settings
+        ? Object.fromEntries(_settings.sections.map(s => [s.key, s.title]))
+        : {};
       const resp = await fetch("/api/preview/pdf", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ yaml, template, section_order, density: app.state.density, font_scale: app.state.font_scale }),
+        body: JSON.stringify({ yaml, template, section_order, section_titles, density: app.state.density, font_scale: app.state.font_scale }),
       });
       if (!resp.ok) {
         const err = await resp.json();

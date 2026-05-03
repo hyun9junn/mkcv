@@ -9,6 +9,19 @@ DEFAULT_SECTION_ORDER = [
     "certifications", "publications", "languages", "awards", "extracurricular",
 ]
 
+DEFAULT_SECTION_TITLES = {
+    "summary":        "Summary",
+    "experience":     "Experience",
+    "education":      "Education",
+    "skills":         "Skills",
+    "projects":       "Projects",
+    "certifications": "Certifications",
+    "publications":   "Publications",
+    "languages":      "Languages",
+    "awards":         "Awards",
+    "extracurricular":"Extracurricular Activities",
+}
+
 _FONT_SIZE = {
     "small":  "10pt",
     "normal": "11pt",
@@ -75,7 +88,7 @@ class LaTeXRenderer(BaseRenderer):
         self.density = density
         self.font_scale = font_scale
 
-    def render(self, cv: CVData, section_order: Optional[List[str]] = None) -> str:
+    def render(self, cv: CVData, section_order: Optional[List[str]] = None, section_titles: Optional[dict] = None) -> str:
         template_path = self.templates_dir / self.template / "cv.tex.j2"
         if not template_path.exists():
             raise ValueError(f"unknown_template: '{self.template}' not found")
@@ -96,10 +109,12 @@ class LaTeXRenderer(BaseRenderer):
         custom_by_key = {cs.key: cs for cs in cv.custom_sections}
         font_size = _FONT_SIZE.get(self.font_scale, _FONT_SIZE["normal"])
         layout_preamble = _build_layout_preamble(self.density)
+        titles = section_titles or {}
         return env.get_template("cv.tex.j2").render(
             cv=cv,
             section_order=order,
             custom_by_key=custom_by_key,
             font_size=font_size,
             layout_preamble=layout_preamble,
+            section_titles=titles,
         )

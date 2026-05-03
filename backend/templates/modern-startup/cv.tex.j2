@@ -80,12 +80,12 @@
 % =========================
 <% macro render_section(key) %>
 <% if key == 'summary' and cv.summary %>
-\section{Summary}
+\section{<< section_titles.get(key, 'Summary') >>}
 << cv.summary >>
 <% endif %>
 
 <% if key == 'experience' and cv.experience %>
-\section{Experience}
+\section{<< section_titles.get(key, 'Experience') >>}
 <% for job in cv.experience %>
 {<< job.title | shrink_if_long(48) >>\cvrole{<< job.title >>}} \hfill \cvdate{<< job.start_date >> -- << job.end_date if job.end_date else "Present" >>}\\
 \cvorg{<< job.company >>}
@@ -101,7 +101,7 @@
 <% endif %>
 
 <% if key == 'education' and cv.education %>
-\section{Education}
+\section{<< section_titles.get(key, 'Education') >>}
 <% for edu in cv.education %>
 {<< edu.degree | shrink_if_long(48) >>\cvrole{<< edu.degree >>}} \hfill \cvdate{<% if edu.year %><< edu.year >><% elif edu.start_date %><< edu.start_date >> -- << edu.end_date if edu.end_date else "Present" >><% endif %>}\\
 \cvorg{<< edu.institution >>}<% if edu.gpa %> \hfill \cvdate{GPA: << edu.gpa >>}<% endif %>
@@ -110,7 +110,7 @@
 <% endif %>
 
 <% if key == 'skills' and cv.skills %>
-\section{Skills}
+\section{<< section_titles.get(key, 'Skills') >>}
 \begin{tabular}{@{}p{0.20\textwidth}@{\hspace{6pt}}p{0.76\textwidth}@{}}
 <% for group in cv.skills %>
 \cvrole{<< group.category >>} & << group.items | join(" \,\textperiodcentered\, ") >> \\[2pt]
@@ -119,7 +119,7 @@
 <% endif %>
 
 <% if key == 'projects' and cv.projects %>
-\section{Projects}
+\section{<< section_titles.get(key, 'Projects') >>}
 <% for proj in cv.projects %>
 {<< proj.name | shrink_if_long(40) >>\cvrole{<% if proj.url %>\href{https://<< proj.url >>}{<< proj.name >>}<% else %><< proj.name >><% endif %>}} \hfill \cvdate{<% if proj.url %><< proj.url >><% endif %>}\\
 \cvorg{\itshape << proj.description >>}
@@ -135,7 +135,7 @@
 <% endif %>
 
 <% if key == 'certifications' and cv.certifications %>
-\section{Certifications}
+\section{<< section_titles.get(key, 'Certifications') >>}
 <% for cert in cv.certifications %>
 \cvrole{<< cert.name >>}<% if cert.issuer %> --- \cvorg{<< cert.issuer >>}<% endif %><% if cert.date %> \hfill \cvdate{<< cert.date >>}<% endif %>\\
 <% if not loop.last %>\vspace{\cvvgap}<% endif %>
@@ -143,7 +143,7 @@
 <% endif %>
 
 <% if key == 'publications' and cv.publications %>
-\section{Publications}
+\section{<< section_titles.get(key, 'Publications') >>}
 \begin{itemize}[leftmargin=1.2em,itemsep=3pt,topsep=\cvitembefore]
 <% for pub in cv.publications %>
   \item <% if pub.url %>\href{https://<< pub.url >>}{\textbf{<< pub.title >>}}<% else %>\textbf{<< pub.title >>}<% endif %><% if pub.venue %>, \textit{<< pub.venue >>}<% endif %><% if pub.date %>, << pub.date >><% endif %>.
@@ -152,12 +152,12 @@
 <% endif %>
 
 <% if key == 'languages' and cv.languages %>
-\section{Languages}
+\section{<< section_titles.get(key, 'Languages') >>}
 <% for lang in cv.languages %>\cvrole{<< lang.language >>}~--~<< lang.proficiency >><% if not loop.last %>\quad\textperiodcentered\quad <% endif %><% endfor %>
 <% endif %>
 
 <% if key == 'awards' and cv.awards %>
-\section{Awards}
+\section{<< section_titles.get(key, 'Awards') >>}
 <% for award in cv.awards %>
 \cvrole{<< award.name >>}<% if award.date %> \hfill \cvdate{<< award.date >>}<% endif %>\\
 <% if award.issuer %>\cvorg{<< award.issuer >>}\\<% endif %>
@@ -167,7 +167,7 @@
 <% endif %>
 
 <% if key == 'extracurricular' and cv.extracurricular %>
-\section{Activities}
+\section{<< section_titles.get(key, 'Activities') >>}
 <% for act in cv.extracurricular %>
 \cvrole{<< act.title >>}<% if act.date %> \hfill \cvdate{<< act.date >>}<% endif %>\\
 <% if act.organization %>\cvorg{<< act.organization >>}\\<% endif %>

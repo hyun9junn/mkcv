@@ -96,15 +96,14 @@ const sectionsUI = (() => {
           ? sectionsState.moveFromInvisible(currentYaml, key)
           : sectionsState.moveToInvisible(currentYaml, key);
         if (newYaml !== currentYaml) {
-          window.editorAdapter.setValue(newYaml);
+          if (!window.settingsSync || window.settingsSync.activeTab === 'resume') {
+            window.editorAdapter.setValue(newYaml);
+          }
           app.setState({ yaml: newYaml });
         }
         sectionsState.toggleHidden(key);
         buildPanel();
-        preview.refresh(
-          sectionsState.getOrderedFilteredYaml(app.state.yaml),
-          app.state.template
-        );
+        // preview refresh is handled by notifySectionStateChange via monkey-patched toggleHidden
       });
 
       {
@@ -166,10 +165,7 @@ const sectionsUI = (() => {
           const newOrder = [...panel.querySelectorAll(".chip")].map(c => c.dataset.key);
           sectionsState.setOrder(newOrder);
           buildPanel();
-          preview.refresh(
-            sectionsState.getOrderedFilteredYaml(app.state.yaml),
-            app.state.template
-          );
+          // preview refresh handled by notifySectionStateChange via monkey-patched setOrder
         }
 
         function onUp(e) {
@@ -188,10 +184,7 @@ const sectionsUI = (() => {
           chip.classList.remove("dragging");
           sectionsState.setOrder(startOrder);
           buildPanel();
-          preview.refresh(
-            sectionsState.getOrderedFilteredYaml(app.state.yaml),
-            app.state.template
-          );
+          // preview refresh handled by notifySectionStateChange via monkey-patched setOrder
         }
 
         chip.addEventListener("pointerdown", (e) => {
@@ -245,7 +238,9 @@ const sectionsUI = (() => {
     const { key, previousSectionYaml } = pendingUndo;
     const restored = sectionsState.restoreSectionYaml(key, previousSectionYaml, app.state.yaml);
     if (restored) {
-      window.editorAdapter.setValue(restored);
+      if (!window.settingsSync || window.settingsSync.activeTab === 'resume') {
+        window.editorAdapter.setValue(restored);
+      }
       app.setState({ yaml: restored });
     }
     hideUndoToast();
@@ -271,7 +266,9 @@ const sectionsUI = (() => {
     if (!def || !def.yaml) return false;
     const current = app.state.yaml || '';
     const newYaml = sectionsState.appendToMainArea(current, def.yaml);
-    window.editorAdapter.setValue(newYaml);
+    if (!window.settingsSync || window.settingsSync.activeTab === 'resume') {
+      window.editorAdapter.setValue(newYaml);
+    }
     app.setState({ yaml: newYaml });
     return true;
   }
@@ -287,7 +284,9 @@ const sectionsUI = (() => {
       cleanup();
       const result = sectionsState.resetSectionYaml(key, app.state.yaml);
       if (!result) return;
-      window.editorAdapter.setValue(result.newYaml);
+      if (!window.settingsSync || window.settingsSync.activeTab === 'resume') {
+        window.editorAdapter.setValue(result.newYaml);
+      }
       app.setState({ yaml: result.newYaml });
       showUndoToast(def.label, key, result.previousYaml);
     }

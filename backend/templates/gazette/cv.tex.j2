@@ -96,7 +96,7 @@
 % =========================
 <% macro render_section(key) %>
 <% if key == 'summary' and cv.summary %>
-\section{prologue}
+\section{<< section_titles.get(key, 'prologue') >>}
 \begin{center}
 \begin{minipage}{0.86\linewidth}
 \itshape << cv.summary >>
@@ -105,7 +105,7 @@
 <% endif %>
 
 <% if key == 'experience' and cv.experience %>
-\section{appointments}
+\section{<< section_titles.get(key, 'appointments') >>}
 <% for job in cv.experience %>
 \noindent\begin{minipage}[t]{0.18\linewidth}\raggedright
 \cvdate{<< job.start_date >> -- << job.end_date if job.end_date else "Present" >>}
@@ -125,7 +125,7 @@
 <% endif %>
 
 <% if key == 'education' and cv.education %>
-\section{education}
+\section{<< section_titles.get(key, 'education') >>}
 <% for edu in cv.education %>
 \noindent\begin{minipage}[t]{0.18\linewidth}\raggedright
 \cvdate{<% if edu.year %><< edu.year >><% elif edu.start_date %><< edu.start_date >> -- << edu.end_date if edu.end_date else "Present" >><% endif %>}
@@ -140,7 +140,7 @@
 <% endif %>
 
 <% if key == 'publications' and cv.publications %>
-\section{published works}
+\section{<< section_titles.get(key, 'published works') >>}
 \begin{enumerate}[leftmargin=1.6em,itemsep=3pt,topsep=\cvitembefore,label=\textup{\Roman*.}]
 <% for pub in cv.publications %>
   \item <% if pub.url %>\href{https://<< pub.url >>}{``<< pub.title >>''}<% else %>``<< pub.title >>''<% endif %><% if pub.authors %>, by << pub.authors | join(", ") >><% endif %><% if pub.venue %>. \cvorg{<< pub.venue >>}<% endif %><% if pub.date %>, << pub.date >><% endif %>.
@@ -149,7 +149,7 @@
 <% endif %>
 
 <% if key == 'projects' and cv.projects %>
-\section{works \& projects}
+\section{<< section_titles.get(key, 'works \& projects') >>}
 <% for proj in cv.projects %>
 \noindent\begin{minipage}[t]{0.18\linewidth}\raggedright
 \cvdate{<% if proj.date %><< proj.date >><% else %>--<% endif %>}
@@ -169,7 +169,7 @@
 <% endif %>
 
 <% if key == 'skills' and cv.skills %>
-\section{competencies}
+\section{<< section_titles.get(key, 'competencies') >>}
 \begin{tabular}{@{}>{\raggedleft\arraybackslash}p{0.20\linewidth}@{\hspace{10pt}}p{0.76\linewidth}@{}}
 <% for group in cv.skills %>
 {\scshape << group.category >>} & << group.items | join(", ") >> \\[2pt]
@@ -178,7 +178,7 @@
 <% endif %>
 
 <% if key == 'awards' and cv.awards %>
-\section{honours \& distinctions}
+\section{<< section_titles.get(key, 'honours \& distinctions') >>}
 <% for award in cv.awards %>
 \noindent\begin{minipage}[t]{0.18\linewidth}\raggedright
 \cvdate{<% if award.date %><< award.date >><% else %>--<% endif %>}
@@ -192,7 +192,7 @@
 <% endif %>
 
 <% if key == 'certifications' and cv.certifications %>
-\section{certifications}
+\section{<< section_titles.get(key, 'certifications') >>}
 <% for cert in cv.certifications %>
 \noindent\begin{minipage}[t]{0.18\linewidth}\raggedright
 \cvdate{<% if cert.date %><< cert.date >><% else %>--<% endif %>}
@@ -204,14 +204,14 @@
 <% endif %>
 
 <% if key == 'languages' and cv.languages %>
-\section{languages}
+\section{<< section_titles.get(key, 'languages') >>}
 \begin{center}
 <% for lang in cv.languages %>\cvrole{<< lang.language >>}~--~\cvorg{<< lang.proficiency >>}<% if not loop.last %>\quad\textbullet\quad <% endif %><% endfor %>
 \end{center}
 <% endif %>
 
 <% if key == 'extracurricular' and cv.extracurricular %>
-\section{civic \& other interests}
+\section{<< section_titles.get(key, 'civic \& other interests') >>}
 <% for act in cv.extracurricular %>
 \noindent\begin{minipage}[t]{0.18\linewidth}\raggedright
 \cvdate{<% if act.date %><< act.date >><% else %>--<% endif %>}
