@@ -96,11 +96,34 @@ const settingsSync = (() => {
     const order      = [...settingsKeys, ...extra];
     try { localStorage.setItem('mkcv_sections_state', JSON.stringify({ order, hidden })); } catch {}
     if (window.sectionsUI) sectionsUI.buildPanel();
+    _reorderAndSaveResume(order);
   }
 
   function _applyAll(settings) {
     _applyToToolbar(settings);
     _applyToSections(settings);
+  }
+
+  // ── Reorder mycv.yaml to match section order ──
+
+  async function _reorderAndSaveResume(sectionOrder) {
+    const yaml = app.state.yaml;
+    if (!yaml || !yaml.trim() || !window.sectionsState) return;
+    const reordered = sectionsState.reorderMainArea(yaml, sectionOrder);
+    if (reordered === yaml) return;
+    app.setState({ yaml: reordered });
+    if (_activeTab === 'resume') {
+      window.editorAdapter.setValue(reordered);
+      // file-sync's onChange handler saves automatically
+    } else {
+      try {
+        await fetch('/api/file', {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ content: reordered }),
+        });
+      } catch {}
+    }
   }
 
   // ── Save to backend ──
@@ -187,6 +210,7 @@ const settingsSync = (() => {
       }));
     // skipApply: sections already updated; skipPreview: we already refreshed above
     _onYamlChange(settingsToYaml(next), { skipApply: true, skipPreview: true });
+    _reorderAndSaveResume(order);
   }
 
   // ── Tab switching ──

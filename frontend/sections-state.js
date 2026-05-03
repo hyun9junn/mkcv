@@ -343,6 +343,32 @@ const sectionsState = (() => {
     return _joinParts(newMain, invisible);
   }
 
+  function reorderMainArea(rawYaml, order) {
+    const { main, invisible } = _splitAtMarker(rawYaml);
+    let remaining = main;
+    const blocks = [];
+
+    const personalBlock = _extractBlock(remaining, 'personal');
+    if (personalBlock !== null) {
+      blocks.push(personalBlock);
+      remaining = _removeBlock(remaining, 'personal');
+    }
+
+    for (const key of order) {
+      if (key === 'personal') continue;
+      const block = _extractBlock(remaining, key);
+      if (block !== null) {
+        blocks.push(block);
+        remaining = _removeBlock(remaining, key);
+      }
+    }
+
+    const leftover = remaining.trim();
+    if (leftover) blocks.push(leftover);
+
+    return _joinParts(blocks.join('\n\n'), invisible);
+  }
+
   function clearInvisibleArea(rawYaml) {
     const { main, invisible } = _splitAtMarker(rawYaml);
     if (!invisible.trim()) return rawYaml;
@@ -402,6 +428,7 @@ const sectionsState = (() => {
     moveFromInvisible,
     appendToMainArea,
     clearInvisibleArea,
+    reorderMainArea,
   };
 })();
 
