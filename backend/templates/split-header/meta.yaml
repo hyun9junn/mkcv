@@ -1,0 +1,19 @@
+display_name: "Split Header"
+description: "Asymmetric two-tone nameplate (thin first name, black surname) beside a tinted contact card, italic pull-quote kickers per role, aubergine accent — for creative directors, brand strategists, and art leads"
+audience: general
+recommended_sections:
+  - summary
+  - experience
+  - projects
+  - awards
+default_section_order:
+  - summary
+  - experience
+  - projects
+  - skills
+  - awards
+  - education
+  - publications
+  - certifications
+  - languages
+  - extracurricular

@@ -49,6 +49,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         "academic-research": "Popular",
         "modern-startup":   "New",
         "resume-tech":      "New",
+        "split-header":     "New",
     };
 
     try {

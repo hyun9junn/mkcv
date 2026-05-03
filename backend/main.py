@@ -83,6 +83,8 @@ def _validate_template(name: str) -> dict:
             variable_end_string=">>",
             comment_start_string="<#",
             comment_end_string="#>",
+            trim_blocks=True,
+            lstrip_blocks=True,
             undefined=jinja2.StrictUndefined,
         )
         env.filters.update(_make_jinja_filters())
