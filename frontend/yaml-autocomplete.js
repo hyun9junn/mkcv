@@ -481,14 +481,16 @@
   window.initYamlAutocomplete = function initYamlAutocomplete(cmEditor) {
     fetchSchema();
 
-    // Auto-trigger on every insertion keystroke when in key position
+    // Auto-trigger after the user stops typing (debounced to avoid showing on every keystroke)
+    let _hintTimer = null;
     cmEditor.on("change", (editor, change) => {
       if (change.origin === "+delete" || change.origin === "paste" || change.origin === "setValue" || change.origin === "complete") return;
-      setTimeout(() => {
+      clearTimeout(_hintTimer);
+      _hintTimer = setTimeout(() => {
         if (detectContext(editor) || detectValueContext(editor)) {
           editor.showHint({ hint: yamlHint, completeSingle: false });
         }
-      }, 50);
+      }, 300);
     });
   };
 })();
