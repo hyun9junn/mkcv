@@ -5,6 +5,7 @@ const preview = (() => {
   let timer = null;
   let activePdf = null;
   let zoomLevel = 1.0;
+  let _abortController = null;
 
   pdfjsLib.GlobalWorkerOptions.workerSrc =
     "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
@@ -79,6 +80,10 @@ const preview = (() => {
   function resetZoom() { setZoom(1.0); }
 
   async function refresh(yaml, template) {
+    if (_abortController) _abortController.abort();
+    _abortController = new AbortController();
+    const { signal } = _abortController;
+
     showLoading();
     try {
       const section_order = sectionsState.getVisibleOrder(app.state.yaml);
@@ -90,7 +95,9 @@ const preview = (() => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ yaml, template, section_order, section_titles, density: app.state.density, font_scale: app.state.font_scale }),
+        signal,
       });
+      if (signal.aborted) return;
       if (!resp.ok) {
         const err = await resp.json();
         showError(err.message, err.details);
@@ -98,6 +105,7 @@ const preview = (() => {
       }
       await renderPdf(await resp.arrayBuffer());
     } catch (e) {
+      if (e.name === 'AbortError') return;
       showError("Preview unavailable — " + (e.message || "network error"), []);
     }
   }
@@ -112,6 +120,7 @@ const preview = (() => {
     }, { passive: false });
 
     window.editorAdapter.onChange(() => {
+      if (window.settingsSync && window.settingsSync.activeTab === 'settings') return;
       clearTimeout(timer);
       timer = setTimeout(() => {
         if (app.state.yaml.trim()) {

@@ -6,6 +6,62 @@ personal:
   linkedin: www.linkedin.com/in/hyungjun-kim-200581389/?locale=en-US
   github: github.com/hyun9junn
   huggingface: huggingface.co/Hyun9junn
+
+summary:
+  Undergraduate student at Seoul National University majoring in Civil and
+  Environmental Engineering with an interdisciplinary major in Artificial
+  Intelligence. Strong interest in Large Language Models (LLMs), especially
+  quantization, efficient inference, and deploying AI systems to real-world
+  industrial environments. Hands-on experience through internships at AI startups,
+  research labs, and production engineering teams.
+
+experience:
+  - title: Solution Architect Intern
+    company: SqueezeBits
+    start_date: "2026.03"
+    end_date: null
+    location: Seoul, Korea
+    highlights:
+      - Worked on hardware-aware software optimization for efficient model inference
+      - Collaborated with Modular (Mojo / MAX framework) to accelerate diffusion model inference
+      - Investigated FP8 quantization slowdowns in FLUX-based diffusion models
+      - Profiled GPU kernel dispatch efficiency, memory movement, and scaling overhead
+      - Adapted rapidly to large production codebases with frequent upstream changes
+
+  - title: ML Research Engineer Intern 
+    company: AsteroMorph
+    start_date: "2026.01"
+    end_date: "2026.02"
+    location: Seoul, Korea
+    highlights:
+      - Optimized repeated inference and weight-update loops using vLLM
+      - Tuned FP8 kernels for efficient execution on NVIDIA B200 GPUs
+      - Improved RAG retrieval performance and trained reranker models
+      - Built automated synthetic data pipelines using LLMs
+      - Designed multi-LLM ensemble ranking systems for evaluation workflows
+
+  - title: Undergraduate Research Intern
+    company: Seoul National University MLLab
+    start_date: "2025.06"
+    end_date: "2025.12"
+    location: Seoul, Korea
+    highlights:
+      - Conducted research on LLM quantization for efficient inference
+      - Investigated performance gaps between theoretical and real GPU speedups
+      - Contributed to FlatQuant open-source repository
+      - Studied research methodology and paper writing for top conferences
+
+  - title: Undergraduate Research Intern
+    company: Seoul National University CMALab
+    start_date: "2024.10"
+    end_date: "2025.06"
+    location: Seoul, Korea
+    highlights:
+      - Studied GPTQ, AWQ, QuaRot and related quantization methods
+      - Implemented research ideas using PyTorch and Transformers
+      - Assisted research on reasoning-oriented LLM optimization
+      - Developed collaborative research experience in academic environments
+
 education:
   - degree: B.S. Civil and Environmental Engineering / I.M. Artificial Intelligence
     institution: Seoul National University
@@ -104,60 +160,3 @@ extracurricular:
       - Wrote official promotional articles for College of Engineering
       - Mentored students in outreach engineering programs
       - Developed leadership, writing, and communication skills
-
-### invisible sections
-
-summary:
-  Undergraduate student at Seoul National University majoring in Civil and
-  Environmental Engineering with an interdisciplinary major in Artificial
-  Intelligence. Strong interest in Large Language Models (LLMs), especially
-  quantization, efficient inference, and deploying AI systems to real-world
-  industrial environments. Hands-on experience through internships at AI startups,
-  research labs, and production engineering teams.
-
-experience:
-  - title: Solution Architect Intern
-    company: SqueezeBits
-    start_date: "2026.03"
-    end_date: null
-    location: Seoul, Korea
-    highlights:
-      - Worked on hardware-aware software optimization for efficient model inference
-      - Collaborated with Modular (Mojo / MAX framework) to accelerate diffusion model inference
-      - Investigated FP8 quantization slowdowns in FLUX-based diffusion models
-      - Profiled GPU kernel dispatch efficiency, memory movement, and scaling overhead
-      - Adapted rapidly to large production codebases with frequent upstream changes
-
-  - title: ML Research Engineer Intern 
-    company: AsteroMorph
-    start_date: "2026.01"
-    end_date: "2026.02"
-    location: Seoul, Korea
-    highlights:
-      - Optimized repeated inference and weight-update loops using vLLM
-      - Tuned FP8 kernels for efficient execution on NVIDIA B200 GPUs
-      - Improved RAG retrieval performance and trained reranker models
-      - Built automated synthetic data pipelines using LLMs
-      - Designed multi-LLM ensemble ranking systems for evaluation workflows
-
-  - title: Undergraduate Research Intern
-    company: Seoul National University MLLab
-    start_date: "2025.06"
-    end_date: "2025.12"
-    location: Seoul, Korea
-    highlights:
-      - Conducted research on LLM quantization for efficient inference
-      - Investigated performance gaps between theoretical and real GPU speedups
-      - Contributed to FlatQuant open-source repository
-      - Studied research methodology and paper writing for top conferences
-
-  - title: Undergraduate Research Intern
-    company: Seoul National University CMALab
-    start_date: "2024.10"
-    end_date: "2025.06"
-    location: Seoul, Korea
-    highlights:
-      - Studied GPTQ, AWQ, QuaRot and related quantization methods
-      - Implemented research ideas using PyTorch and Transformers
-      - Assisted research on reasoning-oriented LLM optimization
-      - Developed collaborative research experience in academic environments

@@ -5,12 +5,9 @@ template: classic
 
 layout:
   density:    balanced        # comfortable | balanced | compact
-  font_scale: normal          # small | normal | large
+  font_scale: large          # small | normal | large
 
 sections:
-  - key: projects
-    title: "PROJECTS"
-    visible: true
   - key: summary
     title: "SUMMARY"
     visible: true
@@ -22,6 +19,9 @@ sections:
     visible: true
   - key: skills
     title: "SKILLS"
+    visible: true
+  - key: projects
+    title: "PROJECTS"
     visible: true
   - key: certifications
     title: "CERTIFICATIONS"
