@@ -344,6 +344,7 @@
       // Build template items (static, no schema dependency)
       const templateItems = [];
       if (contextKey === '__root__') {
+        // Section names with templates: show once, insert full template (no [template] suffix)
         const scoredTemplates = [];
         Object.keys(SECTION_TEMPLATES).forEach(name => {
           const score = fuzzyScore(token.prefix, name);
@@ -356,11 +357,8 @@
           .forEach(({ name }) => {
             templateItems.push({
               text: buildRootTemplate(name),
-              displayText: name + ' [template]',
-              render(el, _self, data) {
-                el.classList.add('yaml-hint-template');
-                el.textContent = data.displayText;
-              },
+              displayText: name,
+              render(el, _self, data) { el.textContent = data.displayText; },
             });
           });
       } else if (contextKey.endsWith('[]')) {
@@ -370,17 +368,35 @@
           const lineIndent = (lineText.match(/^(\s*)/) || ['', ''])[1].length;
           const hasBullet  = /^\s*-\s*$/.test(lineText);
           const emptyAtTwo = /^\s*$/.test(lineText) && lineIndent === 2;
-          if (hasBullet || emptyAtTwo) {
-            const templateText = buildItemTemplate(sectionName, lineIndent);
-            if (templateText) {
-              templateItems.push({
-                text: emptyAtTwo ? '- ' + templateText : templateText,
-                displayText: '[+ new item]',
-                render(el, _self, data) {
-                  el.classList.add('yaml-hint-template');
-                  el.textContent = data.displayText;
-                },
-              });
+          const emptyAtFour = /^\s*$/.test(lineText) && lineIndent === 4;
+          if (hasBullet || emptyAtTwo || emptyAtFour) {
+            const tmplBase = buildItemTemplate(sectionName, 2);
+            if (tmplBase) {
+              if (emptyAtFour) {
+                // Insert new sibling item: blank line + item at root list indent
+                const insertText = '\n  - ' + tmplBase;
+                templateItems.push({
+                  displayText: '[+ new item]',
+                  hint(cm) {
+                    const ln = cm.getLine(cursor.line);
+                    cm.replaceRange(insertText, { line: cursor.line, ch: 0 }, { line: cursor.line, ch: ln.length });
+                  },
+                  render(el, _self, data) {
+                    el.classList.add('yaml-hint-template');
+                    el.textContent = data.displayText;
+                  },
+                });
+              } else {
+                const tmplText = buildItemTemplate(sectionName, lineIndent);
+                templateItems.push({
+                  text: emptyAtTwo ? '- ' + tmplText : tmplText,
+                  displayText: '[+ new item]',
+                  render(el, _self, data) {
+                    el.classList.add('yaml-hint-template');
+                    el.textContent = data.displayText;
+                  },
+                });
+              }
             }
           }
         }
@@ -396,6 +412,7 @@
 
           const rawCandidates = contextDef.keys
             .filter((k) => !siblings.has(k))
+            .filter((k) => !(contextKey === '__root__' && SECTION_TEMPLATES[k]))
             .map((k) => ({ key: k, score: fuzzyScore(token.prefix, k) }))
             .filter(({ score }) => score > 0)
             .sort((a, b) => b.score - a.score || a.key.length - b.key.length);
