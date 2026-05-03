@@ -178,10 +178,21 @@
     extracurricular:{ fields: ['title', 'organization', 'date', 'highlights'],                         listFields: ['highlights'] },
   };
 
-  // Builds the full root-level section block text for insertion.
-  // Example for 'experience':
-  //   experience:\n  - title:\n    company:\n    ...\n    highlights:\n      - 
+  // Returns the SECTION_DEFS yaml string for name, trimmed, or null if unavailable.
+  function _sectionDefYaml(name) {
+    return (typeof sectionsState !== 'undefined' &&
+            sectionsState.SECTION_DEFS &&
+            sectionsState.SECTION_DEFS[name] &&
+            sectionsState.SECTION_DEFS[name].yaml)
+      ? sectionsState.SECTION_DEFS[name].yaml.trim()
+      : null;
+  }
+
+  // Returns the full root-level section block for insertion, using SECTION_DEFS example values.
   function buildRootTemplate(name) {
+    const defYaml = _sectionDefYaml(name);
+    if (defYaml) return defYaml;
+    // Fallback: generated empty skeleton
     const tmpl = SECTION_TEMPLATES[name];
     if (!tmpl) return name + ': ';
     const { fields, listFields } = tmpl;
@@ -199,11 +210,22 @@
     return lines.join('\n');
   }
 
-  // Builds the item skeleton text inserted right after the existing '  - ' on the cursor line.
-  // baseIndent: number of leading spaces before the '-' (e.g. 2 for '  - ').
-  // Example for experience, baseIndent=2:
-  //   title:\n    company:\n    start_date:\n    end_date:\n    location:\n    highlights:\n      - 
+  // Returns the item skeleton text inserted right after '  - ' on the cursor line,
+  // using SECTION_DEFS example values. baseIndent is the leading spaces before '-'.
   function buildItemTemplate(sectionName, baseIndent) {
+    const defYaml = _sectionDefYaml(sectionName);
+    if (defYaml) {
+      const itemMarker = '\n  - ';
+      const idx = defYaml.indexOf(itemMarker);
+      if (idx !== -1) {
+        const rawItem = defYaml.slice(idx + itemMarker.length);
+        if (baseIndent === 2) return rawItem;
+        // Re-indent for non-standard base indent
+        const shift = baseIndent - 2;
+        return rawItem.replace(/\n( +)/g, (_, sp) => '\n' + ' '.repeat(sp.length + shift));
+      }
+    }
+    // Fallback: generated empty skeleton
     const tmpl = SECTION_TEMPLATES[sectionName];
     if (!tmpl) return null;
     const { fields, listFields } = tmpl;
