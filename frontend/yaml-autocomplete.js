@@ -52,6 +52,8 @@
 
       // Indent 4+: inside a list item (e.g. experience[])
       if (indent >= 4) {
+        // Nested bullet lines (e.g. '      - ' inside highlights) are not field positions
+        if (lineText.trimStart().startsWith('- ') || /^\s*-\s*$/.test(lineText)) return null;
         const sectionKey = findListItemSection(editor, cursor.line);
         if (sectionKey) return sectionKey + "[]";
         return null;
