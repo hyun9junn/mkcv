@@ -39,15 +39,15 @@ const sectionsUI = (() => {
     if (scrollRAF) { cancelAnimationFrame(scrollRAF); scrollRAF = null; }
   }
 
-  function buildPanel() {
-    function escHtml(s) {
-      return String(s)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;');
-    }
+  function escHtml(s) {
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
 
+  function buildPanel() {
     const presentKeys = sectionsState.getExpandedPresentKeys(app.state.yaml);
 
     for (const key of presentKeys) {
@@ -140,8 +140,11 @@ const sectionsUI = (() => {
           const newTitle = input.value.trim() || previousTitle;
           if (newTitle !== previousTitle && window.settingsSync) {
             settingsSync.updateSectionTitle(key, newTitle);
+            buildPanel();
+          } else {
+            input.remove();
+            nameSpan.style.display = '';
           }
-          buildPanel();
         }
         function cancel() {
           if (committed) return;
