@@ -213,6 +213,17 @@ const settingsSync = (() => {
     _reorderAndSaveResume(order);
   }
 
+  // ── Public: called by sectionsUI to update section title inline ──
+
+  function updateSectionTitle(key, newTitle) {
+    if (!_parsed.value) return;
+    const next = JSON.parse(JSON.stringify(_parsed.value));
+    const section = next.sections.find(s => s.key === key);
+    if (!section) return;
+    section.title = newTitle;
+    _onYamlChange(settingsToYaml(next), { skipApply: true });
+  }
+
   // ── Tab switching ──
 
   function switchToResume() {
@@ -347,6 +358,7 @@ const settingsSync = (() => {
     get activeTab() { return _activeTab; },
     updateFromToolbar,
     notifySectionStateChange,
+    updateSectionTitle,
     getYaml:     () => _settingsYaml,
     getSettings: () => _parsed.value || DEFAULT_SETTINGS,
   };
