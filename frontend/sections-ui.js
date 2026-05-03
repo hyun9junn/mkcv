@@ -53,6 +53,8 @@ const sectionsUI = (() => {
 
     for (const key of order) {
       const def    = sectionsState.getDef(key, app.state.yaml);
+      const settings = window.settingsSync ? settingsSync.getSettings() : null;
+      const sectionTitle = settings?.sections?.find(s => s.key === key)?.title ?? def.label;
       const present = presentSet.has(key);
       if (!def) continue;
 
@@ -61,20 +63,23 @@ const sectionsUI = (() => {
       const chip = document.createElement("div");
       chip.className = "chip" + ((!hidden && present) ? " on" : "") + (!present ? " absent" : "");
       chip.dataset.key = key;
-      chip.title = present
-        ? (hidden ? `Show ${def.label}` : `Hide ${def.label}`)
-        : `${def.label} — not in YAML`;
 
       chip.innerHTML = `
         <span class="chip-grip"><span></span><span></span><span></span></span>
         <span class="chip-dot"></span>
-        <span class="chip-name">${def.label}</span>
+        <span class="chip-name">${sectionTitle}</span>
       `;
+
+      const dot = chip.querySelector(".chip-dot");
+      dot.title = present
+        ? (hidden ? `Show ${sectionTitle}` : `Hide ${sectionTitle}`)
+        : `${sectionTitle} — not in YAML`;
+      dot.style.cursor = "pointer";
 
       let justDragged = false;
 
-      chip.addEventListener("click", (e) => {
-        if (e.target.closest(".chip-grip")) return;
+      dot.addEventListener("click", (e) => {
+        e.stopPropagation();
         if (justDragged) { justDragged = false; return; }
         if (!present) {
           if (sectionsState.SECTION_DEFS[key]) {
@@ -84,7 +89,7 @@ const sectionsUI = (() => {
                 sectionsState.getOrderedFilteredYaml(app.state.yaml),
                 app.state.template
               );
-              showToast(`${def.label} added`, "info");
+              showToast(`${sectionTitle} added`, "info");
             }
           } else {
             showToast(`Add a \`${key}:\` key to include this section.`, "info");
@@ -103,7 +108,6 @@ const sectionsUI = (() => {
         }
         sectionsState.toggleHidden(key);
         buildPanel();
-        // preview refresh is handled by notifySectionStateChange via monkey-patched toggleHidden
       });
 
       {
