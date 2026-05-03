@@ -365,15 +365,16 @@
           });
       } else if (contextKey.endsWith('[]')) {
         const sectionName = contextKey.slice(0, -2);
-        if (SECTION_TEMPLATES[sectionName]) {
-          const lineText  = editor.getLine(cursor.line);
-          const isNewItem = /^\s*-\s*$/.test(lineText);
-          if (isNewItem && !token.prefix) {
-            const baseIndent   = (lineText.match(/^(\s*)/) || ['', ''])[1].length;
-            const templateText = buildItemTemplate(sectionName, baseIndent);
+        if (SECTION_TEMPLATES[sectionName] && !token.prefix) {
+          const lineText   = editor.getLine(cursor.line);
+          const lineIndent = (lineText.match(/^(\s*)/) || ['', ''])[1].length;
+          const hasBullet  = /^\s*-\s*$/.test(lineText);
+          const emptyAtTwo = /^\s*$/.test(lineText) && lineIndent === 2;
+          if (hasBullet || emptyAtTwo) {
+            const templateText = buildItemTemplate(sectionName, lineIndent);
             if (templateText) {
               templateItems.push({
-                text: templateText,
+                text: emptyAtTwo ? '- ' + templateText : templateText,
                 displayText: '[+ new item]',
                 render(el, _self, data) {
                   el.classList.add('yaml-hint-template');
