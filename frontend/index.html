@@ -1010,6 +1010,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const resetOrderBtn = document.getElementById('reset-sections-order-btn');
   if (resetOrderBtn) {
     resetOrderBtn.addEventListener('click', () => {
+      const currentYaml = app.state.yaml || '';
+      const newYaml = sectionsState.clearInvisibleArea(currentYaml);
+      if (newYaml !== currentYaml) {
+        window.editorAdapter.setValue(newYaml);
+        app.setState({ yaml: newYaml });
+      }
       sectionsState.resetAll();
       sectionsUI.buildPanel();
       preview.refresh(

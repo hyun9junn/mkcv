@@ -343,6 +343,13 @@ const sectionsState = (() => {
     return _joinParts(newMain, invisible);
   }
 
+  function clearInvisibleArea(rawYaml) {
+    const { main, invisible } = _splitAtMarker(rawYaml);
+    if (!invisible.trim()) return rawYaml;
+    const newMain = main.trimEnd() + '\n\n' + invisible.trim();
+    return _joinParts(newMain, '');
+  }
+
   function resetSectionYaml(key, currentYaml) {
     // Returns { newYaml, previousYaml } or null on parse error.
     // previousYaml is a YAML string containing only the single section key.
@@ -394,6 +401,7 @@ const sectionsState = (() => {
     moveToInvisible,
     moveFromInvisible,
     appendToMainArea,
+    clearInvisibleArea,
   };
 })();
 
