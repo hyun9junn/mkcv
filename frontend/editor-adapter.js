@@ -30,6 +30,12 @@ class CodeMirrorAdapter {
     this._editor.setValue(str);
   }
 
+  setValuePreserveScroll(str) {
+    const scroll = this._editor.getScrollInfo();
+    this._editor.setValue(str);
+    this._editor.scrollTo(scroll.left, scroll.top);
+  }
+
   clearHistory() {
     this._editor.clearHistory();
   }

@@ -110,7 +110,7 @@ const sectionsUI = (() => {
           : sectionsState.moveToInvisible(currentYaml, key);
         if (newYaml !== currentYaml) {
           if (!window.settingsSync || window.settingsSync.activeTab === 'resume') {
-            window.editorAdapter.setValue(newYaml);
+            window.editorAdapter.setValuePreserveScroll(newYaml);
           }
           app.setState({ yaml: newYaml });
         }

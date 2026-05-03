@@ -113,7 +113,7 @@ const settingsSync = (() => {
     if (reordered === yaml) return;
     app.setState({ yaml: reordered });
     if (_activeTab === 'resume') {
-      window.editorAdapter.setValue(reordered);
+      window.editorAdapter.setValuePreserveScroll(reordered);
       // file-sync's onChange handler saves automatically
     } else {
       try {
@@ -173,7 +173,7 @@ const settingsSync = (() => {
     // Reflect changes in editor when settings tab is active
     if (_activeTab === 'settings' && !opts.fromEditor && !_suppress) {
       _suppress = true;
-      window.editorAdapter.setValue(yaml);
+      window.editorAdapter.setValuePreserveScroll(yaml);
       _suppress = false;
     }
   }
