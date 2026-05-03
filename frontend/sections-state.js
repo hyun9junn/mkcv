@@ -265,6 +265,84 @@ const sectionsState = (() => {
     }
   }
 
+  const INVISIBLE_MARKER = '### invisible sections';
+
+  function _splitAtMarker(rawYaml) {
+    const lines = rawYaml.split('\n');
+    const idx = lines.findIndex(l => l.trim() === INVISIBLE_MARKER);
+    if (idx === -1) return { main: rawYaml, invisible: '' };
+    return {
+      main: lines.slice(0, idx).join('\n'),
+      invisible: lines.slice(idx + 1).join('\n').replace(/^\n+/, ''),
+    };
+  }
+
+  function _joinParts(main, invisible) {
+    const m = main.trimEnd();
+    const iv = (invisible || '').trim();
+    if (!iv) return m + '\n';
+    return m + '\n\n' + INVISIBLE_MARKER + '\n\n' + iv + '\n';
+  }
+
+  function _extractBlock(text, key) {
+    const lines = text.split('\n');
+    let start = -1;
+    for (let i = 0; i < lines.length; i++) {
+      if (lines[i] === key + ':' || lines[i].startsWith(key + ': ')) {
+        start = i; break;
+      }
+    }
+    if (start === -1) return null;
+    let end = lines.length;
+    for (let i = start + 1; i < lines.length; i++) {
+      const l = lines[i];
+      if (l.length > 0 && !/^\s/.test(l) && !l.startsWith('#')) { end = i; break; }
+    }
+    return lines.slice(start, end).join('\n').trimEnd();
+  }
+
+  function _removeBlock(text, key) {
+    const lines = text.split('\n');
+    let start = -1;
+    for (let i = 0; i < lines.length; i++) {
+      if (lines[i] === key + ':' || lines[i].startsWith(key + ': ')) {
+        start = i; break;
+      }
+    }
+    if (start === -1) return text;
+    let end = lines.length;
+    for (let i = start + 1; i < lines.length; i++) {
+      const l = lines[i];
+      if (l.length > 0 && !/^\s/.test(l) && !l.startsWith('#')) { end = i; break; }
+    }
+    while (start > 0 && lines[start - 1].trim() === '') start--;
+    return lines.slice(0, start).concat(lines.slice(end)).join('\n');
+  }
+
+  function moveToInvisible(rawYaml, key) {
+    const { main, invisible } = _splitAtMarker(rawYaml);
+    const block = _extractBlock(main, key);
+    if (!block) return rawYaml;
+    const newMain = _removeBlock(main, key);
+    const newInvisible = invisible.trim() ? invisible.trimEnd() + '\n\n' + block : block;
+    return _joinParts(newMain, newInvisible);
+  }
+
+  function moveFromInvisible(rawYaml, key) {
+    const { main, invisible } = _splitAtMarker(rawYaml);
+    const block = _extractBlock(invisible, key);
+    if (!block) return rawYaml;
+    const newInvisible = _removeBlock(invisible, key);
+    const newMain = main.trimEnd() + '\n\n' + block;
+    return _joinParts(newMain, newInvisible);
+  }
+
+  function appendToMainArea(rawYaml, yamlToAppend) {
+    const { main, invisible } = _splitAtMarker(rawYaml);
+    const newMain = main.replace(/\n*$/, '\n') + yamlToAppend;
+    return _joinParts(newMain, invisible);
+  }
+
   function resetSectionYaml(key, currentYaml) {
     // Returns { newYaml, previousYaml } or null on parse error.
     // previousYaml is a YAML string containing only the single section key.
@@ -313,6 +391,9 @@ const sectionsState = (() => {
     resetSectionYaml,
     restoreSectionYaml,
     resetAll,
+    moveToInvisible,
+    moveFromInvisible,
+    appendToMainArea,
   };
 })();
 

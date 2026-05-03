@@ -91,6 +91,14 @@ const sectionsUI = (() => {
           }
           return;
         }
+        const currentYaml = app.state.yaml || '';
+        const newYaml = hidden
+          ? sectionsState.moveFromInvisible(currentYaml, key)
+          : sectionsState.moveToInvisible(currentYaml, key);
+        if (newYaml !== currentYaml) {
+          window.editorAdapter.setValue(newYaml);
+          app.setState({ yaml: newYaml });
+        }
         sectionsState.toggleHidden(key);
         buildPanel();
         preview.refresh(
@@ -262,7 +270,7 @@ const sectionsUI = (() => {
     const def = sectionsState.SECTION_DEFS[key];
     if (!def || !def.yaml) return false;
     const current = app.state.yaml || '';
-    const newYaml = current.replace(/\n*$/, '\n') + def.yaml;
+    const newYaml = sectionsState.appendToMainArea(current, def.yaml);
     window.editorAdapter.setValue(newYaml);
     app.setState({ yaml: newYaml });
     return true;
