@@ -119,6 +119,42 @@ const sectionsUI = (() => {
         // preview refresh is handled by notifySectionStateChange via monkey-patched toggleHidden
       });
 
+      const nameSpan = chip.querySelector(".chip-name");
+      nameSpan.addEventListener("dblclick", (e) => {
+        e.stopPropagation();
+        if (!present) return;
+        const previousTitle = sectionTitle;
+        nameSpan.style.display = "none";
+        const input = document.createElement("input");
+        input.className = "chip-name-input";
+        input.value = previousTitle;
+        input.style.width = Math.max(40, previousTitle.length * 8) + "px";
+        nameSpan.parentNode.insertBefore(input, nameSpan.nextSibling);
+        input.focus();
+        input.select();
+
+        let committed = false;
+        function commit() {
+          if (committed) return;
+          committed = true;
+          const newTitle = input.value.trim() || previousTitle;
+          if (newTitle !== previousTitle && window.settingsSync) {
+            settingsSync.updateSectionTitle(key, newTitle);
+          }
+          buildPanel();
+        }
+        function cancel() {
+          if (committed) return;
+          committed = true;
+          buildPanel();
+        }
+        input.addEventListener("keydown", (ev) => {
+          if (ev.key === "Enter") { ev.preventDefault(); commit(); }
+          if (ev.key === "Escape") { ev.preventDefault(); cancel(); }
+        });
+        input.addEventListener("blur", commit);
+      });
+
       {
         let dragClone = null;
         let cloneH = 0;
