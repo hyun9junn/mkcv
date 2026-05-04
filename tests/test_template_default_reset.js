@@ -2,6 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
+const jsyaml = require('js-yaml');
 
 function createElement() {
   const listeners = new Map();
@@ -118,7 +119,7 @@ function createContext(options = {}) {
     app: {
       state: {
         yaml: options.initialYaml || 'summary: first\n',
-        template: options.activeTemplate || 'split-header',
+        template: options.activeTemplate || 'signature-split',
         density: 'comfortable',
         font_scale: 'large',
         link_display: 'both',
@@ -281,11 +282,7 @@ async function bootSettingsSync(context, domReadyCallbacks) {
 function loadSettingsHelpers() {
   const context = {
     console,
-    jsyaml: {
-      load() {
-        return {};
-      },
-    },
+    jsyaml,
   };
   context.window = context;
   const source = fs.readFileSync('frontend/settings-engine.js', 'utf8');
@@ -297,8 +294,10 @@ test('settings helpers normalize template defaults and accept current template n
   const helpers = loadSettingsHelpers();
 
   assert.equal(typeof helpers.normalizeTemplateDefaults, 'function');
-  assert.equal(helpers.VALID_TPL.includes('resume-tech'), true);
-  assert.equal(helpers.VALID_TPL.includes('split-header'), true);
+  assert.equal(helpers.VALID_TPL.includes('ats-signal'), true);
+  assert.equal(helpers.VALID_TPL.includes('signature-split'), true);
+  assert.equal(helpers.VALID_TPL.includes('resume-tech'), false);
+  assert.equal(helpers.VALID_TPL.includes('split-header'), false);
 
   const normalized = helpers.normalizeTemplateDefaults(
     {
@@ -312,10 +311,10 @@ test('settings helpers normalize template defaults and accept current template n
         { key: 'projects', title: 'Selected Work', visible: true },
       ],
     },
-    'resume-tech'
+    'ats-signal'
   );
 
-  assert.equal(normalized.template, 'resume-tech');
+  assert.equal(normalized.template, 'ats-signal');
   assert.deepEqual(JSON.parse(JSON.stringify(normalized.layout)), { density: 'compact', font_scale: 'normal' });
   assert.equal(normalized.personal.default_link_display, 'label');
   assert.ok(Array.isArray(normalized.personal.fields));
@@ -329,6 +328,15 @@ test('settings helpers normalize template defaults and accept current template n
   assert.deepEqual(JSON.parse(JSON.stringify(normalized.sections[0])), { key: 'projects', title: 'Selected Work', visible: true });
 });
 
+test('settings helpers fall back invalid template values to classic with a warning', () => {
+  const helpers = loadSettingsHelpers();
+  const parsed = helpers.parseSettings('template: resume-tech\n');
+
+  assert.equal(parsed.value.template, 'classic');
+  assert.equal(parsed.warnings.length, 1);
+  assert.match(parsed.warnings[0].msg, /unknown template "resume-tech"/);
+});
+
 test('applying template defaults prefers the live selected template over stale settings yaml state', async () => {
   const { context, counters, domReadyCallbacks, localStorageData } = createContext({
     initialOrder: ['projects', 'summary', 'experience', 'education', 'skills'],
@@ -340,7 +348,7 @@ test('applying template defaults prefers the live selected template over stale s
       skills: 'Capabilities',
       projects: 'Projects',
     },
-    activeTemplate: 'split-header',
+    activeTemplate: 'signature-split',
     initialSettingsYaml: JSON.stringify({
       template: 'classic',
       layout: { density: 'comfortable', font_scale: 'large' },
@@ -371,6 +379,7 @@ test('applying template defaults prefers the live selected template over stale s
   counters.previewRenders = 0;
   counters.buildPanelCalls = 0;
   counters.reorderCalls = [];
+  context.app.setState({ template: 'signature-split' });
 
   context.window.settingsSync.applyTemplateDefaults({
     layout: { density: 'compact', font_scale: 'small' },
@@ -396,7 +405,7 @@ test('applying template defaults prefers the live selected template over stale s
     ],
   });
 
-  assert.equal(context.app.state.template, 'split-header');
+  assert.equal(context.app.state.template, 'signature-split');
   assert.equal(context.app.state.density, 'compact');
   assert.equal(context.app.state.font_scale, 'small');
   assert.equal(context.app.state.link_display, 'url');
@@ -409,7 +418,7 @@ test('applying template defaults prefers the live selected template over stale s
   assert.deepEqual(stored.hidden, ['education']);
 
   const nextSettings = JSON.parse(context.window.settingsSync.getYaml());
-  assert.equal(nextSettings.template, 'split-header');
+  assert.equal(nextSettings.template, 'signature-split');
   assert.deepEqual(nextSettings.layout, { density: 'compact', font_scale: 'small' });
   assert.deepEqual(nextSettings.personal, {
     default_link_display: 'url',
@@ -438,9 +447,9 @@ test('applying template defaults prefers the live selected template over stale s
 
 test('applying missing template defaults falls back to app defaults while preserving active template', async () => {
   const { context, domReadyCallbacks } = createContext({
-    activeTemplate: 'resume-tech',
+    activeTemplate: 'ats-signal',
     initialSettingsYaml: JSON.stringify({
-      template: 'resume-tech',
+      template: 'ats-signal',
       layout: { density: 'compact', font_scale: 'small' },
       personal: {
         default_link_display: 'both',
@@ -466,7 +475,7 @@ test('applying missing template defaults falls back to app defaults while preser
   context.window.settingsSync.applyTemplateDefaults(null);
 
   const nextSettings = JSON.parse(context.window.settingsSync.getYaml());
-  assert.equal(nextSettings.template, 'resume-tech');
+  assert.equal(nextSettings.template, 'ats-signal');
   assert.deepEqual(nextSettings.layout, { density: 'balanced', font_scale: 'normal' });
   assert.deepEqual(nextSettings.personal, {
     default_link_display: 'label',

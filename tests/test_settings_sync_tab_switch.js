@@ -403,6 +403,93 @@ test('contact-originated updates apply personal settings before preview refresh'
   );
 });
 
+test('settings file template is applied on boot', async () => {
+  const initialSettings = {
+    template: 'signature-split',
+    layout: { density: 'balanced', font_scale: 'normal' },
+    personal: {
+      default_link_display: 'label',
+      fields: [
+        { key: 'name', visible: true },
+        { key: 'email', visible: true },
+        { key: 'phone', visible: true },
+        { key: 'location', visible: true },
+        { key: 'website', visible: true, link_display: 'default' },
+        { key: 'linkedin', visible: true, link_display: 'default' },
+        { key: 'github', visible: true, link_display: 'default' },
+        { key: 'huggingface', visible: true, link_display: 'default' },
+      ],
+    },
+    sections: [{ key: 'summary', title: 'SUMMARY', visible: true }],
+  };
+  const { context, domReadyCallbacks } = createContext({
+    initialOrder: ['summary'],
+    initialSettingsYaml: JSON.stringify(initialSettings),
+  });
+  context.window.templateUI = {
+    calls: [],
+    selectTemplate(name, opts = {}) {
+      this.calls.push({ name, opts });
+      context.app.setState({ template: name });
+    },
+  };
+
+  await bootSettingsSync(context, domReadyCallbacks);
+
+  assert.equal(context.app.state.template, 'signature-split');
+  assert.equal(context.window.templateUI.calls.length, 1);
+  assert.equal(context.window.templateUI.calls[0].name, 'signature-split');
+});
+
+test('settings editor template changes update the live template selection', async () => {
+  const timers = createTimerHarness();
+  const initialSettings = {
+    template: 'classic',
+    layout: { density: 'balanced', font_scale: 'normal' },
+    personal: {
+      default_link_display: 'label',
+      fields: [
+        { key: 'name', visible: true },
+        { key: 'email', visible: true },
+        { key: 'phone', visible: true },
+        { key: 'location', visible: true },
+        { key: 'website', visible: true, link_display: 'default' },
+        { key: 'linkedin', visible: true, link_display: 'default' },
+        { key: 'github', visible: true, link_display: 'default' },
+        { key: 'huggingface', visible: true, link_display: 'default' },
+      ],
+    },
+    sections: [{ key: 'summary', title: 'SUMMARY', visible: true }],
+  };
+  const { context, domReadyCallbacks, elements } = createContext({
+    initialOrder: ['summary'],
+    initialSettingsYaml: JSON.stringify(initialSettings),
+    setTimeout: timers.setTimeout,
+    clearTimeout: timers.clearTimeout,
+  });
+  context.window.templateUI = {
+    calls: [],
+    selectTemplate(name, opts = {}) {
+      this.calls.push({ name, opts });
+      context.app.setState({ template: name });
+    },
+  };
+
+  await bootSettingsSync(context, domReadyCallbacks);
+
+  elements.get('file-tab-settings').click();
+  context.window.editorAdapter.setValue(JSON.stringify({
+    ...initialSettings,
+    template: 'signature-split',
+  }));
+
+  timers.runAll();
+
+  assert.equal(context.app.state.template, 'signature-split');
+  assert.equal(context.window.templateUI.calls.length, 1);
+  assert.equal(context.window.templateUI.calls[0].name, 'signature-split');
+});
+
 test('settings editor batches preview and section panel updates while typing', async () => {
   const timers = createTimerHarness();
   const initialSettings = {

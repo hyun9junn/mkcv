@@ -1,5 +1,5 @@
-display_name: "Classic"
-description: "General-purpose default — clean serif, no color, and minimal visual risk for almost any role."
+display_name: "Chancellor"
+description: "Conservative formal resume — red section rules, classic serif rhythm, and polished structure for traditional industries."
 audience: general
 defaults:
   layout:

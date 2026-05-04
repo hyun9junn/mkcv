@@ -5,21 +5,21 @@ from backend.renderers.latex import LaTeXRenderer, _build_layout_preamble, _FONT
 
 TEMPLATES_DIR = Path("backend/templates")
 TEMPLATES_WITH_GITHUB_LINK = [
-    "academic-research",
-    "banking",
-    "brutalist-mono",
+    "scholar-index",
+    "dealbook",
+    "mono-forge",
     "classic",
-    "column-skills",
-    "editorial-magazine",
-    "executive-corporate",
-    "gazette",
-    "heritage",
-    "hipster",
-    "modern-startup",
-    "resume-tech",
-    "sidebar-minimal",
-    "split-header",
-    "timeline-vertical",
+    "skillboard",
+    "masthead",
+    "boardroom",
+    "letterpress",
+    "chancellor",
+    "studio-pop",
+    "foundry",
+    "ats-signal",
+    "slate-rail",
+    "signature-split",
+    "trackline",
 ]
 
 
@@ -260,7 +260,7 @@ def test_name_fontsize_long():
 
 def test_name_fontsize_preserves_ratio():
     f = _make_jinja_filters()
-    # academic-research: 22pt base, 1.18 ratio → short name → 22pt/26pt (same as original)
+    # scholar-index: 22pt base, 1.18 ratio → short name → 22pt/26pt (same as original)
     result = f['name_fontsize']('Jane Smith', 22.0, 1.18)
     assert r'\fontsize{22pt}{26pt}\selectfont' == result
 
@@ -301,54 +301,54 @@ def test_classic_short_name_stays_huge():
     assert r'\Huge\bfseries' in output
 
 
-def test_modern_startup_long_name_steps_down():
+def test_foundry_long_name_steps_down():
     from backend.models import CVData, PersonalInfo
     cv = CVData(personal=PersonalInfo(
         name="Alexander James Montgomery-Williams",  # 35 chars → 26-5=21pt
         email="a@example.com",
     ))
-    output = LaTeXRenderer(TEMPLATES_DIR, template="modern-startup").render(cv)
+    output = LaTeXRenderer(TEMPLATES_DIR, template="foundry").render(cv)
     assert r'\fontsize{21pt}' in output
 
 
-def test_modern_startup_short_name_stays_26pt():
+def test_foundry_short_name_stays_26pt():
     from backend.models import CVData, PersonalInfo
     cv = CVData(personal=PersonalInfo(name="Jane Smith", email="j@example.com"))
-    output = LaTeXRenderer(TEMPLATES_DIR, template="modern-startup").render(cv)
+    output = LaTeXRenderer(TEMPLATES_DIR, template="foundry").render(cv)
     assert r'\fontsize{26pt}' in output
 
 
-def test_academic_research_long_name_steps_down():
+def test_scholar_index_long_name_steps_down():
     from backend.models import CVData, PersonalInfo
     cv = CVData(personal=PersonalInfo(
         name="Alexander James Montgomery-Williams",  # 35 chars → 22-5=17pt
         email="a@example.com",
     ))
-    output = LaTeXRenderer(TEMPLATES_DIR, template="academic-research").render(cv)
+    output = LaTeXRenderer(TEMPLATES_DIR, template="scholar-index").render(cv)
     assert r'\fontsize{17pt}' in output
 
 
-def test_academic_research_short_name_stays_22pt():
+def test_scholar_index_short_name_stays_22pt():
     from backend.models import CVData, PersonalInfo
     cv = CVData(personal=PersonalInfo(name="Jane Smith", email="j@example.com"))
-    output = LaTeXRenderer(TEMPLATES_DIR, template="academic-research").render(cv)
+    output = LaTeXRenderer(TEMPLATES_DIR, template="scholar-index").render(cv)
     assert r'\fontsize{22pt}' in output
 
 
-def test_executive_corporate_long_name_steps_down():
+def test_boardroom_long_name_steps_down():
     from backend.models import CVData, PersonalInfo
     cv = CVData(personal=PersonalInfo(
         name="Alexander James Montgomery-Williams",  # 35 chars → 22-5=17pt
         email="a@example.com",
     ))
-    output = LaTeXRenderer(TEMPLATES_DIR, template="executive-corporate").render(cv)
+    output = LaTeXRenderer(TEMPLATES_DIR, template="boardroom").render(cv)
     assert r'\fontsize{17pt}' in output
 
 
-def test_executive_corporate_short_name_stays_22pt():
+def test_boardroom_short_name_stays_22pt():
     from backend.models import CVData, PersonalInfo
     cv = CVData(personal=PersonalInfo(name="Jane Smith", email="j@example.com"))
-    output = LaTeXRenderer(TEMPLATES_DIR, template="executive-corporate").render(cv)
+    output = LaTeXRenderer(TEMPLATES_DIR, template="boardroom").render(cv)
     assert r'\fontsize{22pt}' in output
 
 
@@ -380,7 +380,7 @@ def test_classic_short_job_title_no_shrink():
     assert r'\small' not in output
 
 
-def test_banking_long_job_title_triggers_shrink():
+def test_dealbook_long_job_title_triggers_shrink():
     from backend.models import CVData, PersonalInfo, ExperienceItem
     cv = CVData(
         personal=PersonalInfo(name="Jane Smith", email="j@example.com"),
@@ -390,11 +390,11 @@ def test_banking_long_job_title_triggers_shrink():
             start_date="2020",
         )],
     )
-    output = LaTeXRenderer(TEMPLATES_DIR, template="banking").render(cv)
+    output = LaTeXRenderer(TEMPLATES_DIR, template="dealbook").render(cv)
     assert r'\small' in output
 
 
-def test_column_skills_long_job_title_triggers_shrink():
+def test_skillboard_long_job_title_triggers_shrink():
     from backend.models import CVData, PersonalInfo, ExperienceItem
     cv = CVData(
         personal=PersonalInfo(name="Jane Smith", email="j@example.com"),
@@ -404,11 +404,11 @@ def test_column_skills_long_job_title_triggers_shrink():
             start_date="2020",
         )],
     )
-    output = LaTeXRenderer(TEMPLATES_DIR, template="column-skills").render(cv)
+    output = LaTeXRenderer(TEMPLATES_DIR, template="skillboard").render(cv)
     assert r'\small' in output
 
 
-def test_executive_corporate_long_job_title_triggers_shrink():
+def test_boardroom_long_job_title_triggers_shrink():
     from backend.models import CVData, PersonalInfo, ExperienceItem
     cv = CVData(
         personal=PersonalInfo(name="Jane Smith", email="j@example.com"),
@@ -418,11 +418,11 @@ def test_executive_corporate_long_job_title_triggers_shrink():
             start_date="2020",
         )],
     )
-    output = LaTeXRenderer(TEMPLATES_DIR, template="executive-corporate").render(cv)
+    output = LaTeXRenderer(TEMPLATES_DIR, template="boardroom").render(cv)
     assert r'\small' in output
 
 
-def test_academic_research_long_job_title_triggers_shrink():
+def test_scholar_index_long_job_title_triggers_shrink():
     from backend.models import CVData, PersonalInfo, ExperienceItem
     cv = CVData(
         personal=PersonalInfo(name="Jane Smith", email="j@example.com"),
@@ -432,11 +432,11 @@ def test_academic_research_long_job_title_triggers_shrink():
             start_date="2020",
         )],
     )
-    output = LaTeXRenderer(TEMPLATES_DIR, template="academic-research").render(cv)
+    output = LaTeXRenderer(TEMPLATES_DIR, template="scholar-index").render(cv)
     assert r'\small' in output
 
 
-def test_hipster_long_job_title_triggers_shrink():
+def test_studio_pop_long_job_title_triggers_shrink():
     from backend.models import CVData, PersonalInfo, ExperienceItem
     cv = CVData(
         personal=PersonalInfo(name="Jane Smith", email="j@example.com"),
@@ -446,11 +446,33 @@ def test_hipster_long_job_title_triggers_shrink():
             start_date="2020",
         )],
     )
-    output = LaTeXRenderer(TEMPLATES_DIR, template="hipster").render(cv)
+    output = LaTeXRenderer(TEMPLATES_DIR, template="studio-pop").render(cv)
     assert r'\small' in output
 
 
-def test_modern_startup_long_job_title_triggers_shrink():
+def test_studio_pop_sidebar_skills_and_languages_respect_section_order():
+    from backend.models import CVData, PersonalInfo, SkillGroup, LanguageItem
+
+    cv = CVData(
+        personal=PersonalInfo(name="Jane Smith", email="j@example.com"),
+        skills=[SkillGroup(category="Languages", items=["Python", "Go"])],
+        languages=[LanguageItem(language="English", proficiency="Native")],
+    )
+
+    hidden_output = LaTeXRenderer(TEMPLATES_DIR, template="studio-pop").render(
+        cv, section_order=["summary"]
+    )
+    assert r"\sidesection{Skills}" not in hidden_output
+    assert r"\sidesection{Languages}" not in hidden_output
+
+    shown_output = LaTeXRenderer(TEMPLATES_DIR, template="studio-pop").render(
+        cv, section_order=["summary", "skills", "languages"]
+    )
+    assert r"\sidesection{Skills}" in shown_output
+    assert r"\sidesection{Languages}" in shown_output
+
+
+def test_foundry_long_job_title_triggers_shrink():
     from backend.models import CVData, PersonalInfo, ExperienceItem
     cv = CVData(
         personal=PersonalInfo(name="Jane Smith", email="j@example.com"),
@@ -460,25 +482,25 @@ def test_modern_startup_long_job_title_triggers_shrink():
             start_date="2020",
         )],
     )
-    output = LaTeXRenderer(TEMPLATES_DIR, template="modern-startup").render(cv)
+    output = LaTeXRenderer(TEMPLATES_DIR, template="foundry").render(cv)
     assert r'\small' in output
 
 
-def test_resume_tech_long_name_steps_down():
+def test_ats_signal_long_name_steps_down():
     from backend.models import CVData, PersonalInfo
     cv = CVData(personal=PersonalInfo(name="Bartholomew Christopherson Winthrop", email="b@example.com"))
-    output = LaTeXRenderer(TEMPLATES_DIR, template="resume-tech").render(cv)
+    output = LaTeXRenderer(TEMPLATES_DIR, template="ats-signal").render(cv)
     assert r'\Large\bfseries Bartholomew Christopherson Winthrop' in output
 
 
-def test_resume_tech_short_name_stays_huge():
+def test_ats_signal_short_name_stays_huge():
     from backend.models import CVData, PersonalInfo
     cv = CVData(personal=PersonalInfo(name="Jane Smith", email="j@example.com"))
-    output = LaTeXRenderer(TEMPLATES_DIR, template="resume-tech").render(cv)
+    output = LaTeXRenderer(TEMPLATES_DIR, template="ats-signal").render(cv)
     assert r'\Huge\bfseries Jane Smith' in output
 
 
-def test_resume_tech_long_job_title_triggers_shrink():
+def test_ats_signal_long_job_title_triggers_shrink():
     from backend.models import CVData, PersonalInfo, ExperienceItem
     cv = CVData(
         personal=PersonalInfo(name="Jane Smith", email="j@example.com"),
@@ -488,11 +510,11 @@ def test_resume_tech_long_job_title_triggers_shrink():
             start_date="2020",
         )],
     )
-    output = LaTeXRenderer(TEMPLATES_DIR, template="resume-tech").render(cv)
+    output = LaTeXRenderer(TEMPLATES_DIR, template="ats-signal").render(cv)
     assert r'\small \cvorg{Principal Machine Learning Infrastructure Engineering Lead}' in output
 
 
-def test_sidebar_minimal_long_job_title_triggers_shrink():
+def test_slate_rail_long_job_title_triggers_shrink():
     from backend.models import CVData, PersonalInfo, ExperienceItem
     cv = CVData(
         personal=PersonalInfo(name="Jane Smith", email="j@example.com"),
@@ -502,7 +524,7 @@ def test_sidebar_minimal_long_job_title_triggers_shrink():
             start_date="2020",
         )],
     )
-    output = LaTeXRenderer(TEMPLATES_DIR, template="sidebar-minimal").render(cv)
+    output = LaTeXRenderer(TEMPLATES_DIR, template="slate-rail").render(cv)
     assert r'\small \cvrole{Principal Machine Learning Infrastructure Engineering Lead}' in output
 
 

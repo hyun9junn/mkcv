@@ -12,7 +12,7 @@ function bootAutocomplete(activeTab) {
     window: null,
     sectionsState: { SECTION_DEFS: {} },
     SETTINGS_HELPERS: {
-      VALID_TPL: ['classic', 'split-header', 'resume-tech'],
+      VALID_TPL: ['classic', 'signature-split', 'ats-signal'],
       VALID_DENSITY: ['comfortable', 'balanced', 'compact'],
       VALID_FONT: ['small', 'normal', 'large'],
       LINK_FIELDS: new Set(['website', 'linkedin', 'github', 'huggingface']),
@@ -82,4 +82,15 @@ test('settings tab suggests true/false inside sections list items', () => {
 
   const hint = context.window.yamlHint(editor);
   assert.deepEqual(Array.from(hint.list).map((item) => item.text), ['true']);
+});
+
+test('settings tab suggests renamed template slugs', () => {
+  const context = bootAutocomplete('settings');
+  const editor = createEditor(
+    ['template: si'],
+    { line: 0, ch: 'template: si'.length }
+  );
+
+  const hint = context.window.yamlHint(editor);
+  assert.deepEqual(Array.from(hint.list).map((item) => item.text), ['signature-split']);
 });

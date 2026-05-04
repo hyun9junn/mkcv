@@ -1,5 +1,5 @@
-display_name: "Classic"
-description: "General-purpose default — clean serif, no color, and minimal visual risk for almost any role."
+display_name: "Studio Pop"
+description: "Creative, UX, startup roles — dark sidebar, bold section pills, and photo-friendly personality without losing structure."
 audience: general
 defaults:
   layout:
@@ -35,26 +35,26 @@ defaults:
     - key: experience
       title: "EXPERIENCE"
       visible: true
-    - key: education
-      title: "EDUCATION"
+    - key: projects
+      title: "PROJECTS"
       visible: true
     - key: skills
       title: "SKILLS"
       visible: true
-    - key: projects
-      title: "PROJECTS"
-      visible: true
-    - key: certifications
-      title: "CERTIFICATIONS"
+    - key: awards
+      title: "AWARDS"
       visible: false
+    - key: education
+      title: "EDUCATION"
+      visible: true
     - key: publications
       title: "PUBLICATIONS"
       visible: false
     - key: languages
       title: "LANGUAGES"
       visible: false
-    - key: awards
-      title: "AWARDS"
+    - key: certifications
+      title: "CERTIFICATIONS"
       visible: false
     - key: extracurricular
       title: "EXTRACURRICULAR"

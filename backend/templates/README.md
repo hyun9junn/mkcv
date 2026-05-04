@@ -13,7 +13,7 @@ templates/
 ├── classic/
 │   ├── cv.tex.j2      # required — Jinja2+LaTeX source
 │   └── meta.yaml      # required — display metadata
-├── banking/
+├── dealbook/
 │   ├── cv.tex.j2
 │   └── meta.yaml
 └── <your-template>/
@@ -106,11 +106,11 @@ Usage pattern — the filter replaces both the size command **and** the bfseries
 
 **Column constraint:** `name_size` returns `\Huge` for short names. On a full-width centered header this is correct. On a narrow sidebar or minipage column, `\Huge` would make a short name *larger* than the template's intended size and overflow the column. Do not apply `name_size` on any header that lives inside a column narrower than roughly 60% of `\textwidth`. Use `name_fontsize` instead (it scales down only, never up), or leave the name header unstyled.
 
-Templates in this repo that are excluded from `name_size` for this reason: `banking` (55% minipage), `hipster` (28% sidebar), `sidebar-minimal` (34% sidebar panel), `sidebar-portrait` (sidebar panel).
+Templates in this repo that are excluded from `name_size` for this reason: `dealbook` (55% minipage), `studio-pop` (28% sidebar), `slate-rail` (34% sidebar panel), `sidebar-portrait` (sidebar panel).
 
 #### `name_fontsize` — explicit point size
 
-Use on name headers that specify an exact font size via `\fontsize{X}{Y}\selectfont`, e.g. `modern-startup`'s 26pt EB Garamond header.
+Use on name headers that specify an exact font size via `\fontsize{X}{Y}\selectfont`, e.g. `foundry`'s 26pt EB Garamond header.
 
 | Name length | Point size |
 |---|---|
@@ -446,22 +446,22 @@ Each template defines its own color palette via `\definecolor`. Accent colors ar
 | Template | Accent | Hex |
 |---|---|---|
 | classic | none | — |
-| heritage | Crimson | `#B22222` |
-| academic-research | Deep indigo | `#1E3A8A` |
-| executive-corporate | Burgundy | `#7F1D1D` |
-| modern-startup | Ink only | `#0A0A0A` |
-| banking | Navy | `#1E3A5F` |
-| column-skills | none | — |
-| hipster | Dark teal sidebar | `#1B4F4F` |
-| resume-tech | Ink only | `#111111` |
-| sidebar-minimal | Navy sidebar | `#1A1A2E` |
+| chancellor | Crimson | `#B22222` |
+| scholar-index | Deep indigo | `#1E3A8A` |
+| boardroom | Burgundy | `#7F1D1D` |
+| foundry | Ink only | `#0A0A0A` |
+| dealbook | Navy | `#1E3A5F` |
+| skillboard | none | — |
+| studio-pop | Dark teal sidebar | `#1B4F4F` |
+| ats-signal | Ink only | `#111111` |
+| slate-rail | Navy sidebar | `#1A1A2E` |
 | sidebar-portrait | varies | — |
 
 New templates should introduce a distinct accent rather than reusing an existing one.
 
-### The executive-corporate header is a special case
+### The boardroom header is a special case
 
-The two-column minipage header in `executive-corporate` displays the first sentence of `cv.summary` as a tagline. Consequently, the `summary` section is suppressed in `render_section` to avoid duplication. If you adapt this layout, decide explicitly which rendering location owns the summary.
+The two-column minipage header in `boardroom` displays the first sentence of `cv.summary` as a tagline. Consequently, the `summary` section is suppressed in `render_section` to avoid duplication. If you adapt this layout, decide explicitly which rendering location owns the summary.
 
 ---
 

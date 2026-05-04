@@ -127,7 +127,27 @@ const settingsSync = (() => {
     if (window.contactUI) contactUI.rebuild(settings);
   }
 
+  function _applyTemplateSelection(settings, opts = {}) {
+    const nextTemplate = settings?.template || DEFAULT_SETTINGS.template;
+    const currentTemplate = app.state.template || DEFAULT_SETTINGS.template;
+    if (nextTemplate === currentTemplate) return false;
+
+    if (window.templateUI?.selectTemplate) {
+      window.templateUI.selectTemplate(nextTemplate, {
+        syncSettings: false,
+        applyDefaults: false,
+        refreshPreview: opts.refreshPreview,
+        closeDropdown: false,
+      });
+      return true;
+    }
+
+    app.setState({ template: nextTemplate });
+    return true;
+  }
+
   function _applyAll(settings) {
+    _applyTemplateSelection(settings, { refreshPreview: false });
     _applyToToolbar(settings);
     _applyToSections(settings);
     _applyToContact(settings);
@@ -297,10 +317,10 @@ const settingsSync = (() => {
     _onYamlChange(settingsToYaml(next), { skipApply: true });
   }
 
-  function applyTemplateDefaults(rawDefaults) {
+  function applyTemplateDefaults(rawDefaults, opts = {}) {
     const activeTemplate = app.state.template || _parsed.value?.template || DEFAULT_SETTINGS.template;
     const next = normalizeTemplateDefaults(rawDefaults, activeTemplate);
-    _onYamlChange(settingsToYaml(next));
+    _onYamlChange(settingsToYaml(next), { skipPreview: opts.skipPreview });
   }
 
   // ── Tab switching ──
@@ -418,7 +438,10 @@ const settingsSync = (() => {
     }
 
     // Apply to toolbar and section chips
-    if (_parsed.value) _applyAll(_parsed.value);
+    if (_parsed.value) {
+      _applyAll(_parsed.value);
+      if (app.state.yaml?.trim()) _refreshPreview();
+    }
 
     // Monkey-patch sections-state to keep settings.yaml in sync
     if (window.sectionsState) {

@@ -1,6 +1,21 @@
-display_name: "Classic"
-description: "General-purpose default — clean serif, no color, and minimal visual risk for almost any role."
+display_name: "Trackline"
+description: "Product, design, data, research — left-rail chronology, strong career storytelling, and clean progression through time."
 audience: general
+recommended_sections:
+  - experience
+  - projects
+  - education
+default_section_order:
+  - summary
+  - experience
+  - projects
+  - education
+  - skills
+  - publications
+  - awards
+  - certifications
+  - languages
+  - extracurricular
 defaults:
   layout:
     density: balanced
@@ -35,26 +50,26 @@ defaults:
     - key: experience
       title: "EXPERIENCE"
       visible: true
+    - key: projects
+      title: "PROJECTS"
+      visible: true
     - key: education
       title: "EDUCATION"
       visible: true
     - key: skills
       title: "SKILLS"
       visible: true
-    - key: projects
-      title: "PROJECTS"
-      visible: true
-    - key: certifications
-      title: "CERTIFICATIONS"
-      visible: false
     - key: publications
       title: "PUBLICATIONS"
       visible: false
-    - key: languages
-      title: "LANGUAGES"
-      visible: false
     - key: awards
       title: "AWARDS"
+      visible: false
+    - key: certifications
+      title: "CERTIFICATIONS"
+      visible: false
+    - key: languages
+      title: "LANGUAGES"
       visible: false
     - key: extracurricular
       title: "EXTRACURRICULAR"

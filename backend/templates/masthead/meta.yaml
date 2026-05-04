@@ -1,6 +1,22 @@
-display_name: "Classic"
-description: "General-purpose default — clean serif, no color, and minimal visual risk for almost any role."
+display_name: "Masthead"
+description: "Writers, editors, brand leads — oversized serif masthead, drop-cap summary, and narrative-first pacing."
 audience: general
+recommended_sections:
+  - summary
+  - experience
+  - publications
+  - awards
+default_section_order:
+  - summary
+  - experience
+  - education
+  - publications
+  - projects
+  - skills
+  - awards
+  - languages
+  - certifications
+  - extracurricular
 defaults:
   layout:
     density: balanced
@@ -30,32 +46,32 @@ defaults:
         link_display: default
   sections:
     - key: summary
-      title: "SUMMARY"
+      title: "Editor's Note"
       visible: true
     - key: experience
-      title: "EXPERIENCE"
+      title: "Career"
+      visible: true
+    - key: publications
+      title: "Bylines and Publications"
+      visible: true
+    - key: awards
+      title: "Honours"
       visible: true
     - key: education
-      title: "EDUCATION"
-      visible: true
-    - key: skills
-      title: "SKILLS"
+      title: "Education"
       visible: true
     - key: projects
-      title: "PROJECTS"
+      title: "Selected Works"
       visible: true
-    - key: certifications
-      title: "CERTIFICATIONS"
-      visible: false
-    - key: publications
-      title: "PUBLICATIONS"
-      visible: false
+    - key: skills
+      title: "Skills and Tooling"
+      visible: true
     - key: languages
-      title: "LANGUAGES"
+      title: "Languages"
       visible: false
-    - key: awards
-      title: "AWARDS"
+    - key: certifications
+      title: "Certifications"
       visible: false
     - key: extracurricular
-      title: "EXTRACURRICULAR"
+      title: "Beyond the Page"
       visible: false

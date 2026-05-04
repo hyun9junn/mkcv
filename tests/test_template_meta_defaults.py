@@ -30,21 +30,85 @@ EXPECTED_PERSONAL_KEYS = [
 ]
 LINK_PERSONAL_KEYS = {"website", "linkedin", "github", "huggingface"}
 EXPECTED_SECTION_ORDERS = {
-    "academic-research": ["summary", "education", "experience", "publications", "projects", "skills", "awards", "languages", "certifications", "extracurricular"],
-    "banking": ["summary", "experience", "education", "skills", "projects", "awards", "certifications", "languages", "publications", "extracurricular"],
-    "brutalist-mono": ["summary", "experience", "projects", "skills", "education", "publications", "certifications", "awards", "languages", "extracurricular"],
+    "scholar-index": ["summary", "education", "experience", "publications", "projects", "skills", "awards", "languages", "certifications", "extracurricular"],
+    "dealbook": ["summary", "experience", "education", "skills", "projects", "awards", "certifications", "languages", "publications", "extracurricular"],
+    "mono-forge": ["summary", "experience", "projects", "skills", "education", "publications", "certifications", "awards", "languages", "extracurricular"],
     "classic": ["summary", "experience", "education", "skills", "projects", "certifications", "publications", "languages", "awards", "extracurricular"],
-    "column-skills": ["summary", "experience", "skills", "education", "projects", "awards", "publications", "certifications", "languages", "extracurricular"],
-    "editorial-magazine": ["summary", "experience", "publications", "awards", "education", "projects", "skills", "languages", "certifications", "extracurricular"],
-    "executive-corporate": ["summary", "experience", "skills", "awards", "education", "certifications", "projects", "languages", "publications", "extracurricular"],
-    "gazette": ["summary", "education", "experience", "publications", "awards", "languages", "projects", "skills", "certifications", "extracurricular"],
-    "heritage": ["summary", "experience", "education", "skills", "projects", "certifications", "publications", "languages", "awards", "extracurricular"],
-    "hipster": ["summary", "experience", "projects", "skills", "awards", "education", "publications", "languages", "certifications", "extracurricular"],
-    "modern-startup": ["summary", "experience", "projects", "skills", "education", "awards", "certifications", "publications", "languages", "extracurricular"],
-    "resume-tech": ["summary", "experience", "projects", "skills", "education", "certifications", "awards", "publications", "languages", "extracurricular"],
-    "sidebar-minimal": ["summary", "experience", "skills", "projects", "education", "certifications", "awards", "languages", "publications", "extracurricular"],
-    "split-header": ["summary", "experience", "projects", "skills", "awards", "education", "publications", "certifications", "languages", "extracurricular"],
-    "timeline-vertical": ["summary", "experience", "projects", "education", "skills", "publications", "awards", "certifications", "languages", "extracurricular"],
+    "skillboard": ["summary", "experience", "skills", "education", "projects", "awards", "publications", "certifications", "languages", "extracurricular"],
+    "masthead": ["summary", "experience", "publications", "awards", "education", "projects", "skills", "languages", "certifications", "extracurricular"],
+    "boardroom": ["summary", "experience", "skills", "awards", "education", "certifications", "projects", "languages", "publications", "extracurricular"],
+    "letterpress": ["summary", "education", "experience", "publications", "awards", "languages", "projects", "skills", "certifications", "extracurricular"],
+    "chancellor": ["summary", "experience", "education", "skills", "projects", "certifications", "publications", "languages", "awards", "extracurricular"],
+    "studio-pop": ["summary", "experience", "projects", "skills", "awards", "education", "publications", "languages", "certifications", "extracurricular"],
+    "foundry": ["summary", "experience", "projects", "skills", "education", "awards", "certifications", "publications", "languages", "extracurricular"],
+    "ats-signal": ["summary", "experience", "projects", "skills", "education", "certifications", "awards", "publications", "languages", "extracurricular"],
+    "slate-rail": ["summary", "experience", "skills", "projects", "education", "certifications", "awards", "languages", "publications", "extracurricular"],
+    "signature-split": ["summary", "experience", "projects", "skills", "awards", "education", "publications", "certifications", "languages", "extracurricular"],
+    "trackline": ["summary", "experience", "projects", "education", "skills", "publications", "awards", "certifications", "languages", "extracurricular"],
+}
+EXPECTED_DISPLAY_NAMES = {
+    "scholar-index": "Scholar Index",
+    "dealbook": "Dealbook",
+    "mono-forge": "Mono Forge",
+    "classic": "Classic",
+    "skillboard": "Skillboard",
+    "masthead": "Masthead",
+    "boardroom": "Boardroom",
+    "letterpress": "Letterpress",
+    "chancellor": "Chancellor",
+    "studio-pop": "Studio Pop",
+    "foundry": "Foundry",
+    "ats-signal": "ATS Signal",
+    "slate-rail": "Slate Rail",
+    "signature-split": "Signature Split",
+    "trackline": "Trackline",
+}
+EXPECTED_CURATED_TITLES = {
+    "scholar-index": {
+        "summary": "Research Summary",
+        "experience": "Research and Professional Experience",
+        "skills": "Technical Skills",
+        "awards": "Awards and Honors",
+        "extracurricular": "Service and Activities",
+    },
+    "mono-forge": {
+        "summary": "readme",
+        "skills": "stack",
+        "publications": "papers",
+        "certifications": "certs",
+        "extracurricular": "misc",
+    },
+    "masthead": {
+        "summary": "Editor's Note",
+        "experience": "Career",
+        "projects": "Selected Works",
+        "publications": "Bylines and Publications",
+        "awards": "Honours",
+        "extracurricular": "Beyond the Page",
+    },
+    "letterpress": {
+        "summary": "prologue",
+        "experience": "appointments",
+        "publications": "published works",
+        "skills": "competencies",
+        "awards": "honours and distinctions",
+        "extracurricular": "civic and other interests",
+    },
+    "signature-split": {
+        "summary": "Statement",
+        "projects": "Selected Work",
+        "publications": "Press and Publications",
+        "awards": "Recognition",
+        "extracurricular": "Beyond Studio",
+    },
+}
+EXPECTED_DEFAULT_VISIBILITY = {
+    "slate-rail": {
+        "summary": False,
+    },
+    "studio-pop": {
+        "awards": False,
+    },
 }
 
 
@@ -75,6 +139,26 @@ def test_every_template_meta_has_complete_defaults_block():
         for section in sections:
             assert isinstance(section["title"], str) and section["title"].strip(), meta_path
             assert isinstance(section["visible"], bool), meta_path
+
+
+def test_template_meta_branded_display_names_are_curated():
+    for template_name, expected_display_name in EXPECTED_DISPLAY_NAMES.items():
+        data = yaml.safe_load((TEMPLATES_DIR / template_name / "meta.yaml").read_text()) or {}
+        assert data["display_name"] == expected_display_name
+
+
+def test_template_meta_curated_titles_and_visibility_are_applied():
+    for template_name, expected_titles in EXPECTED_CURATED_TITLES.items():
+        data = yaml.safe_load((TEMPLATES_DIR / template_name / "meta.yaml").read_text()) or {}
+        sections = {section["key"]: section for section in data["defaults"]["sections"]}
+        for key, expected_title in expected_titles.items():
+            assert sections[key]["title"] == expected_title
+
+    for template_name, expected_visibility in EXPECTED_DEFAULT_VISIBILITY.items():
+        data = yaml.safe_load((TEMPLATES_DIR / template_name / "meta.yaml").read_text()) or {}
+        sections = {section["key"]: section for section in data["defaults"]["sections"]}
+        for key, expected_visible in expected_visibility.items():
+            assert sections[key]["visible"] is expected_visible
 
 
 def test_load_template_meta_missing_file_returns_empty_defaults(tmp_path):

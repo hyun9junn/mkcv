@@ -1,12 +1,12 @@
-display_name: "Classic"
-description: "General-purpose default — clean serif, no color, and minimal visual risk for almost any role."
+display_name: "ATS Signal"
+description: "ATS-first tech resume — single-column flow, bold section rules, and clean parsing for software roles."
 audience: general
 defaults:
   layout:
-    density: balanced
-    font_scale: normal
+    density: compact
+    font_scale: small
   personal:
-    default_link_display: label
+    default_link_display: both
     fields:
       - key: name
         visible: true
@@ -35,26 +35,26 @@ defaults:
     - key: experience
       title: "EXPERIENCE"
       visible: true
-    - key: education
-      title: "EDUCATION"
+    - key: projects
+      title: "PROJECTS"
       visible: true
     - key: skills
       title: "SKILLS"
       visible: true
-    - key: projects
-      title: "PROJECTS"
+    - key: education
+      title: "EDUCATION"
       visible: true
     - key: certifications
       title: "CERTIFICATIONS"
+      visible: true
+    - key: awards
+      title: "AWARDS"
       visible: false
     - key: publications
       title: "PUBLICATIONS"
       visible: false
     - key: languages
       title: "LANGUAGES"
-      visible: false
-    - key: awards
-      title: "AWARDS"
       visible: false
     - key: extracurricular
       title: "EXTRACURRICULAR"

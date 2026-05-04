@@ -1,6 +1,22 @@
-display_name: "Classic"
-description: "General-purpose default — clean serif, no color, and minimal visual risk for almost any role."
+display_name: "Signature Split"
+description: "Creative directors, brand strategists, art leads — asymmetric nameplate, quote-like role kickers, and portfolio energy."
 audience: general
+recommended_sections:
+  - summary
+  - experience
+  - projects
+  - awards
+default_section_order:
+  - summary
+  - experience
+  - projects
+  - skills
+  - awards
+  - education
+  - publications
+  - certifications
+  - languages
+  - extracurricular
 defaults:
   layout:
     density: balanced
@@ -30,32 +46,32 @@ defaults:
         link_display: default
   sections:
     - key: summary
-      title: "SUMMARY"
+      title: "Statement"
       visible: true
     - key: experience
-      title: "EXPERIENCE"
-      visible: true
-    - key: education
-      title: "EDUCATION"
-      visible: true
-    - key: skills
-      title: "SKILLS"
+      title: "Experience"
       visible: true
     - key: projects
-      title: "PROJECTS"
+      title: "Selected Work"
       visible: true
-    - key: certifications
-      title: "CERTIFICATIONS"
-      visible: false
+    - key: skills
+      title: "Skills"
+      visible: true
+    - key: awards
+      title: "Recognition"
+      visible: true
+    - key: education
+      title: "Education"
+      visible: true
     - key: publications
-      title: "PUBLICATIONS"
+      title: "Press and Publications"
+      visible: false
+    - key: certifications
+      title: "Certifications"
       visible: false
     - key: languages
-      title: "LANGUAGES"
-      visible: false
-    - key: awards
-      title: "AWARDS"
+      title: "Languages"
       visible: false
     - key: extracurricular
-      title: "EXTRACURRICULAR"
+      title: "Beyond Studio"
       visible: false

@@ -16,21 +16,21 @@ window.SETTINGS_HELPERS = (() => {
   const VALID_DENSITY      = ['comfortable', 'balanced', 'compact'];
   const VALID_FONT         = ['small', 'normal', 'large'];
   const VALID_TPL          = [
-    'academic-research',
-    'banking',
-    'brutalist-mono',
+    'ats-signal',
+    'boardroom',
+    'chancellor',
     'classic',
-    'column-skills',
-    'editorial-magazine',
-    'executive-corporate',
-    'gazette',
-    'heritage',
-    'hipster',
-    'modern-startup',
-    'resume-tech',
-    'sidebar-minimal',
-    'split-header',
-    'timeline-vertical',
+    'dealbook',
+    'foundry',
+    'letterpress',
+    'masthead',
+    'mono-forge',
+    'scholar-index',
+    'signature-split',
+    'skillboard',
+    'slate-rail',
+    'studio-pop',
+    'trackline',
   ];
   const VALID_LINK_DISPLAY        = ['label', 'url', 'both'];
   const VALID_GLOBAL_LINK_DISPLAY = ['label', 'url', 'both'];
@@ -87,11 +87,12 @@ window.SETTINGS_HELPERS = (() => {
   };
 
   function settingsToYaml(s) {
+    const template = VALID_TPL.includes(s.template) ? s.template : DEFAULT_SETTINGS.template;
     const lines = [
       '# settings.yaml — layout & section state',
       '# auto-synced with toolbar controls; edit either side',
       '',
-      `template: ${s.template}`,
+      `template: ${template}`,
       '',
       'layout:',
       `  density:    ${s.layout.density}        # comfortable | balanced | compact`,
@@ -158,7 +159,7 @@ window.SETTINGS_HELPERS = (() => {
 
   function normalizeTemplateDefaults(rawDefaults, currentTemplate = DEFAULT_SETTINGS.template) {
     const normalized = _clone(DEFAULT_SETTINGS);
-    normalized.template = currentTemplate || DEFAULT_SETTINGS.template;
+    normalized.template = VALID_TPL.includes(currentTemplate) ? currentTemplate : DEFAULT_SETTINGS.template;
 
     if (!rawDefaults || typeof rawDefaults !== 'object') {
       return normalized;
@@ -223,9 +224,13 @@ window.SETTINGS_HELPERS = (() => {
     const out = JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
 
     if (parsed.template != null) {
-      out.template = String(parsed.template);
-      if (!VALID_TPL.includes(out.template))
-        warnings.push({ msg: `unknown template "${out.template}"`, line: null });
+      const template = String(parsed.template);
+      if (VALID_TPL.includes(template)) {
+        out.template = template;
+      } else {
+        warnings.push({ msg: `unknown template "${template}" — using classic`, line: null });
+        out.template = DEFAULT_SETTINGS.template;
+      }
     }
 
     if (parsed.layout && typeof parsed.layout === 'object') {

@@ -25,6 +25,135 @@ window.templateRegistry = (() => {
     return { setAllMeta, getAllMeta, getMeta, getDefaults };
 })();
 
+window.templateUI = (() => {
+    let controls = {
+        wrapper: null,
+        trigger: null,
+        dropdown: null,
+        nameDisplay: null,
+    };
+    let availableTemplates = new Set();
+
+    function defaultTemplate() {
+        return window.SETTINGS_HELPERS?.DEFAULT_SETTINGS?.template || "classic";
+    }
+
+    function isValidTemplate(name) {
+        return Array.isArray(window.SETTINGS_HELPERS?.VALID_TPL) && window.SETTINGS_HELPERS.VALID_TPL.includes(name);
+    }
+
+    function resolveTemplate(name) {
+        const candidate = typeof name === "string" ? name : String(name ?? "");
+        if (isValidTemplate(candidate) || availableTemplates.has(candidate)) return candidate;
+        return defaultTemplate();
+    }
+
+    function fallbackDisplayName(name) {
+        return String(name || defaultTemplate())
+            .split("-")
+            .filter(Boolean)
+            .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+            .join(" ");
+    }
+
+    function getDisplayName(name) {
+        const meta = window.templateRegistry.getMeta(name);
+        return meta.display_name || fallbackDisplayName(name);
+    }
+
+    function getPreviewYaml() {
+        if (!window.sectionsState) return app.state.yaml;
+        if (typeof sectionsState.getOrderedFilteredYaml === "function") {
+            return sectionsState.getOrderedFilteredYaml(app.state.yaml);
+        }
+        if (typeof sectionsState.getFilteredYaml === "function") {
+            return sectionsState.getFilteredYaml(app.state.yaml);
+        }
+        return app.state.yaml;
+    }
+
+    function openDropdown() {
+        if (!controls.dropdown || !controls.trigger) return;
+        controls.dropdown.hidden = false;
+        controls.trigger.style.borderColor = "var(--rule-2)";
+    }
+
+    function closeDropdown() {
+        if (!controls.dropdown || !controls.trigger) return;
+        controls.dropdown.hidden = true;
+        controls.trigger.style.borderColor = "";
+    }
+
+    function syncSelectedOption(name) {
+        controls.dropdown?.querySelectorAll(".tpl-option").forEach(el => {
+            el.classList.toggle("selected", el.dataset.name === name);
+        });
+    }
+
+    function updateTemplateChrome(name) {
+        const displayName = getDisplayName(name);
+        syncSelectedOption(name);
+        if (controls.nameDisplay) controls.nameDisplay.textContent = displayName;
+
+        const paneTitle = document.getElementById("preview-pane-title");
+        if (paneTitle) paneTitle.textContent = `Preview — ${displayName}`;
+        return displayName;
+    }
+
+    function selectTemplate(name, opts = {}) {
+        const resolved = resolveTemplate(name);
+        updateTemplateChrome(resolved);
+        if (opts.closeDropdown !== false) closeDropdown();
+
+        const templateChanged = app.state.template !== resolved;
+        app.setState({ template: resolved });
+
+        const shouldSyncSettings = opts.syncSettings !== false;
+        const shouldApplyDefaults = opts.applyDefaults ?? true;
+        const shouldRefreshPreview = opts.refreshPreview !== false;
+
+        if (!templateChanged && opts.force !== true && !shouldSyncSettings && !shouldApplyDefaults && !shouldRefreshPreview) {
+            return resolved;
+        }
+
+        if (shouldSyncSettings && window.settingsSync?.updateFromToolbar) {
+            window.settingsSync.updateFromToolbar(next => {
+                next.template = resolved;
+            }, { skipApply: true, skipPreview: true });
+        }
+
+        if (shouldApplyDefaults && window.settingsSync?.applyTemplateDefaults) {
+            window.settingsSync.applyTemplateDefaults(
+                window.templateRegistry.getDefaults(resolved),
+                { skipPreview: true }
+            );
+        }
+
+        if (shouldRefreshPreview && window.preview) {
+            preview.refresh(getPreviewYaml(), resolved);
+        }
+
+        return resolved;
+    }
+
+    function setControls(nextControls = {}) {
+        controls = { ...controls, ...nextControls };
+    }
+
+    function setAvailableTemplates(names = []) {
+        availableTemplates = new Set(names);
+        if (availableTemplates.size === 0) availableTemplates.add(defaultTemplate());
+    }
+
+    return {
+        closeDropdown,
+        openDropdown,
+        selectTemplate,
+        setControls,
+        setAvailableTemplates,
+    };
+})();
+
 document.addEventListener("DOMContentLoaded", async () => {
     const wrapper      = document.getElementById("template-select-wrapper");
     const trigger      = document.getElementById("template-trigger");
@@ -32,60 +161,40 @@ document.addEventListener("DOMContentLoaded", async () => {
     const nameDisplay  = document.getElementById("tpl-name-display");
     const banner       = document.getElementById("error-banner");
     const btnValidate  = document.getElementById("btn-validate-template");
-
-    function openDropdown() {
-        dropdown.hidden = false;
-        trigger.style.borderColor = "var(--rule-2)";
-    }
-
-    function closeDropdown() {
-        dropdown.hidden = true;
-        trigger.style.borderColor = "";
-    }
-
-    function selectTemplate(name) {
-        dropdown.querySelectorAll(".tpl-option").forEach(el => {
-            el.classList.toggle("selected", el.dataset.name === name);
-        });
-        const meta = window.templateRegistry.getMeta(name);
-        const displayName = meta.display_name || (name.charAt(0).toUpperCase() + name.slice(1));
-        if (nameDisplay) nameDisplay.textContent = displayName;
-        closeDropdown();
-        app.setState({ template: name });
-
-        const paneTitle = document.getElementById("preview-pane-title");
-        if (paneTitle) paneTitle.textContent = `Preview — ${displayName}`;
-
-        preview.refresh(sectionsState.getFilteredYaml(app.state.yaml), name);
-    }
+    window.templateUI.setControls({ wrapper, trigger, dropdown, nameDisplay });
 
     trigger.addEventListener("click", (e) => {
         e.stopPropagation();
-        if (dropdown.hidden) openDropdown(); else closeDropdown();
+        if (dropdown.hidden) window.templateUI.openDropdown();
+        else window.templateUI.closeDropdown();
     });
 
     document.addEventListener("click", (e) => {
-        if (!wrapper.contains(e.target)) closeDropdown();
+        if (!wrapper.contains(e.target)) window.templateUI.closeDropdown();
     });
 
     /* Badge labels for well-known templates */
     const BADGES = {
-        classic:            "Default",
-        "academic-research": "Popular",
-        "modern-startup":   "New",
-        "resume-tech":      "New",
-        "split-header":     "New",
+        classic:           "Default",
+        "scholar-index":   "Popular",
+        foundry:           "New",
+        "ats-signal":      "New",
+        "signature-split": "New",
     };
 
     try {
         const data = await (await fetch("/api/templates")).json();
         const validationMap = data.validation || {};
         window.templateRegistry.setAllMeta(data.meta || {});
+        window.templateUI.setAvailableTemplates(data.templates || []);
 
-        data.templates.forEach((name, idx) => {
+        data.templates.forEach((name) => {
             const meta        = window.templateRegistry.getMeta(name);
             const isValid     = validationMap[name] ? validationMap[name].valid : null;
-            const displayName = meta.display_name || (name.charAt(0).toUpperCase() + name.slice(1));
+            const displayName = meta.display_name || name
+                .split("-")
+                .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+                .join(" ");
             const description = meta.description  || "";
             const badge       = BADGES[name] || (isValid === false ? "⚠ Error" : "");
             const isFirst     = name === app.state.template;
@@ -106,7 +215,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
             opt.addEventListener("click", (e) => {
                 e.stopPropagation();
-                selectTemplate(name);
+                window.templateUI.selectTemplate(name);
             });
 
             dropdown.appendChild(opt);
@@ -114,17 +223,18 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     } catch {
         window.templateRegistry.setAllMeta({});
+        window.templateUI.setAvailableTemplates(["classic"]);
         const opt = document.createElement("div");
         opt.className = "tpl-option selected";
         opt.dataset.name = "classic";
         opt.innerHTML = `<div><div class="tpl-option-name">Classic</div></div>`;
-        opt.addEventListener("click", () => selectTemplate("classic"));
+        opt.addEventListener("click", () => window.templateUI.selectTemplate("classic"));
         dropdown.appendChild(opt);
         if (nameDisplay) nameDisplay.textContent = "Classic";
     }
 
     /* Validate button (triggered by icon in masthead) */
-    btnValidate.addEventListener("click", async () => {
+    btnValidate?.addEventListener("click", async () => {
         const name = app.state.template;
         btnValidate.disabled = true;
 

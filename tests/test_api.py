@@ -112,7 +112,8 @@ async def test_get_templates(app):
     assert resp.status_code == 200
     data = resp.json()
     assert "classic" in data["templates"]
-    assert "heritage" in data["templates"]
+    assert "chancellor" in data["templates"]
+    assert "heritage" not in data["templates"]
     assert "validation" in data
 
 
@@ -139,6 +140,7 @@ async def test_get_templates_includes_validation(app):
     data = resp.json()
     assert "templates" in data
     assert "classic" in data["templates"]
+    assert "scholar-index" in data["templates"]
     assert "validation" in data
     assert "classic" in data["validation"]
     assert "valid" in data["validation"]["classic"]

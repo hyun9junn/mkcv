@@ -1,5 +1,5 @@
-display_name: "Classic"
-description: "General-purpose default — clean serif, no color, and minimal visual risk for almost any role."
+display_name: "Slate Rail"
+description: "Engineering, corporate, generalist roles — dark sidebar, quiet structure, and polished contrast for tidy one-page resumes."
 audience: general
 defaults:
   layout:
@@ -31,12 +31,9 @@ defaults:
   sections:
     - key: summary
       title: "SUMMARY"
-      visible: true
+      visible: false
     - key: experience
       title: "EXPERIENCE"
-      visible: true
-    - key: education
-      title: "EDUCATION"
       visible: true
     - key: skills
       title: "SKILLS"
@@ -44,17 +41,20 @@ defaults:
     - key: projects
       title: "PROJECTS"
       visible: true
+    - key: education
+      title: "EDUCATION"
+      visible: true
     - key: certifications
       title: "CERTIFICATIONS"
       visible: false
-    - key: publications
-      title: "PUBLICATIONS"
+    - key: awards
+      title: "AWARDS"
       visible: false
     - key: languages
       title: "LANGUAGES"
       visible: false
-    - key: awards
-      title: "AWARDS"
+    - key: publications
+      title: "PUBLICATIONS"
       visible: false
     - key: extracurricular
       title: "EXTRACURRICULAR"
