@@ -522,3 +522,67 @@ def test_filters_available_in_template(tmp_path, minimal_cv):
     result = renderer.render(minimal_cv)
     assert r'\Huge\bfseries' in result   # name_size filter worked
     assert r'\small ' in result           # shrink_if_long(3) triggered (Alice=5>3)
+
+
+from backend.renderers.latex import _make_contact_helpers, _make_link_text_fn
+
+
+def test_contact_visible_defaults_true_when_no_fields():
+    visible, _ = _make_contact_helpers([], "url")
+    assert visible("email") is True
+    assert visible("github") is True
+
+
+def test_contact_visible_name_always_true():
+    visible, _ = _make_contact_helpers([{"key": "name", "visible": False}], "url")
+    assert visible("name") is True
+
+
+def test_contact_visible_respects_field_setting():
+    visible, _ = _make_contact_helpers(
+        [{"key": "linkedin", "visible": False}, {"key": "github", "visible": True}],
+        "url",
+    )
+    assert visible("linkedin") is False
+    assert visible("github") is True
+
+
+def test_contact_visible_unknown_key_defaults_true():
+    visible, _ = _make_contact_helpers([{"key": "email", "visible": False}], "url")
+    assert visible("nonexistent") is True
+
+
+def test_contact_link_style_uses_global_when_no_override():
+    _, style = _make_contact_helpers([{"key": "github", "visible": True}], "url")
+    assert style("github") == "url"
+
+
+def test_contact_link_style_uses_field_override():
+    _, style = _make_contact_helpers(
+        [{"key": "github", "visible": True, "link_display": "label"}], "url"
+    )
+    assert style("github") == "label"
+
+
+def test_contact_link_style_ignores_invalid_override():
+    _, style = _make_contact_helpers(
+        [{"key": "github", "visible": True, "link_display": "invalid"}], "url"
+    )
+    assert style("github") == "url"
+
+
+def test_link_text_with_explicit_style_overrides_global():
+    fn = _make_link_text_fn("url")
+    assert fn("github.com/user", "GitHub", "label") == "GitHub"
+    assert fn("github.com/user", "GitHub", "both") == "GitHub (github.com/user)"
+    assert fn("github.com/user", "GitHub", "url") == "github.com/user"
+
+
+def test_link_text_without_style_uses_global():
+    fn = _make_link_text_fn("both")
+    assert fn("github.com/user", "GitHub") == "GitHub (github.com/user)"
+
+
+def test_link_text_invalid_style_falls_back_to_global():
+    fn = _make_link_text_fn("label")
+    assert fn("github.com/user", "GitHub", "invalid") == "GitHub"

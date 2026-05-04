@@ -46,13 +46,35 @@ def _build_layout_preamble(density: str) -> str:
 
 
 def _make_link_text_fn(link_display: str):
-    def link_text(url: str, label: str) -> str:
-        if link_display == "url":
+    def link_text(url: str, label: str, style: Optional[str] = None) -> str:
+        s = style if style in ('label', 'url', 'both') else link_display
+        if s == "url":
             return url
-        elif link_display == "both":
+        elif s == "both":
             return f"{label} ({url})"
         return label
     return link_text
+
+
+def _make_contact_helpers(personal_fields: list, link_display: str):
+    field_map = {
+        f['key']: f
+        for f in personal_fields
+        if isinstance(f, dict) and 'key' in f
+    }
+
+    def contact_visible(key: str) -> bool:
+        if key == 'name':
+            return True
+        return field_map.get(key, {}).get('visible', True)
+
+    def contact_link_style(key: str) -> str:
+        override = field_map.get(key, {}).get('link_display')
+        if override in ('label', 'url', 'both'):
+            return override
+        return link_display
+
+    return contact_visible, contact_link_style
 
 
 def _make_jinja_filters() -> dict:
@@ -93,12 +115,14 @@ class LaTeXRenderer(BaseRenderer):
         density: str = "balanced",
         font_scale: str = "normal",
         link_display: str = "label",
+        personal_fields: Optional[List] = None,
     ):
         self.templates_dir = templates_dir
         self.template = template
         self.density = density
         self.font_scale = font_scale
         self.link_display = link_display
+        self.personal_fields = personal_fields or []
 
     def render(self, cv: CVData, section_order: Optional[List[str]] = None, section_titles: Optional[dict] = None) -> str:
         template_path = self.templates_dir / self.template / "cv.tex.j2"
@@ -118,6 +142,11 @@ class LaTeXRenderer(BaseRenderer):
         )
         env.filters.update(_make_jinja_filters())
         env.globals['link_text'] = _make_link_text_fn(self.link_display)
+        contact_visible, contact_link_style = _make_contact_helpers(
+            self.personal_fields, self.link_display
+        )
+        env.globals['contact_visible'] = contact_visible
+        env.globals['contact_link_style'] = contact_link_style
         order = section_order if section_order else DEFAULT_SECTION_ORDER
         custom_by_key = {cs.key: cs for cs in cv.custom_sections}
         font_size = _FONT_SIZE.get(self.font_scale, _FONT_SIZE["normal"])
