@@ -1,0 +1,237 @@
+/* global app, jsyaml, settingsSync */
+const contactUI = (() => {
+  const { PERSONAL_FIELD_CATALOG, LINK_FIELDS } = window.SETTINGS_HELPERS;
+
+  let _openPickerKey = null;
+
+  function _getPersonalValue(key) {
+    try {
+      const parsed = jsyaml.load(app.state.yaml || '');
+      const val = parsed?.personal?.[key];
+      return val != null ? String(val) : '';
+    } catch {
+      return '';
+    }
+  }
+
+  function _currentSettings() {
+    return window.settingsSync ? settingsSync.getSettings() : window.SETTINGS_HELPERS.DEFAULT_SETTINGS;
+  }
+
+  function _countHidden(settings) {
+    return (settings.personal?.fields ?? []).filter(f => f.key !== 'name' && !f.visible).length;
+  }
+
+  function _updatePillBadge(settings) {
+    const countEl = document.getElementById('contact-hidden-count');
+    if (!countEl) return;
+    const n = _countHidden(settings);
+    countEl.textContent = n;
+    countEl.style.display = n > 0 ? '' : 'none';
+  }
+
+  function _buildFieldRow(fieldDef, fieldSettings, value, globalDefault) {
+    const { key, locked } = fieldDef;
+    const visible = fieldSettings.visible;
+    const isLink = LINK_FIELDS.has(key);
+    const override = isLink ? fieldSettings.link_display : null;
+    const pickerOpen = _openPickerKey === key;
+
+    const row = document.createElement('div');
+    row.className = 'field-row' +
+      (locked ? ' locked-row' : '') +
+      (!visible && !locked ? ' hidden-row' : '');
+
+    // Toggle
+    const tog = document.createElement('div');
+    tog.className = 'f-toggle' + (!visible ? ' off' : '') + (locked ? ' locked' : '');
+    if (!locked) {
+      tog.addEventListener('click', () => {
+        if (!window.settingsSync) return;
+        settingsSync.updateFromToolbar(s => {
+          const f = s.personal.fields.find(f => f.key === key);
+          if (f) f.visible = !f.visible;
+        });
+      });
+    }
+    row.appendChild(tog);
+
+    // Field key
+    const keyEl = document.createElement('span');
+    keyEl.className = 'f-key';
+    keyEl.textContent = key;
+    row.appendChild(keyEl);
+
+    // Value preview
+    const valEl = document.createElement('span');
+    valEl.className = 'f-val';
+    valEl.textContent = value;
+    row.appendChild(valEl);
+
+    // Right control
+    const ctrl = document.createElement('div');
+    ctrl.className = 'f-ctrl';
+
+    if (locked) {
+      const badge = document.createElement('span');
+      badge.className = 'f-locked';
+      badge.textContent = 'always shown';
+      ctrl.appendChild(badge);
+    } else if (isLink) {
+      if (pickerOpen) {
+        const picker = document.createElement('div');
+        picker.className = 'f-picker';
+        const opts = [
+          { val: null,    label: '↑',    cls: 'p-inherit' },
+          { val: 'label', label: 'label', cls: '' },
+          { val: 'url',   label: 'url',   cls: '' },
+          { val: 'both',  label: 'both',  cls: '' },
+        ];
+        for (const opt of opts) {
+          const span = document.createElement('span');
+          span.textContent = opt.label;
+          if (opt.cls) span.className = opt.cls;
+          span.addEventListener('click', e => {
+            e.stopPropagation();
+            _openPickerKey = null;
+            if (!window.settingsSync) return;
+            settingsSync.updateFromToolbar(s => {
+              const f = s.personal.fields.find(f => f.key === key);
+              if (!f) return;
+              if (opt.val === null) delete f.link_display;
+              else f.link_display = opt.val;
+            });
+          });
+          picker.appendChild(span);
+        }
+        ctrl.appendChild(picker);
+      } else if (override) {
+        const pill = document.createElement('div');
+        pill.className = 'f-override';
+        const txt = document.createTextNode(override + ' ');
+        const x = document.createElement('span');
+        x.className = 'f-override-x';
+        x.textContent = '×';
+        x.addEventListener('click', e => {
+          e.stopPropagation();
+          if (!window.settingsSync) return;
+          settingsSync.updateFromToolbar(s => {
+            const f = s.personal.fields.find(f => f.key === key);
+            if (f) delete f.link_display;
+          });
+        });
+        pill.appendChild(txt);
+        pill.appendChild(x);
+        ctrl.appendChild(pill);
+      } else {
+        const tag = document.createElement('span');
+        tag.className = 'f-inherit';
+        tag.textContent = `↑ ${globalDefault}`;
+        tag.addEventListener('click', e => {
+          e.stopPropagation();
+          _openPickerKey = key;
+          rebuild(_currentSettings());
+        });
+        ctrl.appendChild(tag);
+      }
+    }
+
+    row.appendChild(ctrl);
+    return row;
+  }
+
+  function rebuild(settings) {
+    const body = document.getElementById('contact-fields-body');
+    if (!body) return;
+
+    const fields = settings.personal?.fields ?? [];
+    const globalDefault = settings.personal?.link_display ?? 'label';
+
+    // Update global seg
+    const seg = document.getElementById('contact-global-seg');
+    if (seg) {
+      seg.querySelectorAll('span[data-value]').forEach(span => {
+        span.classList.toggle('active', span.dataset.value === globalDefault);
+      });
+    }
+
+    _updatePillBadge(settings);
+    body.innerHTML = '';
+
+    for (const fieldDef of PERSONAL_FIELD_CATALOG) {
+      const fieldSettings = fields.find(f => f.key === fieldDef.key)
+        ?? { key: fieldDef.key, visible: true };
+      const value = _getPersonalValue(fieldDef.key);
+      const row = _buildFieldRow(fieldDef, fieldSettings, value, globalDefault);
+      body.appendChild(row);
+      if (fieldDef.key === 'name') {
+        const divider = document.createElement('div');
+        divider.className = 'field-divider';
+        body.appendChild(divider);
+      }
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const pill   = document.getElementById('contact-pill');
+    const flyout = document.getElementById('contact-flyout');
+    const caret  = document.getElementById('contact-pill-caret');
+    if (!pill || !flyout) return;
+
+    function openFlyout() {
+      flyout.style.display = '';
+      caret.textContent = '▴';
+      pill.classList.add('open');
+      rebuild(_currentSettings());
+    }
+
+    function closeFlyout() {
+      flyout.style.display = 'none';
+      caret.textContent = '▾';
+      pill.classList.remove('open');
+      _openPickerKey = null;
+    }
+
+    pill.addEventListener('click', e => {
+      e.stopPropagation();
+      flyout.style.display === 'none' ? openFlyout() : closeFlyout();
+    });
+
+    document.addEventListener('click', e => {
+      const anchor = document.getElementById('contact-flyout-anchor');
+      if (anchor && !anchor.contains(e.target) && flyout.style.display !== 'none') {
+        closeFlyout();
+      }
+    });
+
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && flyout.style.display !== 'none') closeFlyout();
+    });
+
+    // Global default seg
+    const seg = document.getElementById('contact-global-seg');
+    if (seg) {
+      seg.addEventListener('click', e => {
+        e.stopPropagation();
+        const span = e.target.closest('span[data-value]');
+        if (!span || !window.settingsSync) return;
+        settingsSync.updateFromToolbar(s => { s.personal.link_display = span.dataset.value; });
+      });
+    }
+
+    // Rebuild value previews when resume.yaml changes and flyout is open
+    let _rebuildTimer = null;
+    window.editorAdapter.onChange(() => {
+      if (flyout.style.display === 'none') return;
+      clearTimeout(_rebuildTimer);
+      _rebuildTimer = setTimeout(() => rebuild(_currentSettings()), 300);
+    });
+
+    // Initial pill badge
+    if (window.settingsSync) _updatePillBadge(settingsSync.getSettings());
+  });
+
+  return { rebuild };
+})();
+
+window.contactUI = contactUI;
