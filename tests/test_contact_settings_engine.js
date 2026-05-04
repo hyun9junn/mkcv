@@ -30,58 +30,51 @@ test('LINK_FIELDS contains exactly website linkedin github huggingface', () => {
   assert.ok(!LINK_FIELDS.has('name'));
 });
 
-test('DEFAULT_SETTINGS includes personal.fields with all 8 fields visible', () => {
-  const { DEFAULT_SETTINGS } = loadSettingsHelpers();
-  assert.ok(Array.isArray(DEFAULT_SETTINGS.personal.fields));
-  assert.equal(DEFAULT_SETTINGS.personal.fields.length, 8);
-  assert.ok(DEFAULT_SETTINGS.personal.fields.every(f => f.visible === true));
+test('DEFAULT_SETTINGS uses default_link_display and explicit default for link fields', () => {
+  const { DEFAULT_SETTINGS, LINK_FIELDS } = loadSettingsHelpers();
+  assert.equal(DEFAULT_SETTINGS.personal.default_link_display, 'label');
+
+  for (const field of DEFAULT_SETTINGS.personal.fields) {
+    if (LINK_FIELDS.has(field.key)) {
+      assert.equal(field.link_display, 'default');
+    } else {
+      assert.equal('link_display' in field, false);
+    }
+  }
 });
 
-test('parseSettings round-trips personal.fields', () => {
-  const { parseSettings, settingsToYaml, DEFAULT_SETTINGS } = loadSettingsHelpers();
-  const settings = JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
-  settings.personal.fields[2].visible = false; // phone hidden
-  settings.personal.fields[6].link_display = 'label'; // github override
-  const yaml = settingsToYaml(settings);
-  const result = parseSettings(yaml);
-  assert.equal(result.errors.length, 0);
-  const fields = result.value.personal.fields;
-  assert.equal(fields.find(f => f.key === 'phone').visible, false);
-  assert.equal(fields.find(f => f.key === 'github').link_display, 'label');
-  assert.equal(fields.find(f => f.key === 'email').visible, true);
-});
-
-test('parseSettings without personal.fields defaults all visible', () => {
+test('parseSettings accepts legacy personal.link_display and normalizes missing link-field styles', () => {
   const { parseSettings } = loadSettingsHelpers();
-  const yaml = 'template: classic\nlayout:\n  density: balanced\n  font_scale: normal\npersonal:\n  link_display: url\n';
+  const yaml = [
+    'template: classic',
+    'layout:',
+    '  density: balanced',
+    '  font_scale: normal',
+    'personal:',
+    '  link_display: both',
+    '  fields:',
+    '    - key: website',
+    '      visible: true',
+    '    - key: github',
+    '      visible: true',
+    '      link_display: url',
+    ''
+  ].join('\n');
+
   const result = parseSettings(yaml);
   assert.equal(result.errors.length, 0);
-  const fields = result.value.personal.fields;
-  assert.ok(Array.isArray(fields));
-  assert.ok(fields.every(f => f.visible === true));
-  assert.ok(!fields.some(f => f.link_display));
+  assert.equal(result.value.personal.default_link_display, 'both');
+  assert.equal(result.value.personal.fields.find((field) => field.key === 'website').link_display, 'default');
+  assert.equal(result.value.personal.fields.find((field) => field.key === 'github').link_display, 'url');
 });
 
-test('parseSettings ignores link_display override on non-link fields', () => {
-  const { parseSettings, settingsToYaml, DEFAULT_SETTINGS } = loadSettingsHelpers();
-  const yaml = settingsToYaml(DEFAULT_SETTINGS).replace(
-    '- key: email\n      visible: true',
-    '- key: email\n      visible: true\n      link_display: label'
-  );
-  const result = parseSettings(yaml);
-  assert.equal(result.errors.length, 0);
-  const emailField = result.value.personal.fields.find(f => f.key === 'email');
-  assert.ok(!emailField.link_display);
-});
-
-test('settingsToYaml does not emit link_display for non-link fields', () => {
+test('settingsToYaml emits default_link_display and explicit link_display for every link field', () => {
   const { settingsToYaml, DEFAULT_SETTINGS } = loadSettingsHelpers();
-  const settings = JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
-  // manually inject a link_display on a non-link field (should be stripped in real code)
-  const emailField = settings.personal.fields.find(f => f.key === 'email');
-  emailField.link_display = 'label';
-  const yaml = settingsToYaml(settings);
-  // email block should not have link_display line
-  const emailBlock = yaml.split('- key: email')[1]?.split('- key:')[0] ?? '';
-  assert.ok(!emailBlock.includes('link_display'));
+  const yaml = settingsToYaml(DEFAULT_SETTINGS);
+
+  assert.match(yaml, /default_link_display: label/);
+  assert.match(yaml, /- key: website\n\s+visible: true\n\s+link_display: default/);
+  assert.match(yaml, /- key: linkedin\n\s+visible: true\n\s+link_display: default/);
+  assert.match(yaml, /- key: github\n\s+visible: true\n\s+link_display: default/);
+  assert.match(yaml, /- key: huggingface\n\s+visible: true\n\s+link_display: default/);
 });

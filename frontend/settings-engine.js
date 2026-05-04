@@ -32,7 +32,9 @@ window.SETTINGS_HELPERS = (() => {
     'split-header',
     'timeline-vertical',
   ];
-  const VALID_LINK_DISPLAY = ['label', 'url', 'both'];
+  const VALID_LINK_DISPLAY        = ['label', 'url', 'both'];
+  const VALID_GLOBAL_LINK_DISPLAY = ['label', 'url', 'both'];
+  const VALID_FIELD_LINK_DISPLAY  = ['default', 'label', 'url', 'both'];
 
   const PERSONAL_FIELD_CATALOG = [
     { key: 'name',        isLink: false, locked: true  },
@@ -47,12 +49,28 @@ window.SETTINGS_HELPERS = (() => {
   const LINK_FIELDS         = new Set(PERSONAL_FIELD_CATALOG.filter(f => f.isLink).map(f => f.key));
   const KNOWN_PERSONAL_KEYS = new Set(PERSONAL_FIELD_CATALOG.map(f => f.key));
 
+  function _defaultPersonalField(key) {
+    if (LINK_FIELDS.has(key)) return { key, visible: true, link_display: 'default' };
+    return { key, visible: true };
+  }
+
+  function _defaultPersonalFields() {
+    return PERSONAL_FIELD_CATALOG.map(f => _defaultPersonalField(f.key));
+  }
+
+  function _normalizeFieldLinkDisplay(key, rawValue) {
+    if (!LINK_FIELDS.has(key)) return undefined;
+    if (VALID_FIELD_LINK_DISPLAY.includes(rawValue)) return rawValue;
+    if (VALID_GLOBAL_LINK_DISPLAY.includes(rawValue)) return rawValue;
+    return 'default';
+  }
+
   const DEFAULT_SETTINGS = {
     template: 'classic',
     layout: { density: 'balanced', font_scale: 'normal' },
     personal: {
-      link_display: 'label',
-      fields: PERSONAL_FIELD_CATALOG.map(f => ({ key: f.key, visible: true })),
+      default_link_display: 'label',
+      fields: _defaultPersonalFields(),
     },
     sections: [
       { key: 'summary',         title: 'SUMMARY',         visible: true  },
@@ -80,15 +98,15 @@ window.SETTINGS_HELPERS = (() => {
       `  font_scale: ${s.layout.font_scale}          # small | normal | large`,
       '',
       'personal:',
-      `  link_display: ${s.personal.link_display}  # label | url | both`,
+      `  default_link_display: ${s.personal.default_link_display}  # label | url | both`,
     ];
     if (Array.isArray(s.personal.fields) && s.personal.fields.length > 0) {
       lines.push('  fields:');
       for (const f of s.personal.fields) {
         lines.push(`    - key: ${f.key}`);
         lines.push(`      visible: ${f.visible}`);
-        if (f.link_display && LINK_FIELDS.has(f.key)) {
-          lines.push(`      link_display: ${f.link_display}`);
+        if (LINK_FIELDS.has(f.key)) {
+          lines.push(`      link_display: ${_normalizeFieldLinkDisplay(f.key, f.link_display)}`);
         }
       }
     }
@@ -107,9 +125,8 @@ window.SETTINGS_HELPERS = (() => {
   }
 
   function normalizePersonalFields(rawFields) {
-    if (!Array.isArray(rawFields)) {
-      return PERSONAL_FIELD_CATALOG.map(f => ({ key: f.key, visible: true }));
-    }
+    if (!Array.isArray(rawFields)) return _defaultPersonalFields();
+
     const seen = new Set();
     const result = [];
     for (const item of rawFields) {
@@ -117,14 +134,16 @@ window.SETTINGS_HELPERS = (() => {
       const key = String(item.key);
       if (seen.has(key) || !KNOWN_PERSONAL_KEYS.has(key)) continue;
       seen.add(key);
+
       const entry = { key, visible: item.visible !== false };
-      if (LINK_FIELDS.has(key) && VALID_LINK_DISPLAY.includes(item.link_display)) {
-        entry.link_display = item.link_display;
+      if (LINK_FIELDS.has(key)) {
+        entry.link_display = _normalizeFieldLinkDisplay(key, item.link_display);
       }
       result.push(entry);
     }
+
     for (const f of PERSONAL_FIELD_CATALOG) {
-      if (!seen.has(f.key)) result.push({ key: f.key, visible: true });
+      if (!seen.has(f.key)) result.push(_defaultPersonalField(f.key));
     }
     return result;
   }
@@ -153,7 +172,10 @@ window.SETTINGS_HELPERS = (() => {
 
     const personal = rawDefaults.personal;
     if (personal && typeof personal === 'object') {
-      if (VALID_LINK_DISPLAY.includes(personal.link_display)) normalized.personal.link_display = personal.link_display;
+      const rawDefault = personal.default_link_display ?? personal.link_display;
+      if (VALID_GLOBAL_LINK_DISPLAY.includes(rawDefault)) {
+        normalized.personal.default_link_display = rawDefault;
+      }
       if (Array.isArray(personal.fields)) normalized.personal.fields = normalizePersonalFields(personal.fields);
     }
 
@@ -224,11 +246,12 @@ window.SETTINGS_HELPERS = (() => {
     }
 
     if (parsed.personal && typeof parsed.personal === 'object') {
-      if (parsed.personal.link_display != null) {
-        out.personal.link_display = String(parsed.personal.link_display);
-        if (!VALID_LINK_DISPLAY.includes(out.personal.link_display)) {
-          warnings.push({ msg: `unknown link_display "${out.personal.link_display}" — using label`, line: null });
-          out.personal.link_display = 'label';
+      const rawDefault = parsed.personal.default_link_display ?? parsed.personal.link_display;
+      if (rawDefault != null) {
+        out.personal.default_link_display = String(rawDefault);
+        if (!VALID_GLOBAL_LINK_DISPLAY.includes(out.personal.default_link_display)) {
+          warnings.push({ msg: `unknown default_link_display "${out.personal.default_link_display}" — using label`, line: null });
+          out.personal.default_link_display = 'label';
         }
       }
       out.personal.fields = normalizePersonalFields(
@@ -269,6 +292,8 @@ window.SETTINGS_HELPERS = (() => {
     VALID_FONT,
     VALID_TPL,
     VALID_LINK_DISPLAY,
+    VALID_GLOBAL_LINK_DISPLAY,
+    VALID_FIELD_LINK_DISPLAY,
     DEFAULT_SETTINGS,
     settingsToYaml,
     parseSettings,
