@@ -1,51 +1,47 @@
 const fileSync = (() => {
-  const banner = document.getElementById("error-banner");
-  let saveTimer = null;
+  const RESUME_KEY = "mkcv:default:resume.yaml";
+  const OLD_KEY    = "mkcv_yaml";
 
-  async function loadFile() {
-    try {
-      const resp = await fetch("/api/file");
-      if (!resp.ok) return;
-      const { content } = await resp.json();
-      if (content && content.trim()) {
-        window.editorAdapter.setValue(content);
-        window.editorAdapter.clearHistory();
-        app.setState({ yaml: content });
-      }
-    } catch {
-      // fall back to INITIAL_YAML silently
+  function _migrate() {
+    if (!localStorage.getItem(RESUME_KEY) && localStorage.getItem(OLD_KEY)) {
+      try {
+        localStorage.setItem(RESUME_KEY, localStorage.getItem(OLD_KEY));
+        localStorage.removeItem(OLD_KEY);
+      } catch {}
     }
   }
 
-  async function saveFile(content) {
-    try {
-      const resp = await fetch("/api/file", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content }),
-      });
-      if (!resp.ok) {
-        const err = await resp.json();
-        banner.style.display = "block";
-        banner.textContent = `[File save failed] ${err.message}`;
-      } else {
-        if (banner.textContent.startsWith("[File save failed]")) {
-          banner.style.display = "none";
-          banner.textContent = "";
-        }
-      }
-    } catch {
-      banner.style.display = "block";
-      banner.textContent = "[File save failed] Network error";
+  function _showToast(msg) {
+    const stack = document.getElementById("toast-stack");
+    if (!stack) return;
+    const el = document.createElement("div");
+    el.className = "toast warn";
+    el.innerHTML = `<span class="toast-title">${msg}</span><button class="toast-close" onclick="this.parentElement.remove()">×</button>`;
+    stack.appendChild(el);
+    setTimeout(() => el.remove(), 4500);
+  }
+
+  function loadFile() {
+    const saved = localStorage.getItem(RESUME_KEY);
+    if (saved && saved.trim()) {
+      window.editorAdapter.setValue(saved);
+      window.editorAdapter.clearHistory();
+      app.setState({ yaml: saved });
     }
   }
 
-  document.addEventListener("DOMContentLoaded", async () => {
-    await loadFile();
-    window.editorAdapter.onChange((val) => {
-      if (window.settingsSync && window.settingsSync.activeTab === 'settings') return;
-      clearTimeout(saveTimer);
-      saveTimer = setTimeout(() => saveFile(val), 1000);
-    });
+  function saveFile(content) {
+    if (window.settingsSync?.activeTab === "settings") return;
+    try {
+      localStorage.setItem(RESUME_KEY, content);
+    } catch {
+      _showToast("Resume not saved — browser storage is full or unavailable.");
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    _migrate();
+    loadFile();
+    window.editorAdapter.onChange((val) => saveFile(val));
   });
 })();

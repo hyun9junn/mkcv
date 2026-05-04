@@ -193,7 +193,7 @@ const settingsSync = (() => {
 
   // ── Reorder mycv.yaml to match section order ──
 
-  async function _reorderAndSaveResume(sectionOrder) {
+  function _reorderAndSaveResume(sectionOrder) {
     const yaml = app.state.yaml;
     if (!yaml || !yaml.trim() || !window.sectionsState) return;
     const reordered = sectionsState.reorderMainArea(yaml, sectionOrder);
@@ -205,12 +205,10 @@ const settingsSync = (() => {
       // file-sync's onChange handler saves automatically
     } else {
       try {
-        await fetch('/api/file', {
-          method:  'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body:    JSON.stringify({ content: reordered }),
-        });
-      } catch {}
+        localStorage.setItem('mkcv:default:resume.yaml', reordered);
+      } catch {
+        _toast('Resume not saved — browser storage is full or unavailable.', 'warn');
+      }
     }
   }
 
@@ -394,11 +392,11 @@ const settingsSync = (() => {
 
   // ── Toast ──
 
-  function _toast(msg) {
+  function _toast(msg, type = 'info') {
     const stack = document.getElementById('toast-stack');
     if (!stack) return;
     const el       = document.createElement('div');
-    el.className   = 'toast info';
+    el.className   = `toast ${type}`;
     el.innerHTML   = `<span class="toast-title">${msg}</span><button class="toast-close" onclick="this.parentElement.remove()">×</button>`;
     stack.appendChild(el);
     setTimeout(() => el.remove(), 4500);

@@ -25,7 +25,6 @@ from backend.models import (
 )
 
 TEMPLATES_DIR = Path(__file__).parent / "templates"
-CV_FILE       = Path("mycv.yaml")
 SETTINGS_FILE = Path("settings.yaml")
 
 _SAMPLE_CV = CVData(
@@ -543,22 +542,6 @@ async def preview_pdf(req: CVRequest):
         pdf_bytes = (Path(tmpdir) / "cv.pdf").read_bytes()
 
     return Response(content=pdf_bytes, media_type="application/pdf")
-
-
-@app.get("/api/file")
-async def get_file():
-    if not CV_FILE.exists():
-        return {"content": ""}
-    return {"content": CV_FILE.read_text()}
-
-
-@app.post("/api/file")
-async def save_file(req: FileRequest):
-    try:
-        CV_FILE.write_text(req.content)
-        return {"ok": True}
-    except OSError as e:
-        return _error("file_write_failed", str(e), status=500)
 
 
 @app.get("/api/settings")

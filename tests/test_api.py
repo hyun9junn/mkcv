@@ -165,38 +165,6 @@ async def test_preview_pdf_unknown_template(app):
     assert resp.status_code == 422
     assert resp.json()["error"] == "unknown_template"
 
-async def test_get_file_missing_returns_empty(app, tmp_path, monkeypatch):
-    monkeypatch.chdir(tmp_path)
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-        resp = await client.get("/api/file")
-    assert resp.status_code == 200
-    assert resp.json()["content"] == ""
-
-async def test_get_file_existing_returns_content(app, tmp_path, monkeypatch):
-    monkeypatch.chdir(tmp_path)
-    (tmp_path / "mycv.yaml").write_text("personal:\n  name: Test\n")
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-        resp = await client.get("/api/file")
-    assert resp.status_code == 200
-    assert "Test" in resp.json()["content"]
-
-async def test_post_file_writes_content(app, tmp_path, monkeypatch):
-    monkeypatch.chdir(tmp_path)
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-        resp = await client.post("/api/file", json={"content": "personal:\n  name: Bob\n"})
-    assert resp.status_code == 200
-    assert resp.json()["ok"] is True
-    assert (tmp_path / "mycv.yaml").read_text() == "personal:\n  name: Bob\n"
-
-async def test_post_file_overwrites_existing(app, tmp_path, monkeypatch):
-    monkeypatch.chdir(tmp_path)
-    (tmp_path / "mycv.yaml").write_text("old content")
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-        resp = await client.post("/api/file", json={"content": "new content"})
-    assert resp.json()["ok"] is True
-    assert (tmp_path / "mycv.yaml").read_text() == "new content"
-
-
 async def test_schema_returns_200(app):
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         resp = await client.get("/api/schema")
@@ -361,3 +329,15 @@ async def test_export_pdf_no_disk_write(app, tmp_path, monkeypatch):
         await client.post("/api/export/pdf", json={"yaml": VALID_YAML, "template": "classic"})
     # PDF generation may fail if pdflatex is absent — no output/ dir must exist regardless
     assert not (tmp_path / "output").exists()
+
+
+async def test_file_endpoint_removed(app):
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        resp = await client.get("/api/file")
+    assert resp.status_code == 404
+
+
+async def test_file_post_endpoint_removed(app):
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        resp = await client.post("/api/file", json={"content": "test"})
+    assert resp.status_code in (404, 405)
