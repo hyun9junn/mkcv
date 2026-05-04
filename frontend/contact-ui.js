@@ -176,7 +176,7 @@ const contactUI = (() => {
     const pill   = document.getElementById('contact-pill');
     const flyout = document.getElementById('contact-flyout');
     const caret  = document.getElementById('contact-pill-caret');
-    if (!pill || !flyout) return;
+    if (!pill || !flyout || !caret) return;
 
     function openFlyout() {
       flyout.style.display = '';
@@ -221,7 +221,7 @@ const contactUI = (() => {
 
     // Rebuild value previews when resume.yaml changes and flyout is open
     let _rebuildTimer = null;
-    window.editorAdapter.onChange(() => {
+    if (window.editorAdapter) window.editorAdapter.onChange(() => {
       if (flyout.style.display === 'none') return;
       clearTimeout(_rebuildTimer);
       _rebuildTimer = setTimeout(() => rebuild(_currentSettings()), 300);
