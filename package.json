@@ -1,0 +1,28 @@
+{
+  "name": "mkcv",
+  "version": "1.0.0",
+  "description": "A web app for authoring and exporting your CV from a single YAML source of truth.",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hyun9junn/mkcv.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/hyun9junn/mkcv/issues"
+  },
+  "homepage": "https://github.com/hyun9junn/mkcv#readme",
+  "dependencies": {
+    "js-yaml": "^4.1.1"
+  }
+}

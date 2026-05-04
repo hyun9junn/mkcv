@@ -34,10 +34,26 @@ window.SETTINGS_HELPERS = (() => {
   ];
   const VALID_LINK_DISPLAY = ['label', 'url', 'both'];
 
+  const PERSONAL_FIELD_CATALOG = [
+    { key: 'name',        isLink: false, locked: true  },
+    { key: 'email',       isLink: false, locked: false },
+    { key: 'phone',       isLink: false, locked: false },
+    { key: 'location',    isLink: false, locked: false },
+    { key: 'website',     isLink: true,  locked: false },
+    { key: 'linkedin',    isLink: true,  locked: false },
+    { key: 'github',      isLink: true,  locked: false },
+    { key: 'huggingface', isLink: true,  locked: false },
+  ];
+  const LINK_FIELDS         = new Set(PERSONAL_FIELD_CATALOG.filter(f => f.isLink).map(f => f.key));
+  const KNOWN_PERSONAL_KEYS = new Set(PERSONAL_FIELD_CATALOG.map(f => f.key));
+
   const DEFAULT_SETTINGS = {
     template: 'classic',
     layout: { density: 'balanced', font_scale: 'normal' },
-    personal: { link_display: 'label' },
+    personal: {
+      link_display: 'label',
+      fields: PERSONAL_FIELD_CATALOG.map(f => ({ key: f.key, visible: true })),
+    },
     sections: [
       { key: 'summary',         title: 'SUMMARY',         visible: true  },
       { key: 'experience',      title: 'EXPERIENCE',      visible: true  },
@@ -65,9 +81,19 @@ window.SETTINGS_HELPERS = (() => {
       '',
       'personal:',
       `  link_display: ${s.personal.link_display}  # label | url | both`,
-      '',
-      'sections:',
     ];
+    if (Array.isArray(s.personal.fields) && s.personal.fields.length > 0) {
+      lines.push('  fields:');
+      for (const f of s.personal.fields) {
+        lines.push(`    - key: ${f.key}`);
+        lines.push(`      visible: ${f.visible}`);
+        if (f.link_display && LINK_FIELDS.has(f.key)) {
+          lines.push(`      link_display: ${f.link_display}`);
+        }
+      }
+    }
+    lines.push('');
+    lines.push('sections:');
     for (const sec of s.sections) {
       lines.push(`  - key: ${sec.key}`);
       lines.push(`    title: ${JSON.stringify(sec.title)}`);
@@ -78,6 +104,29 @@ window.SETTINGS_HELPERS = (() => {
 
   function _clone(value) {
     return JSON.parse(JSON.stringify(value));
+  }
+
+  function normalizePersonalFields(rawFields) {
+    if (!Array.isArray(rawFields)) {
+      return PERSONAL_FIELD_CATALOG.map(f => ({ key: f.key, visible: true }));
+    }
+    const seen = new Set();
+    const result = [];
+    for (const item of rawFields) {
+      if (!item || typeof item !== 'object' || item.key == null) continue;
+      const key = String(item.key);
+      if (seen.has(key) || !KNOWN_PERSONAL_KEYS.has(key)) continue;
+      seen.add(key);
+      const entry = { key, visible: item.visible !== false };
+      if (LINK_FIELDS.has(key) && VALID_LINK_DISPLAY.includes(item.link_display)) {
+        entry.link_display = item.link_display;
+      }
+      result.push(entry);
+    }
+    for (const f of PERSONAL_FIELD_CATALOG) {
+      if (!seen.has(f.key)) result.push({ key: f.key, visible: true });
+    }
+    return result;
   }
 
   function _getDefaultSection(key) {
@@ -181,6 +230,9 @@ window.SETTINGS_HELPERS = (() => {
           out.personal.link_display = 'label';
         }
       }
+      out.personal.fields = normalizePersonalFields(
+        Array.isArray(parsed.personal.fields) ? parsed.personal.fields : undefined
+      );
     }
 
     if (Array.isArray(parsed.sections)) {
@@ -210,6 +262,8 @@ window.SETTINGS_HELPERS = (() => {
   return {
     SECTION_CATALOG,
     KNOWN_KEYS,
+    PERSONAL_FIELD_CATALOG,
+    LINK_FIELDS,
     VALID_DENSITY,
     VALID_FONT,
     VALID_TPL,

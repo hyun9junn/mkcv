@@ -287,7 +287,10 @@ test('settings helpers normalize template defaults and accept current template n
 
   assert.equal(normalized.template, 'resume-tech');
   assert.deepEqual(JSON.parse(JSON.stringify(normalized.layout)), { density: 'compact', font_scale: 'normal' });
-  assert.deepEqual(JSON.parse(JSON.stringify(normalized.personal)), { link_display: 'label' });
+  assert.equal(normalized.personal.link_display, 'label');
+  assert.ok(Array.isArray(normalized.personal.fields));
+  assert.equal(normalized.personal.fields.length, 8);
+  assert.ok(normalized.personal.fields.every(f => f.visible === true));
   assert.deepEqual(JSON.parse(JSON.stringify(normalized.sections[0])), { key: 'projects', title: 'Selected Work', visible: true });
 });
 
