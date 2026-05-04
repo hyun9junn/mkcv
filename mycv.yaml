@@ -15,53 +15,6 @@ summary:
   industrial environments. Hands-on experience through internships at AI startups,
   research labs, and production engineering teams.
 
-experience:
-  - title: Solution Architect Intern
-    company: SqueezeBits
-    start_date: "2026.03"
-    end_date: null
-    location: Seoul, Korea
-    highlights:
-      - Worked on hardware-aware software optimization for efficient model inference
-      - Collaborated with Modular (Mojo / MAX framework) to accelerate diffusion model inference
-      - Investigated FP8 quantization slowdowns in FLUX-based diffusion models
-      - Profiled GPU kernel dispatch efficiency, memory movement, and scaling overhead
-      - Adapted rapidly to large production codebases with frequent upstream changes
-
-  - title: ML Research Engineer Intern 
-    company: AsteroMorph
-    start_date: "2026.01"
-    end_date: "2026.02"
-    location: Seoul, Korea
-    highlights:
-      - Optimized repeated inference and weight-update loops using vLLM
-      - Tuned FP8 kernels for efficient execution on NVIDIA B200 GPUs
-      - Improved RAG retrieval performance and trained reranker models
-      - Built automated synthetic data pipelines using LLMs
-      - Designed multi-LLM ensemble ranking systems for evaluation workflows
-
-  - title: Undergraduate Research Intern
-    company: Seoul National University MLLab
-    start_date: "2025.06"
-    end_date: "2025.12"
-    location: Seoul, Korea
-    highlights:
-      - Conducted research on LLM quantization for efficient inference
-      - Investigated performance gaps between theoretical and real GPU speedups
-      - Contributed to FlatQuant open-source repository
-      - Studied research methodology and paper writing for top conferences
-
-  - title: Undergraduate Research Intern
-    company: Seoul National University CMALab
-    start_date: "2024.10"
-    end_date: "2025.06"
-    location: Seoul, Korea
-    highlights:
-      - Studied GPTQ, AWQ, QuaRot and related quantization methods
-      - Implemented research ideas using PyTorch and Transformers
-      - Assisted research on reasoning-oriented LLM optimization
-      - Developed collaborative research experience in academic environments
-
 education:
   - degree: B.S. Civil and Environmental Engineering / I.M. Artificial Intelligence
     institution: Seoul National University
@@ -69,18 +22,10 @@ education:
     end_date: "Present"
     gpa: "3.92"
 
-skills:
-  - category: Languages
-    items: [Python, C++, SQL, Bash, MATLAB]
-
-  - category: AI / Deep Learning
-    items: [PyTorch, Transformers, LoRA, Fine-tuning, Quantization]
-
-  - category: LLM Systems
-    items: [vLLM, CUDA, TensorRT-LLM, Efficient Inference, Prompt Engineering]
-
-  - category: Backend / Infra
-    items: [Linux, Git, Docker, FastAPI, REST API]
+publications:
+  - title: Paper Title
+    venue: Conference or Journal
+    date: "2024"
 
 projects:
   - name: K-EXAONE Quantization
@@ -131,6 +76,19 @@ projects:
       - Built target-based movement logic for multiple ghost characters
       - Delivered fully playable end-to-end desktop game
 
+skills:
+  - category: Languages
+    items: [Python, C++, SQL, Bash, MATLAB]
+
+  - category: AI / Deep Learning
+    items: [PyTorch, Transformers, LoRA, Fine-tuning, Quantization]
+
+  - category: LLM Systems
+    items: [vLLM, CUDA, TensorRT-LLM, Efficient Inference, Prompt Engineering]
+
+  - category: Backend / Infra
+    items: [Linux, Git, Docker, FastAPI, REST API]
+
 awards:
   - name: 1st Place, Hanwha Life Future Talent Contest - AI sector
     issuer: Hanwha Life
@@ -152,6 +110,15 @@ awards:
     issuer: KMO
     date: "2016"
 
+languages:
+  - language: English
+    proficiency: Native
+
+certifications:
+  - name: Certification Name
+    issuer: Issuing Organization
+    date: "2024"
+
 extracurricular:
   - title: Reporter / Vice President
     organization: Gongsang, SNU College of Engineering
@@ -160,3 +127,52 @@ extracurricular:
       - Wrote official promotional articles for College of Engineering
       - Mentored students in outreach engineering programs
       - Developed leadership, writing, and communication skills
+
+### invisible sections
+
+experience:
+  - title: Solution Architect Intern
+    company: SqueezeBits
+    start_date: "2026.03"
+    end_date: null
+    location: Seoul, Korea
+    highlights:
+      - Worked on hardware-aware software optimization for efficient model inference
+      - Collaborated with Modular (Mojo / MAX framework) to accelerate diffusion model inference
+      - Investigated FP8 quantization slowdowns in FLUX-based diffusion models
+      - Profiled GPU kernel dispatch efficiency, memory movement, and scaling overhead
+      - Adapted rapidly to large production codebases with frequent upstream changes
+
+  - title: ML Research Engineer Intern 
+    company: AsteroMorph
+    start_date: "2026.01"
+    end_date: "2026.02"
+    location: Seoul, Korea
+    highlights:
+      - Optimized repeated inference and weight-update loops using vLLM
+      - Tuned FP8 kernels for efficient execution on NVIDIA B200 GPUs
+      - Improved RAG retrieval performance and trained reranker models
+      - Built automated synthetic data pipelines using LLMs
+      - Designed multi-LLM ensemble ranking systems for evaluation workflows
+
+  - title: Undergraduate Research Intern
+    company: Seoul National University MLLab
+    start_date: "2025.06"
+    end_date: "2025.12"
+    location: Seoul, Korea
+    highlights:
+      - Conducted research on LLM quantization for efficient inference
+      - Investigated performance gaps between theoretical and real GPU speedups
+      - Contributed to FlatQuant open-source repository
+      - Studied research methodology and paper writing for top conferences
+
+  - title: Undergraduate Research Intern
+    company: Seoul National University CMALab
+    start_date: "2024.10"
+    end_date: "2025.06"
+    location: Seoul, Korea
+    highlights:
+      - Studied GPTQ, AWQ, QuaRot and related quantization methods
+      - Implemented research ideas using PyTorch and Transformers
+      - Assisted research on reasoning-oriented LLM optimization
+      - Developed collaborative research experience in academic environments
