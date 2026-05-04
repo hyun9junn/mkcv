@@ -352,10 +352,127 @@
   }
 
   // ---------------------------------------------------------------------------
+  // Settings tab autocomplete
+  // ---------------------------------------------------------------------------
+
+  const SETTINGS_VALUE_SUGGESTIONS = {
+    template: () => (window.SETTINGS_HELPERS?.VALID_TPL ?? []),
+    'layout.density': () => (window.SETTINGS_HELPERS?.VALID_DENSITY ?? []),
+    'layout.font_scale': () => (window.SETTINGS_HELPERS?.VALID_FONT ?? []),
+    'personal.default_link_display': () => ['label', 'url', 'both'],
+    'personal.fields.visible': () => ['true', 'false'],
+    'personal.fields.link_display': () => ['default', 'label', 'url', 'both'],
+    'sections.visible': () => ['true', 'false'],
+  };
+
+  function _activeTab() {
+    return window.settingsSync?.activeTab ?? 'resume';
+  }
+
+  function _isResumeTab() {
+    return _activeTab() === 'resume';
+  }
+
+  function _isSettingsTab() {
+    return _activeTab() === 'settings';
+  }
+
+  function detectSettingsValueContext(editor) {
+    try {
+      const cursor = editor.getCursor();
+      const lineText = editor.getLine(cursor.line);
+      const textBeforeCursor = lineText.slice(0, cursor.ch);
+      const match = textBeforeCursor.match(/^\s*(?:-\s+)?(\w[\w_]*):\s*["']?([\w-]*)$/);
+      if (!match) return null;
+
+      const field = match[1];
+      const indent = (lineText.match(/^(\s*)/) || ['', ''])[1].length;
+      const valueToken = getValueToken(editor);
+      if (!valueToken) return null;
+
+      // template: classic
+      if (indent === 0 && field === 'template') {
+        return { kind: 'template', token: valueToken };
+      }
+
+      // layout.density, layout.font_scale, personal.default_link_display (indent 2)
+      if (indent === 2) {
+        const parentKey = findParentKeyAt(editor, cursor.line, 0);
+        if (parentKey === 'layout' && field === 'density') return { kind: 'layout.density', token: valueToken };
+        if (parentKey === 'layout' && field === 'font_scale') return { kind: 'layout.font_scale', token: valueToken };
+        if (parentKey === 'personal' && field === 'default_link_display') return { kind: 'personal.default_link_display', token: valueToken };
+      }
+
+      // sections list items: key/title/visible at indent 4 under sections: (indent 0)
+      if (indent === 4) {
+        const rootParent = findParentKeyAt(editor, cursor.line, 0);
+        if (rootParent === 'sections' && field === 'visible') {
+          return { kind: 'sections.visible', token: valueToken };
+        }
+        return null;
+      }
+
+      // personal.fields list items: visible/link_display at indent 6 under fields: (indent 2)
+      if (indent === 6) {
+        const midParent = findParentKeyAt(editor, cursor.line, 2);
+        if (midParent === 'fields') {
+          const itemKey = findCurrentListItemKey(editor, cursor.line, 4);
+          if (field === 'visible') return { kind: 'personal.fields.visible', token: valueToken };
+          if (field === 'link_display' && window.SETTINGS_HELPERS?.LINK_FIELDS?.has(itemKey)) {
+            return { kind: 'personal.fields.link_display', token: valueToken };
+          }
+        }
+        return null;
+      }
+
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function findCurrentListItemKey(editor, fromLine, keyIndent) {
+    for (let i = fromLine; i >= 0; i--) {
+      const text = editor.getLine(i);
+      if (!text.trim()) continue;
+      const lineIndent = (text.match(/^(\s*)/) || ['', ''])[1].length;
+      if (lineIndent < keyIndent) break;
+      const match = text.match(/^\s*-\s+key:\s*([\w-]+)/);
+      if (match) return match[1];
+    }
+    return null;
+  }
+
+  function getSettingsValueSuggestions(kind) {
+    const source = SETTINGS_VALUE_SUGGESTIONS[kind];
+    return typeof source === 'function' ? source() : [];
+  }
+
+  function settingsYamlHint(editor) {
+    if (!_isSettingsTab()) return null;
+
+    const context = detectSettingsValueContext(editor);
+    if (!context) return null;
+
+    const typed = editor.getLine(editor.getCursor().line)
+      .slice(context.token.from.ch, editor.getCursor().ch)
+      .replace(/^["']/, '')
+      .toLowerCase();
+
+    const list = getSettingsValueSuggestions(context.kind)
+      .filter((value) => value.toLowerCase().startsWith(typed))
+      .map((value) => ({ text: value, displayText: value }));
+
+    if (!list.length) return null;
+    return { list, from: context.token.from, to: context.token.to };
+  }
+
+  // ---------------------------------------------------------------------------
   // CM5 hint function
   // ---------------------------------------------------------------------------
 
-  function yamlHint(editor) {
+  function resumeYamlHint(editor) {
+    if (!_isResumeTab()) return null;
     // --- Key completion ---
     const contextKey = detectContext(editor);
     if (contextKey) {
@@ -473,21 +590,25 @@
     return { list, from: valueToken.from, to: valueToken.to };
   }
 
+  function yamlHint(editor) {
+    if (_isSettingsTab()) return settingsYamlHint(editor);
+    return resumeYamlHint(editor);
+  }
+
   // ---------------------------------------------------------------------------
   // Public init
   // ---------------------------------------------------------------------------
 
-  window.yamlHint = yamlHint;          // exposed for Tab fast-accept
+  window.yamlHint = yamlHint;
   window.initYamlAutocomplete = function initYamlAutocomplete(cmEditor) {
     fetchSchema();
 
-    // Auto-trigger after the user stops typing (debounced to avoid showing on every keystroke)
-    let _hintTimer = null;
-    cmEditor.on("change", (editor, change) => {
-      if (change.origin === "+delete" || change.origin === "paste" || change.origin === "setValue" || change.origin === "complete") return;
-      clearTimeout(_hintTimer);
-      _hintTimer = setTimeout(() => {
-        if (detectContext(editor) || detectValueContext(editor)) {
+    let hintTimer = null;
+    cmEditor.on('change', (editor, change) => {
+      if (change.origin === '+delete' || change.origin === 'paste' || change.origin === 'setValue' || change.origin === 'complete') return;
+      clearTimeout(hintTimer);
+      hintTimer = setTimeout(() => {
+        if (yamlHint(editor)) {
           editor.showHint({ hint: yamlHint, completeSingle: false });
         }
       }, 300);

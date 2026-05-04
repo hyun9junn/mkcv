@@ -65,6 +65,12 @@ class CodeMirrorAdapter {
     return suppressed;
   }
 
+  closeHint() {
+    if (typeof this._editor.closeHint === 'function') {
+      this._editor.closeHint();
+    }
+  }
+
   clearHistory() {
     this._editor.clearHistory();
   }

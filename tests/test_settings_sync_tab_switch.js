@@ -85,6 +85,7 @@ function createContext(options = {}) {
     value: '',
     scrollLeft: 0,
     scrollTop: 0,
+    closeHintCalls: 0,
     _suppressNextPreviewRefresh: false,
     setValue(str) {
       this.value = str;
@@ -102,6 +103,9 @@ function createContext(options = {}) {
       this.value = str;
       for (const callback of editorChangeCallbacks) callback(str);
       this.scrollTo(left, top);
+    },
+    closeHint() {
+      this.closeHintCalls += 1;
     },
     getScrollInfo() {
       return { left: this.scrollLeft, top: this.scrollTop };
@@ -450,4 +454,14 @@ test('settings editor batches preview and section panel updates while typing', a
   assert.equal(counters.previewRenders, 1);
   assert.equal(counters.buildPanelCalls, 1);
   assert.equal(counters.reorderCalls, 1);
+});
+
+test('switching tabs closes any open completion menu', async () => {
+  const { context, domReadyCallbacks, elements } = createContext();
+  await bootSettingsSync(context, domReadyCallbacks);
+
+  elements.get('file-tab-settings').click();
+  elements.get('file-tab-resume').click();
+
+  assert.equal(context.window.editorAdapter.closeHintCalls, 2);
 });

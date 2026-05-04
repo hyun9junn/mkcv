@@ -308,6 +308,7 @@ const settingsSync = (() => {
   function switchToResume() {
     if (_activeTab === 'resume') return;
     _saveTabScroll(_activeTab);
+    window.editorAdapter?.closeHint?.();
     _activeTab = 'resume';
     _setTabActive('resume');
     _suppress = true;
@@ -321,6 +322,7 @@ const settingsSync = (() => {
   function switchToSettings() {
     if (_activeTab === 'settings') return;
     _saveTabScroll(_activeTab);
+    window.editorAdapter?.closeHint?.();
     _activeTab = 'settings';
     _setTabActive('settings');
     _suppress = true;
