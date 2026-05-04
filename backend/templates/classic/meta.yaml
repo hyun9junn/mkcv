@@ -24,7 +24,7 @@ defaults:
         link_display: default
       - key: github
         visible: true
-        link_display: url
+        link_display: default
       - key: huggingface
         visible: true
         link_display: default
