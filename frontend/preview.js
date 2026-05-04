@@ -94,7 +94,7 @@ const preview = (() => {
       const resp = await fetch("/api/preview/pdf", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ yaml, template, section_order, section_titles, density: app.state.density, font_scale: app.state.font_scale, link_display: app.state.link_display }),
+        body: JSON.stringify({ yaml, template, section_order, section_titles, density: app.state.density, font_scale: app.state.font_scale, link_display: app.state.link_display, personal_fields: app.state.personal_fields ?? [] }),
         signal,
       });
       if (signal.aborted) return;
