@@ -18,7 +18,7 @@ Write your CV once in `mycv.yaml` — get a live PDF preview, export to Markdown
 | **10 LaTeX templates** | `classic`, `academic-research`, `banking`, `column-skills`, `executive-corporate`, `heritage`, `hipster`, `modern-startup`, `resume-tech`, `sidebar-minimal` |
 | **Layout controls** | Density (comfortable / balanced / compact) and font scale (small / normal / large) |
 | **Three export formats** | Markdown (`.md`), LaTeX (`.tex`), PDF (`.pdf`) |
-| **File sync** | Loads `mycv.yaml` on startup; auto-saves every 1 s as you type |
+| **Auto-save** | Resume and settings auto-save to browser localStorage as you type |
 | **Inline YAML validation** | Errors shown as you type with YAML autocomplete hints |
 | **Dark / light mode** | Theme toggle persisted across sessions |
 | **All sections optional** | Empty sections are skipped in every output format |
@@ -26,6 +26,56 @@ Write your CV once in `mycv.yaml` — get a live PDF preview, export to Markdown
 ---
 
 ## Quick Start
+
+The recommended way to run mkcv is with Docker — no dependencies to install.
+
+```bash
+docker pull ghcr.io/hyun9junn/mkcv:latest
+docker run --rm -p 8000:8000 ghcr.io/hyun9junn/mkcv:latest
+```
+
+Open **http://localhost:8000** in your browser.
+
+> **Note:** the GHCR package must be public for unauthenticated pulls. If you get a `pull access denied` error, the image may still be private — check the repo's Packages settings.
+
+---
+
+## Your Data
+
+mkcv stores everything in your browser's localStorage — the server is stateless and writes nothing at runtime.
+
+| Key | Content |
+|---|---|
+| `mkcv:default:resume.yaml` | Your CV content |
+| `mkcv:default:settings.yaml` | Layout, section order, template preferences |
+
+Data persists across sessions on the same machine and browser. It is private to your browser.
+
+**Backup & portability:** use the Export buttons in the toolbar to download your CV and settings as files. To restore on another machine, paste the file contents into the editor (switch tabs to load settings). There is no cloud sync — if you clear your browser's site data, your resume is lost unless you exported it first.
+
+---
+
+## Cloud Deployment
+
+mkcv is a stateless container — deploy it anywhere Docker is supported. No platform config files are needed; both platforms auto-detect the `Dockerfile`.
+
+### Railway
+
+1. Fork this repo and connect it to a new Railway project via **Deploy from GitHub repo**
+2. Railway sets `PORT` automatically
+3. Optionally set `WEB_CONCURRENCY=4` in Railway environment variables for higher PDF throughput
+
+### Render
+
+1. Create a new **Web Service** in Render → connect your GitHub repo
+2. Set environment to **Docker**
+3. Render sets `PORT` automatically — no additional config needed
+
+---
+
+## Dev / Contributor Setup
+
+For local development without Docker:
 
 **Requirements:** Python 3.11+, and `pdflatex` on your `PATH` (see [Installing LaTeX](#installing-latex) below).
 
@@ -37,7 +87,7 @@ pip install -r requirements.txt
 uvicorn backend.main:app --reload
 ```
 
-Open **http://localhost:8000** in your browser. The editor loads `mycv.yaml` from the project root automatically — create or edit it there.
+> pdflatex is required for PDF preview and export. The Docker image ships with TeX Live pre-installed — use Docker if you want to skip the LaTeX setup.
 
 ---
 
@@ -45,7 +95,7 @@ Open **http://localhost:8000** in your browser. The editor loads `mycv.yaml` fro
 
 ### Editor
 
-- Type your CV in YAML on the left pane. Changes auto-save to `mycv.yaml` every 1 second.
+- Type your CV in YAML on the left pane. Changes auto-save to browser localStorage as you type.
 - Validation errors appear inline as you type.
 - Autocomplete hints activate while editing field names.
 - The cursor position (line : column) is shown in the status bar.
@@ -252,8 +302,6 @@ See `backend/templates/classic/cv.tex.j2` for a reference implementation.
 | `/api/export/pdf` | POST | `{yaml, template}` | `.pdf` file |
 | `/api/templates` | GET | — | `{templates[], validation{}}` |
 | `/api/templates/{name}/validate` | POST | — | `{valid, errors[]}` |
-| `/api/file` | GET | — | `{content}` |
-| `/api/file` | POST | `{content}` | `{ok}` |
 
 All failure responses share a common shape:
 ```json
