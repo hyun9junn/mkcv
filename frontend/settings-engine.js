@@ -271,6 +271,7 @@ window.SETTINGS_HELPERS = (() => {
     DEFAULT_SETTINGS,
     settingsToYaml,
     parseSettings,
+    normalizePersonalFields,
     normalizeTemplateDefaults,
   };
 })();
