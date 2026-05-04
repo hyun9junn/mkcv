@@ -1,0 +1,15 @@
+.venv/
+__pycache__/
+**/__pycache__/
+*.pyc
+*.pyo
+.DS_Store
+output/
+.pytest_cache/
+.git/
+.worktrees/
+tests/
+docs/
+mycv.yaml
+settings.yaml
+node_modules/
