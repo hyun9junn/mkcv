@@ -1,5 +1,6 @@
 import pytest
 from httpx import AsyncClient, ASGITransport
+from tests.conftest import pdflatex_available
 
 VALID_YAML = """
 personal:
@@ -281,6 +282,7 @@ async def test_export_latex_invalid_density_returns_422(app):
     assert resp.status_code == 422
 
 
+@pdflatex_available
 async def test_preview_pdf_accepts_personal_fields(app):
     """personal_fields is accepted by the API without error; a valid PDF is returned."""
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
@@ -297,6 +299,7 @@ async def test_preview_pdf_accepts_personal_fields(app):
     assert resp.headers["content-type"] == "application/pdf"
 
 
+@pdflatex_available
 async def test_preview_pdf_personal_fields_defaults_to_empty(app):
     """Omitting personal_fields does not cause an error."""
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:

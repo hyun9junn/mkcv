@@ -1,8 +1,15 @@
+import shutil
+
 import pytest
 from backend.models import (
     CVData, PersonalInfo, ExperienceItem, EducationItem,
     SkillGroup, ProjectItem, CertificationItem, PublicationItem, LanguageItem,
     AwardItem, ExtracurricularItem, CustomSection, CustomBlock,
+)
+
+pdflatex_available = pytest.mark.skipif(
+    shutil.which("pdflatex") is None,
+    reason="pdflatex not installed",
 )
 
 
