@@ -16,7 +16,7 @@ from pydantic import BaseModel
 
 from backend.parsers.yaml_parser import parse_yaml, YAMLParseError, CVValidationError
 from backend.renderers.markdown import MarkdownRenderer
-from backend.renderers.latex import LaTeXRenderer, _build_layout_preamble, _FONT_SIZE, _make_jinja_filters
+from backend.renderers.latex import LaTeXRenderer, _build_layout_preamble, _FONT_SIZE, _make_jinja_filters, _make_link_text_fn
 from backend.models import (
     CVData, PersonalInfo, ExperienceItem, EducationItem, SkillGroup,
     ProjectItem, CertificationItem, PublicationItem, LanguageItem,
@@ -54,6 +54,60 @@ _SAMPLE_CV = CVData(
 _template_validation_cache: dict[str, dict] = {}
 _template_meta_cache: dict[str, dict] = {}
 _CV_SCHEMA_CACHE: dict | None = None
+_VALID_DENSITIES = {"comfortable", "balanced", "compact"}
+_VALID_FONT_SCALES = {"small", "normal", "large"}
+_VALID_LINK_DISPLAYS = {"label", "url", "both"}
+_BUILTIN_SECTION_KEYS = {
+    "summary",
+    "experience",
+    "education",
+    "skills",
+    "projects",
+    "certifications",
+    "publications",
+    "languages",
+    "awards",
+    "extracurricular",
+}
+
+
+def _normalize_template_defaults(defaults: object) -> dict:
+    if not isinstance(defaults, dict):
+        return {}
+
+    layout = defaults.get("layout")
+    personal = defaults.get("personal")
+    sections = defaults.get("sections")
+    if not isinstance(layout, dict) or not isinstance(personal, dict) or not isinstance(sections, list):
+        return {}
+    if layout.get("density") not in _VALID_DENSITIES:
+        return {}
+    if layout.get("font_scale") not in _VALID_FONT_SCALES:
+        return {}
+    if personal.get("link_display") not in _VALID_LINK_DISPLAYS:
+        return {}
+
+    section_keys = []
+    for section in sections:
+        if not isinstance(section, dict):
+            return {}
+        key = section.get("key")
+        if not isinstance(key, str):
+            return {}
+        if not isinstance(section.get("title"), str):
+            return {}
+        if not isinstance(section.get("visible"), bool):
+            return {}
+        if not section["title"].strip():
+            return {}
+        section_keys.append(key)
+
+    if len(section_keys) != len(_BUILTIN_SECTION_KEYS):
+        return {}
+    if set(section_keys) != _BUILTIN_SECTION_KEYS:
+        return {}
+
+    return defaults
 
 
 def _load_template_meta(template_dir: Path) -> dict:
@@ -63,13 +117,20 @@ def _load_template_meta(template_dir: Path) -> dict:
             "display_name": template_dir.name.replace("-", " ").title(),
             "description": "",
             "audience": "",
+            "defaults": {},
         }
-    with meta_path.open() as f:
-        data = _yaml.safe_load(f) or {}
+    try:
+        with meta_path.open() as f:
+            data = _yaml.safe_load(f) or {}
+    except _yaml.YAMLError:
+        data = {}
+    if not isinstance(data, dict):
+        data = {}
     return {
         "display_name": data.get("display_name", template_dir.name),
         "description": data.get("description", ""),
         "audience": data.get("audience", ""),
+        "defaults": _normalize_template_defaults(data.get("defaults")),
     }
 
 
@@ -89,6 +150,7 @@ def _validate_template(name: str) -> dict:
             undefined=jinja2.StrictUndefined,
         )
         env.filters.update(_make_jinja_filters())
+        env.globals['link_text'] = _make_link_text_fn("label")
         template = env.get_template("cv.tex.j2")
         default_order = ["summary", "experience", "education", "skills", "projects", "certifications", "publications", "languages", "awards", "extracurricular", "custom-sample"]
         custom_by_key = {cs.key: cs for cs in _SAMPLE_CV.custom_sections}
@@ -153,6 +215,7 @@ class CVRequest(BaseModel):
     section_titles: Optional[dict] = None
     density: Literal["comfortable", "balanced", "compact"] = "balanced"
     font_scale: Literal["small", "normal", "large"] = "normal"
+    link_display: Literal["label", "url", "both"] = "label"
 
 
 class FileRequest(BaseModel):
@@ -296,7 +359,7 @@ async def export_latex(req: CVRequest):
     if not _template_exists(req.template):
         return _error("unknown_template", f"Template '{req.template}' not found")
 
-    renderer = LaTeXRenderer(TEMPLATES_DIR, template=req.template, density=req.density, font_scale=req.font_scale)
+    renderer = LaTeXRenderer(TEMPLATES_DIR, template=req.template, density=req.density, font_scale=req.font_scale, link_display=req.link_display)
     content = renderer.render(cv, req.section_order, req.section_titles)
     OUTPUT_DIR.mkdir(exist_ok=True)
     (OUTPUT_DIR / "cv.tex").write_text(content)
@@ -319,7 +382,7 @@ async def export_pdf(req: CVRequest):
     if not _template_exists(req.template):
         return _error("unknown_template", f"Template '{req.template}' not found")
 
-    renderer = LaTeXRenderer(TEMPLATES_DIR, template=req.template, density=req.density, font_scale=req.font_scale)
+    renderer = LaTeXRenderer(TEMPLATES_DIR, template=req.template, density=req.density, font_scale=req.font_scale, link_display=req.link_display)
     latex_content = renderer.render(cv, req.section_order, req.section_titles)
 
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -366,7 +429,7 @@ async def preview_pdf(req: CVRequest):
     if not _template_exists(req.template):
         return _error("unknown_template", f"Template '{req.template}' not found")
 
-    renderer = LaTeXRenderer(TEMPLATES_DIR, template=req.template, density=req.density, font_scale=req.font_scale)
+    renderer = LaTeXRenderer(TEMPLATES_DIR, template=req.template, density=req.density, font_scale=req.font_scale, link_display=req.link_display)
     latex_content = renderer.render(cv, req.section_order, req.section_titles)
 
     with tempfile.TemporaryDirectory() as tmpdir:

@@ -1,6 +1,8 @@
 class CodeMirrorAdapter {
   constructor(container, initialValue = "") {
     this._zoomLevel = 1.0;
+    this._suppressChange = false;
+    this._suppressNextPreviewRefresh = false;
     this._editor = CodeMirror(container, {
       value: initialValue,
       mode: "yaml",
@@ -30,10 +32,37 @@ class CodeMirrorAdapter {
     this._editor.setValue(str);
   }
 
+  setValueSilently(str) {
+    this._suppressChange = true;
+    try {
+      this._editor.setValue(str);
+    } finally {
+      this._suppressChange = false;
+    }
+  }
+
   setValuePreserveScroll(str) {
     const scroll = this._editor.getScrollInfo();
     this._editor.setValue(str);
     this._editor.scrollTo(scroll.left, scroll.top);
+  }
+
+  getScrollInfo() {
+    return this._editor.getScrollInfo();
+  }
+
+  scrollTo(left, top) {
+    this._editor.scrollTo(left, top);
+  }
+
+  suppressNextPreviewRefresh() {
+    this._suppressNextPreviewRefresh = true;
+  }
+
+  consumeSuppressedPreviewRefresh() {
+    const suppressed = this._suppressNextPreviewRefresh;
+    this._suppressNextPreviewRefresh = false;
+    return suppressed;
   }
 
   clearHistory() {
@@ -41,7 +70,10 @@ class CodeMirrorAdapter {
   }
 
   onChange(callback) {
-    this._editor.on("change", () => callback(this.getValue()));
+    this._editor.on("change", () => {
+      if (this._suppressChange) return;
+      callback(this.getValue());
+    });
   }
 
   onCursorActivity(callback) {

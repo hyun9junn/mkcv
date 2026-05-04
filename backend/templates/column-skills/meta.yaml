@@ -1,3 +1,40 @@
 display_name: "Column Skills"
 description: "Full-width header, two-column body — experience/education left, skill chips/summary/awards right — engineering, data science"
 audience: general
+defaults:
+  layout:
+    density: balanced
+    font_scale: small
+  personal:
+    link_display: label
+  sections:
+    - key: summary
+      title: "SUMMARY"
+      visible: true
+    - key: experience
+      title: "EXPERIENCE"
+      visible: true
+    - key: skills
+      title: "SKILLS"
+      visible: true
+    - key: education
+      title: "EDUCATION"
+      visible: true
+    - key: projects
+      title: "PROJECTS"
+      visible: true
+    - key: awards
+      title: "AWARDS"
+      visible: false
+    - key: publications
+      title: "PUBLICATIONS"
+      visible: false
+    - key: certifications
+      title: "CERTIFICATIONS"
+      visible: false
+    - key: languages
+      title: "LANGUAGES"
+      visible: false
+    - key: extracurricular
+      title: "EXTRACURRICULAR"
+      visible: false

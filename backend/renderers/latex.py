@@ -45,6 +45,16 @@ def _build_layout_preamble(density: str) -> str:
     )
 
 
+def _make_link_text_fn(link_display: str):
+    def link_text(url: str, label: str) -> str:
+        if link_display == "url":
+            return url
+        elif link_display == "both":
+            return f"{label} ({url})"
+        return label
+    return link_text
+
+
 def _make_jinja_filters() -> dict:
     def name_size(name: str) -> str:
         n = len(name.strip())
@@ -82,11 +92,13 @@ class LaTeXRenderer(BaseRenderer):
         template: str = "classic",
         density: str = "balanced",
         font_scale: str = "normal",
+        link_display: str = "label",
     ):
         self.templates_dir = templates_dir
         self.template = template
         self.density = density
         self.font_scale = font_scale
+        self.link_display = link_display
 
     def render(self, cv: CVData, section_order: Optional[List[str]] = None, section_titles: Optional[dict] = None) -> str:
         template_path = self.templates_dir / self.template / "cv.tex.j2"
@@ -105,6 +117,7 @@ class LaTeXRenderer(BaseRenderer):
             lstrip_blocks=True,
         )
         env.filters.update(_make_jinja_filters())
+        env.globals['link_text'] = _make_link_text_fn(self.link_display)
         order = section_order if section_order else DEFAULT_SECTION_ORDER
         custom_by_key = {cs.key: cs for cs in cv.custom_sections}
         font_size = _FONT_SIZE.get(self.font_scale, _FONT_SIZE["normal"])

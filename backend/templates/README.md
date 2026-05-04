@@ -354,23 +354,22 @@ Every template directory must include `meta.yaml`. The app reads it at startup t
 display_name: "Human-readable name shown in the UI"
 description: "One sentence describing the style and target audience"
 audience: general          # one of: general, academic, corporate, engineering
-recommended_sections:      # sections the UI highlights as "recommended" for this template
-  - publications
-  - awards
-default_section_order:     # full ordered list used when user has no custom order saved
-  - summary
-  - education
-  - experience
-  - publications
-  - projects
-  - skills
-  - awards
-  - languages
-  - certifications
-  - extracurricular
+defaults:
+  layout:
+    density: balanced      # one of: comfortable, balanced, compact
+    font_scale: normal     # one of: small, normal, large
+  personal:
+    link_display: label    # one of: label, url, both
+  sections:
+    - key: summary
+      title: "SUMMARY"
+      visible: true
+    - key: experience
+      title: "EXPERIENCE"
+      visible: true
 ```
 
-`default_section_order` should reflect the template's intended audience — academic templates lead with education and publications; engineering templates lead with experience and projects.
+`defaults.sections` is the single source of truth for template reset order. Include every built-in section exactly once, in the order the template should restore. `template` is intentionally omitted here because reset must preserve the currently selected template.
 
 ---
 

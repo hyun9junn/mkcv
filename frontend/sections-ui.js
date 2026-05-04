@@ -110,6 +110,7 @@ const sectionsUI = (() => {
           : sectionsState.moveToInvisible(currentYaml, key);
         if (newYaml !== currentYaml) {
           if (!window.settingsSync || window.settingsSync.activeTab === 'resume') {
+            window.editorAdapter.suppressNextPreviewRefresh();
             window.editorAdapter.setValuePreserveScroll(newYaml);
           }
           app.setState({ yaml: newYaml });
@@ -319,6 +320,7 @@ const sectionsUI = (() => {
     const current = app.state.yaml || '';
     const newYaml = sectionsState.appendToMainArea(current, def.yaml);
     if (!window.settingsSync || window.settingsSync.activeTab === 'resume') {
+      window.editorAdapter.suppressNextPreviewRefresh();
       window.editorAdapter.setValue(newYaml);
     }
     app.setState({ yaml: newYaml });

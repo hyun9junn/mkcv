@@ -1,3 +1,30 @@
+window.templateRegistry = (() => {
+    let allMeta = {};
+
+    function clone(value) {
+        return value == null ? value : JSON.parse(JSON.stringify(value));
+    }
+
+    function setAllMeta(meta) {
+        allMeta = meta && typeof meta === "object" ? meta : {};
+    }
+
+    function getAllMeta() {
+        return clone(allMeta) || {};
+    }
+
+    function getMeta(name) {
+        return clone(allMeta[name]) || {};
+    }
+
+    function getDefaults(name) {
+        const defaults = allMeta[name]?.defaults;
+        return defaults && typeof defaults === "object" ? clone(defaults) : null;
+    }
+
+    return { setAllMeta, getAllMeta, getMeta, getDefaults };
+})();
+
 document.addEventListener("DOMContentLoaded", async () => {
     const wrapper      = document.getElementById("template-select-wrapper");
     const trigger      = document.getElementById("template-trigger");
@@ -5,8 +32,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     const nameDisplay  = document.getElementById("tpl-name-display");
     const banner       = document.getElementById("error-banner");
     const btnValidate  = document.getElementById("btn-validate-template");
-
-    let allMeta = {};
 
     function openDropdown() {
         dropdown.hidden = false;
@@ -22,7 +47,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         dropdown.querySelectorAll(".tpl-option").forEach(el => {
             el.classList.toggle("selected", el.dataset.name === name);
         });
-        const meta = allMeta[name] || {};
+        const meta = window.templateRegistry.getMeta(name);
         const displayName = meta.display_name || (name.charAt(0).toUpperCase() + name.slice(1));
         if (nameDisplay) nameDisplay.textContent = displayName;
         closeDropdown();
@@ -55,10 +80,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     try {
         const data = await (await fetch("/api/templates")).json();
         const validationMap = data.validation || {};
-        allMeta = data.meta || {};
+        window.templateRegistry.setAllMeta(data.meta || {});
 
         data.templates.forEach((name, idx) => {
-            const meta        = allMeta[name] || {};
+            const meta        = window.templateRegistry.getMeta(name);
             const isValid     = validationMap[name] ? validationMap[name].valid : null;
             const displayName = meta.display_name || (name.charAt(0).toUpperCase() + name.slice(1));
             const description = meta.description  || "";
@@ -88,6 +113,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         });
 
     } catch {
+        window.templateRegistry.setAllMeta({});
         const opt = document.createElement("div");
         opt.className = "tpl-option selected";
         opt.dataset.name = "classic";

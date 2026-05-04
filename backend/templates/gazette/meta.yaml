@@ -17,3 +17,40 @@ default_section_order:
   - certifications
   - languages
   - extracurricular
+defaults:
+  layout:
+    density: compact
+    font_scale: small
+  personal:
+    link_display: label
+  sections:
+    - key: summary
+      title: "SUMMARY"
+      visible: true
+    - key: education
+      title: "EDUCATION"
+      visible: true
+    - key: experience
+      title: "EXPERIENCE"
+      visible: true
+    - key: publications
+      title: "PUBLICATIONS"
+      visible: true
+    - key: awards
+      title: "AWARDS"
+      visible: true
+    - key: languages
+      title: "LANGUAGES"
+      visible: true
+    - key: projects
+      title: "PROJECTS"
+      visible: false
+    - key: skills
+      title: "SKILLS"
+      visible: false
+    - key: certifications
+      title: "CERTIFICATIONS"
+      visible: false
+    - key: extracurricular
+      title: "EXTRACURRICULAR"
+      visible: false

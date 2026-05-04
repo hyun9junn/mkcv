@@ -1,6 +1,6 @@
 /* global app, sectionsState, sectionsUI, preview, validator */
 const settingsSync = (() => {
-  const { SECTION_CATALOG, KNOWN_KEYS, VALID_DENSITY, VALID_FONT, DEFAULT_SETTINGS, settingsToYaml, parseSettings } =
+  const { SECTION_CATALOG, KNOWN_KEYS, VALID_DENSITY, VALID_FONT, DEFAULT_SETTINGS, settingsToYaml, parseSettings, normalizeTemplateDefaults } =
     window.SETTINGS_HELPERS;
 
   let _activeTab     = 'resume';
@@ -8,6 +8,10 @@ const settingsSync = (() => {
   let _parsed        = parseSettings(_settingsYaml);
   let _saveTimer     = null;
   let _suppress      = false; // block re-entrant editor updates
+  const _tabScroll   = {
+    resume: { left: 0, top: 0 },
+    settings: { left: 0, top: 0 },
+  };
 
   // ── Status bar ──
 
@@ -75,6 +79,17 @@ const settingsSync = (() => {
     document.getElementById('file-tab-settings')?.classList.toggle('active', tab === 'settings');
   }
 
+  function _saveTabScroll(tab) {
+    if (!window.editorAdapter || !_tabScroll[tab]) return;
+    const { left, top } = window.editorAdapter.getScrollInfo();
+    _tabScroll[tab] = { left, top };
+  }
+
+  function _restoreTabScroll(tab) {
+    if (!window.editorAdapter || !_tabScroll[tab]) return;
+    window.editorAdapter.scrollTo(_tabScroll[tab].left, _tabScroll[tab].top);
+  }
+
   // ── Apply settings to toolbar + sections ──
 
   function _applyToToolbar(settings) {
@@ -84,7 +99,11 @@ const settingsSync = (() => {
     document.getElementById('font-scale-group')?.querySelectorAll('button[data-value]').forEach(btn => {
       btn.classList.toggle('active', btn.dataset.value === settings.layout.font_scale);
     });
-    app.setState({ density: settings.layout.density, font_scale: settings.layout.font_scale });
+    app.setState({
+      density: settings.layout.density,
+      font_scale: settings.layout.font_scale,
+      link_display: settings.personal?.link_display ?? 'label',
+    });
   }
 
   function _applyToSections(settings) {
@@ -113,6 +132,7 @@ const settingsSync = (() => {
     if (reordered === yaml) return;
     app.setState({ yaml: reordered });
     if (_activeTab === 'resume') {
+      window.editorAdapter.suppressNextPreviewRefresh();
       window.editorAdapter.setValuePreserveScroll(reordered);
       // file-sync's onChange handler saves automatically
     } else {
@@ -224,26 +244,36 @@ const settingsSync = (() => {
     _onYamlChange(settingsToYaml(next), { skipApply: true });
   }
 
+  function applyTemplateDefaults(rawDefaults) {
+    const activeTemplate = app.state.template || _parsed.value?.template || DEFAULT_SETTINGS.template;
+    const next = normalizeTemplateDefaults(rawDefaults, activeTemplate);
+    _onYamlChange(settingsToYaml(next));
+  }
+
   // ── Tab switching ──
 
   function switchToResume() {
     if (_activeTab === 'resume') return;
+    _saveTabScroll(_activeTab);
     _activeTab = 'resume';
     _setTabActive('resume');
     _suppress = true;
-    window.editorAdapter.setValue(app.state.yaml);
+    window.editorAdapter.setValueSilently(app.state.yaml);
     window.editorAdapter.clearHistory();
+    _restoreTabScroll('resume');
     _suppress = false;
     _restoreResumeStatus();
   }
 
   function switchToSettings() {
     if (_activeTab === 'settings') return;
+    _saveTabScroll(_activeTab);
     _activeTab = 'settings';
     _setTabActive('settings');
     _suppress = true;
-    window.editorAdapter.setValue(_settingsYaml);
+    window.editorAdapter.setValueSilently(_settingsYaml);
     window.editorAdapter.clearHistory();
+    _restoreTabScroll('settings');
     _suppress = false;
     _updateValidStatus(_parsed);
     _updateLineStat(_settingsYaml);
@@ -359,6 +389,7 @@ const settingsSync = (() => {
     updateFromToolbar,
     notifySectionStateChange,
     updateSectionTitle,
+    applyTemplateDefaults,
     getYaml:     () => _settingsYaml,
     getSettings: () => _parsed.value || DEFAULT_SETTINGS,
   };

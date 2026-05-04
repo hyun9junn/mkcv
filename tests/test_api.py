@@ -248,6 +248,19 @@ async def test_templates_meta_has_display_name(app):
     assert data["meta"]["classic"]["display_name"] == "Classic"
 
 
+async def test_templates_meta_includes_defaults_block(app):
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        resp = await client.get("/api/templates")
+    assert resp.status_code == 200
+    data = resp.json()
+
+    defaults = data["meta"]["classic"]["defaults"]
+    assert defaults["layout"]["density"] in {"comfortable", "balanced", "compact"}
+    assert defaults["layout"]["font_scale"] in {"small", "normal", "large"}
+    assert defaults["personal"]["link_display"] in {"label", "url", "both"}
+    assert any(section["key"] == "summary" for section in defaults["sections"])
+
+
 async def test_export_latex_with_density_and_font_scale(app):
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         resp = await client.post("/api/export/latex", json={

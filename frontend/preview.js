@@ -94,7 +94,7 @@ const preview = (() => {
       const resp = await fetch("/api/preview/pdf", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ yaml, template, section_order, section_titles, density: app.state.density, font_scale: app.state.font_scale }),
+        body: JSON.stringify({ yaml, template, section_order, section_titles, density: app.state.density, font_scale: app.state.font_scale, link_display: app.state.link_display }),
         signal,
       });
       if (signal.aborted) return;
@@ -121,6 +121,7 @@ const preview = (() => {
 
     window.editorAdapter.onChange(() => {
       if (window.settingsSync && window.settingsSync.activeTab === 'settings') return;
+      if (window.editorAdapter.consumeSuppressedPreviewRefresh()) return;
       clearTimeout(timer);
       timer = setTimeout(() => {
         if (app.state.yaml.trim()) {

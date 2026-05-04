@@ -4,6 +4,7 @@ const app = {
     template: "classic",
     density: "balanced",
     font_scale: "normal",
+    link_display: "label",
   },
   setState(patch) {
     Object.assign(this.state, patch);

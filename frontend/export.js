@@ -58,6 +58,7 @@ const exporter = (() => {
     if (format !== "markdown") {
       body.density = app.state.density;
       body.font_scale = app.state.font_scale;
+      body.link_display = app.state.link_display;
     }
     try {
       const resp = await fetch(`/api/export/${format}`, {

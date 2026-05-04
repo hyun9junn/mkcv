@@ -356,12 +356,19 @@
     }
     .chip-grip span { width: 3px; height: 3px; border-radius: 50%; background: currentColor; }
     .chip-dot {
+      position: relative;
+      display: inline-block;
       width: 8px; height: 8px;
       border-radius: 50%;
       background: transparent;
       border: 1.5px solid var(--rule-2);
       flex-shrink: 0;
       transition: all .12s;
+    }
+    .chip-dot::before {
+      content: "";
+      position: absolute;
+      inset: -6px;
     }
     .chip.on .chip-dot { background: var(--accent); border-color: var(--accent); }
     .chip-name {
@@ -870,7 +877,7 @@
     <span class="ctrl-label">Sections</span>
     <!-- sections-ui.js renders chips into #sections-panel -->
     <div class="sections-rail" id="sections-panel"></div>
-    <button class="reset-sections-btn" id="reset-sections-order-btn">Reset order</button>
+    <button class="reset-sections-btn" id="reset-sections-order-btn">Reset settings</button>
   </div>
 </div>
 
@@ -1062,23 +1069,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  /* Reset sections order button (outside sections-ui.js) */
+  /* Reset settings button (outside sections-ui.js) */
   const resetOrderBtn = document.getElementById('reset-sections-order-btn');
   if (resetOrderBtn) {
     resetOrderBtn.addEventListener('click', () => {
-      const currentYaml = app.state.yaml || '';
-      const newYaml = sectionsState.clearInvisibleArea(currentYaml);
-      if (newYaml !== currentYaml) {
-        app.setState({ yaml: newYaml });
-        if (!window.settingsSync || window.settingsSync.activeTab === 'resume') {
-          window.editorAdapter.setValue(newYaml);
-        }
-      }
-      sectionsState.resetAll();
-      sectionsUI.buildPanel();
-      preview.refresh(
-        sectionsState.getOrderedFilteredYaml(app.state.yaml),
-        app.state.template
+      window.settingsSync?.applyTemplateDefaults(
+        window.templateRegistry?.getDefaults(app.state.template) || null
       );
     });
   }
