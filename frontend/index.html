@@ -792,6 +792,116 @@
       border-radius: 5px;
     }
     #undo-toast-btn:hover { background: var(--accent-soft); }
+
+    /* ── Contact pill ── */
+    .contact-pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 4px 11px 4px 9px; border-radius: 999px;
+      border: 1px solid var(--rule); background: var(--paper-2);
+      font-size: 11px; color: var(--ink-2); cursor: pointer;
+      white-space: nowrap; flex-shrink: 0; user-select: none;
+      transition: border-color .12s, background .12s;
+    }
+    .contact-pill:hover { border-color: var(--rule-2); background: var(--paper-3); }
+    .contact-pill.open { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+    .contact-pill-label { font-family: var(--font-serif); font-style: italic; font-size: 12px; }
+    .contact-hidden-count {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 16px; height: 16px; border-radius: 50%;
+      background: var(--ink-4); color: var(--paper);
+      font-family: var(--font-mono); font-size: 8.5px; line-height: 1;
+    }
+    .contact-pill.open .contact-hidden-count { background: var(--accent); }
+    .contact-pill-caret { color: var(--ink-4); font-size: 10px; }
+    .contact-pill.open .contact-pill-caret { color: var(--accent); }
+
+    /* ── Contact flyout ── */
+    .flyout-anchor { position: relative; flex-shrink: 0; }
+    .flyout-panel {
+      position: absolute; top: calc(100% + 8px); left: 0;
+      background: var(--paper); border: 1px solid var(--rule);
+      border-radius: 10px; box-shadow: var(--shadow-md);
+      min-width: 340px; z-index: 50; overflow: hidden;
+    }
+    .flyout-head {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 9px 14px; border-bottom: 1px solid var(--rule);
+      background: var(--paper-2);
+    }
+    .flyout-head-label {
+      font-family: var(--font-mono); font-size: 9px;
+      letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-4);
+    }
+    .flyout-global-label { font-family: var(--font-mono); font-size: 9px; color: var(--ink-4); }
+    .flyout-seg {
+      display: inline-flex; gap: 1px;
+      background: var(--paper-3); border-radius: 5px; padding: 2px;
+      border: 1px solid var(--rule);
+    }
+    .flyout-seg span {
+      font-family: var(--font-mono); font-size: 9px;
+      padding: 2px 7px; border-radius: 3px; cursor: pointer;
+      color: var(--ink-3); white-space: nowrap; user-select: none;
+    }
+    .flyout-seg span.active { background: var(--paper); color: var(--ink); box-shadow: var(--shadow-sm); }
+
+    /* ── Field rows ── */
+    .field-row {
+      display: flex; align-items: center; gap: 9px;
+      padding: 7px 14px; transition: background .1s;
+    }
+    .field-row + .field-row { border-top: 1px solid var(--paper-3); }
+    .field-row:hover { background: var(--paper-2); }
+    .field-row.hidden-row { opacity: 0.45; }
+    .field-divider { height: 1px; background: var(--rule); }
+    .f-toggle {
+      width: 28px; height: 16px; border-radius: 999px;
+      background: var(--accent); position: relative;
+      flex-shrink: 0; cursor: pointer; transition: background .15s;
+    }
+    .f-toggle::after {
+      content: ''; position: absolute; top: 2px; right: 2px;
+      width: 12px; height: 12px; border-radius: 50%; background: white;
+      transition: right .15s, left .15s;
+    }
+    .f-toggle.off { background: var(--rule); }
+    .f-toggle.off::after { left: 2px; right: auto; }
+    .f-toggle.locked { opacity: 0.28; pointer-events: none; }
+    .f-key { font-family: var(--font-mono); font-size: 10px; color: var(--ink-3); width: 78px; flex-shrink: 0; }
+    .f-val { font-size: 11px; color: var(--ink-2); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .field-row.hidden-row .f-val { color: var(--ink-4); }
+    .f-ctrl { flex-shrink: 0; display: flex; align-items: center; }
+    .f-locked {
+      font-family: var(--font-mono); font-size: 8.5px; color: var(--ink-4);
+      border: 1px solid var(--rule); border-radius: 3px; padding: 1px 5px;
+    }
+    .f-inherit {
+      font-family: var(--font-mono); font-size: 9px; color: var(--ink-4);
+      border: 1px dashed var(--rule-2); border-radius: 4px;
+      padding: 2px 7px; cursor: pointer; white-space: nowrap;
+      transition: border-color .1s, color .1s;
+    }
+    .f-inherit:hover { border-color: var(--rule); color: var(--ink-3); }
+    .f-picker {
+      display: inline-flex; gap: 1px;
+      background: var(--paper-3); border-radius: 5px; padding: 2px;
+      border: 1px solid var(--rule);
+    }
+    .f-picker span {
+      font-family: var(--font-mono); font-size: 9px;
+      padding: 2px 6px; border-radius: 3px; cursor: pointer;
+      color: var(--ink-3); white-space: nowrap; user-select: none;
+    }
+    .f-picker span:hover { background: var(--paper); color: var(--ink); }
+    .f-picker span.p-inherit { color: var(--ink-4); font-style: italic; }
+    .f-override {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-family: var(--font-mono); font-size: 9px; border-radius: 4px;
+      padding: 2px 7px; background: var(--accent-soft); color: var(--accent);
+      border: 1px solid oklch(52% 0.15 25 / 0.3);
+    }
+    .f-override-x { font-size: 11px; opacity: 0.6; cursor: pointer; line-height: 1; }
+    .f-override-x:hover { opacity: 1; }
   </style>
 </head>
 <body>
@@ -868,6 +978,30 @@
       <button data-value="small">Small</button>
       <button data-value="normal">Normal</button>
       <button data-value="large">Large</button>
+    </div>
+  </div>
+
+  <div class="ctrl-sep"></div>
+
+  <div class="flyout-anchor" id="contact-flyout-anchor">
+    <button class="contact-pill" id="contact-pill">
+      <span class="contact-pill-label">Contact</span>
+      <span class="contact-hidden-count" id="contact-hidden-count" style="display:none"></span>
+      <span class="contact-pill-caret" id="contact-pill-caret">▾</span>
+    </button>
+    <div class="flyout-panel" id="contact-flyout" style="display:none">
+      <div class="flyout-head">
+        <span class="flyout-head-label">Contact fields</span>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span class="flyout-global-label">Default</span>
+          <div class="flyout-seg" id="contact-global-seg">
+            <span data-value="label">label</span>
+            <span data-value="url">url</span>
+            <span data-value="both">both</span>
+          </div>
+        </div>
+      </div>
+      <div id="contact-fields-body"></div>
     </div>
   </div>
 
@@ -1001,6 +1135,7 @@
 <script src="file-sync.js"></script>
 <script src="sections-state.js"></script>
 <script src="sections-ui.js"></script>
+<script src="contact-ui.js"></script>
 <script src="templates.js"></script>
 <script src="validator.js"></script>
 <script src="preview.js"></script>
