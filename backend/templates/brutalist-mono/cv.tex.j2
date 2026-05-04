@@ -66,13 +66,13 @@
     <% if cv.personal.tagline %>\hfill {\small\color{cvaccent}// << cv.personal.tagline >>}<% endif %>\\[3pt]
     {\small
     <% set sep = joiner("  |  ") %>
-    <% if cv.personal.email %><< sep() >>\href{mailto:<< cv.personal.email >>}{<< cv.personal.email >>}<% endif %>
-    <% if cv.personal.phone %><< sep() >><< cv.personal.phone >><% endif %>
-    <% if cv.personal.location %><< sep() >><< cv.personal.location >><% endif %>
-    <% if cv.personal.github %><< sep() >>\href{https://<< cv.personal.github >>}{<< link_text(cv.personal.github, 'GitHub') >>}<% endif %>
-    <% if cv.personal.linkedin %><< sep() >>\href{https://<< cv.personal.linkedin >>}{<< link_text(cv.personal.linkedin, 'LinkedIn') >>}<% endif %>
-    <% if cv.personal.website %><< sep() >>\href{https://<< cv.personal.website >>}{<< cv.personal.website >>}<% endif %>
-    <% if cv.personal.huggingface %><< sep() >>\href{https://<< cv.personal.huggingface >>}{<< link_text(cv.personal.huggingface, 'Hugging Face') >>}<% endif %>
+    <% if cv.personal.email and contact_visible('email') %><< sep() >>\href{mailto:<< cv.personal.email >>}{<< cv.personal.email >>}<% endif %>
+    <% if cv.personal.phone and contact_visible('phone') %><< sep() >><< cv.personal.phone >><% endif %>
+    <% if cv.personal.location and contact_visible('location') %><< sep() >><< cv.personal.location >><% endif %>
+    <% if cv.personal.github and contact_visible('github') %><< sep() >>\href{https://<< cv.personal.github >>}{<< link_text(cv.personal.github, 'GitHub', contact_link_style('github')) >>}<% endif %>
+    <% if cv.personal.linkedin and contact_visible('linkedin') %><< sep() >>\href{https://<< cv.personal.linkedin >>}{<< link_text(cv.personal.linkedin, 'LinkedIn', contact_link_style('linkedin')) >>}<% endif %>
+    <% if cv.personal.website and contact_visible('website') %><< sep() >>\href{https://<< cv.personal.website >>}{<< link_text(cv.personal.website, 'Website', contact_link_style('website')) >>}<% endif %>
+    <% if cv.personal.huggingface and contact_visible('huggingface') %><< sep() >>\href{https://<< cv.personal.huggingface >>}{<< link_text(cv.personal.huggingface, 'Hugging Face', contact_link_style('huggingface')) >>}<% endif %>
     }
     \vspace{4pt}
   \end{minipage}%

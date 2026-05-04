@@ -285,7 +285,7 @@
       flex-shrink: 0;
       font-size: 12px;
       color: var(--ink-2);
-      overflow-x: auto;
+      overflow: visible;
       scrollbar-width: none;
     }
     .controls-row::-webkit-scrollbar { display: none; }
@@ -818,7 +818,7 @@
     /* ── Contact flyout ── */
     .flyout-anchor { position: relative; flex-shrink: 0; }
     .flyout-panel {
-      position: absolute; top: calc(100% + 8px); left: 0;
+      position: absolute; top: calc(100% + 8px); right: 0;
       background: var(--paper); border: 1px solid var(--rule);
       border-radius: 10px; box-shadow: var(--shadow-md);
       min-width: 340px; z-index: 50; overflow: hidden;
@@ -867,10 +867,14 @@
     .f-toggle.off { background: var(--rule); }
     .f-toggle.off::after { left: 2px; right: auto; }
     .f-toggle.locked { opacity: 0.28; pointer-events: none; }
-    .f-key { font-family: var(--font-mono); font-size: 10px; color: var(--ink-3); width: 78px; flex-shrink: 0; }
-    .f-val { font-size: 11px; color: var(--ink-2); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .field-row.hidden-row .f-val { color: var(--ink-4); }
-    .f-ctrl { flex-shrink: 0; display: flex; align-items: center; }
+    .f-key { font-family: var(--font-mono); font-size: 10px; color: var(--ink-3); flex-shrink: 0; }
+    .f-ctrl {
+      margin-left: auto;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+    }
     .f-locked {
       font-family: var(--font-mono); font-size: 8.5px; color: var(--ink-4);
       border: 1px solid var(--rule); border-radius: 3px; padding: 1px 5px;

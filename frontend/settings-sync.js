@@ -7,7 +7,11 @@ const settingsSync = (() => {
   let _settingsYaml  = settingsToYaml(DEFAULT_SETTINGS);
   let _parsed        = parseSettings(_settingsYaml);
   let _saveTimer     = null;
+  let _editorEffectsTimer = null;
+  let _pendingEditorApply = false;
+  let _pendingEditorPreview = false;
   let _suppress      = false; // block re-entrant editor updates
+  const _EDITOR_SYNC_DEBOUNCE_MS = 300;
   const _tabScroll   = {
     resume: { left: 0, top: 0 },
     settings: { left: 0, top: 0 },
@@ -129,6 +133,44 @@ const settingsSync = (() => {
     _applyToContact(settings);
   }
 
+  function _applySelected(settings, opts = {}) {
+    if (opts.applyToolbar) _applyToToolbar(settings);
+    if (opts.applySections) _applyToSections(settings);
+    if (opts.applyContact) _applyToContact(settings);
+  }
+
+  function _refreshPreview() {
+    if (window.preview && window.sectionsState) {
+      preview.refresh(
+        sectionsState.getOrderedFilteredYaml(app.state.yaml),
+        app.state.template
+      );
+    }
+  }
+
+  function _clearEditorEffects() {
+    clearTimeout(_editorEffectsTimer);
+    _editorEffectsTimer = null;
+    _pendingEditorApply = false;
+    _pendingEditorPreview = false;
+  }
+
+  function _scheduleEditorEffects(opts = {}) {
+    _pendingEditorApply = _pendingEditorApply || !!opts.apply;
+    _pendingEditorPreview = _pendingEditorPreview || !!opts.preview;
+    clearTimeout(_editorEffectsTimer);
+    _editorEffectsTimer = setTimeout(() => {
+      _editorEffectsTimer = null;
+      const shouldApply = _pendingEditorApply;
+      const shouldPreview = _pendingEditorPreview;
+      _pendingEditorApply = false;
+      _pendingEditorPreview = false;
+      if (!_parsed.value) return;
+      if (shouldApply) _applyAll(_parsed.value);
+      if (shouldPreview) _refreshPreview();
+    }, _EDITOR_SYNC_DEBOUNCE_MS);
+  }
+
   // ── Reorder mycv.yaml to match section order ──
 
   async function _reorderAndSaveResume(sectionOrder) {
@@ -181,17 +223,17 @@ const settingsSync = (() => {
     _updateValidStatus(_parsed);
     if (_activeTab === 'settings') _updateLineStat(yaml);
 
-    if (_parsed.value && !opts.skipApply) {
-      _applyAll(_parsed.value);
-    }
+    const shouldApply = !!_parsed.value && !opts.skipApply;
+    const shouldPreview = !!_parsed.value && !opts.skipPreview;
 
-    if (_parsed.value && !opts.skipPreview) {
-      if (window.preview && window.sectionsState) {
-        preview.refresh(
-          sectionsState.getOrderedFilteredYaml(app.state.yaml),
-          app.state.template
-        );
-      }
+    if (opts.fromEditor && (shouldApply || shouldPreview)) {
+      // Typing in settings.yaml should feel like resume.yaml: batch expensive UI sync
+      // and preview work until the user pauses, instead of rerendering every keypress.
+      _scheduleEditorEffects({ apply: shouldApply, preview: shouldPreview });
+    } else {
+      _clearEditorEffects();
+      if (shouldApply) _applyAll(_parsed.value);
+      if (shouldPreview) _refreshPreview();
     }
 
     _scheduleSave();
@@ -206,11 +248,16 @@ const settingsSync = (() => {
 
   // ── Public: called by layout-controls.js when toolbar changes ──
 
-  function updateFromToolbar(mutator) {
+  function updateFromToolbar(mutator, opts = {}) {
     if (!_parsed.value) return;
     const next = JSON.parse(JSON.stringify(_parsed.value));
     mutator(next);
-    _onYamlChange(settingsToYaml(next), { skipApply: true }); // toolbar already updated by caller
+    const hasSelectiveApply = opts.applyToolbar || opts.applySections || opts.applyContact;
+    if (hasSelectiveApply) _applySelected(next, opts);
+    _onYamlChange(settingsToYaml(next), {
+      skipApply: hasSelectiveApply ? true : (opts.skipApply ?? true),
+      skipPreview: opts.skipPreview,
+    });
   }
 
   // ── Public: called via monkey-patched sections-state methods ──

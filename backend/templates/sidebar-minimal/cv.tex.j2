@@ -85,26 +85,26 @@
 {\color{cvaccent}\rule{\linewidth}{2pt}}
 \vspace{10pt}
 
-<% if cv.personal.email %>
+<% if cv.personal.email and contact_visible('email') %>
 {\footnotesize\color{cvsidemute}\href{mailto:<< cv.personal.email >>}{<< cv.personal.email >>}}\\[3pt]
 <% endif %>
-<% if cv.personal.phone %>
+<% if cv.personal.phone and contact_visible('phone') %>
 {\footnotesize\color{cvsidemute} << cv.personal.phone >>}\\[3pt]
 <% endif %>
-<% if cv.personal.location %>
+<% if cv.personal.location and contact_visible('location') %>
 {\footnotesize\color{cvsidemute} << cv.personal.location >>}\\[3pt]
 <% endif %>
-<% if cv.personal.github %>
-{\footnotesize\color{cvsidemute}\href{https://<< cv.personal.github >>}{<< link_text(cv.personal.github, 'GitHub') >>}}\\[3pt]
+<% if cv.personal.github and contact_visible('github') %>
+{\footnotesize\color{cvsidemute}\href{https://<< cv.personal.github >>}{<< link_text(cv.personal.github, 'GitHub', contact_link_style('github')) >>}}\\[3pt]
 <% endif %>
-<% if cv.personal.linkedin %>
-{\footnotesize\color{cvsidemute}\href{https://<< cv.personal.linkedin >>}{<< link_text(cv.personal.linkedin, 'LinkedIn') >>}}\\[3pt]
+<% if cv.personal.linkedin and contact_visible('linkedin') %>
+{\footnotesize\color{cvsidemute}\href{https://<< cv.personal.linkedin >>}{<< link_text(cv.personal.linkedin, 'LinkedIn', contact_link_style('linkedin')) >>}}\\[3pt]
 <% endif %>
-<% if cv.personal.huggingface %>
-{\footnotesize\color{cvsidemute}\href{https://<< cv.personal.huggingface >>}{<< link_text(cv.personal.huggingface, 'Hugging Face') >>}}\\[3pt]
+<% if cv.personal.huggingface and contact_visible('huggingface') %>
+{\footnotesize\color{cvsidemute}\href{https://<< cv.personal.huggingface >>}{<< link_text(cv.personal.huggingface, 'Hugging Face', contact_link_style('huggingface')) >>}}\\[3pt]
 <% endif %>
-<% if cv.personal.website %>
-{\footnotesize\color{cvsidemute}\href{https://<< cv.personal.website >>}{<< cv.personal.website >>}}\\[3pt]
+<% if cv.personal.website and contact_visible('website') %>
+{\footnotesize\color{cvsidemute}\href{https://<< cv.personal.website >>}{<< link_text(cv.personal.website, 'Website', contact_link_style('website')) >>}}\\[3pt]
 <% endif %>
 
 \end{minipage}

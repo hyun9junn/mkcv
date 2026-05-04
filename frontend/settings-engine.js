@@ -154,6 +154,7 @@ window.SETTINGS_HELPERS = (() => {
     const personal = rawDefaults.personal;
     if (personal && typeof personal === 'object') {
       if (VALID_LINK_DISPLAY.includes(personal.link_display)) normalized.personal.link_display = personal.link_display;
+      if (Array.isArray(personal.fields)) normalized.personal.fields = normalizePersonalFields(personal.fields);
     }
 
     if (Array.isArray(rawDefaults.sections)) {

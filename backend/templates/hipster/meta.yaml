@@ -7,6 +7,23 @@ defaults:
     font_scale: normal
   personal:
     link_display: label
+    fields:
+      - key: name
+        visible: true
+      - key: email
+        visible: true
+      - key: phone
+        visible: true
+      - key: location
+        visible: true
+      - key: website
+        visible: true
+      - key: linkedin
+        visible: true
+      - key: github
+        visible: true
+      - key: huggingface
+        visible: true
   sections:
     - key: summary
       title: "SUMMARY"

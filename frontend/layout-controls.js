@@ -30,11 +30,14 @@
       app.setState({ density: value });
       localStorage.setItem(DENSITY_KEY, value);
       _setActive(densityGroup, value);
-      if (window.settingsSync) settingsSync.updateFromToolbar(s => { s.layout.density = value; });
-      preview.refresh(
-        sectionsState.getOrderedFilteredYaml(app.state.yaml),
-        app.state.template
-      );
+      if (window.settingsSync) {
+        settingsSync.updateFromToolbar(s => { s.layout.density = value; });
+      } else {
+        preview.refresh(
+          sectionsState.getOrderedFilteredYaml(app.state.yaml),
+          app.state.template
+        );
+      }
     });
 
     fontGroup.addEventListener("click", e => {
@@ -44,11 +47,14 @@
       app.setState({ font_scale: value });
       localStorage.setItem(FONT_KEY, value);
       _setActive(fontGroup, value);
-      if (window.settingsSync) settingsSync.updateFromToolbar(s => { s.layout.font_scale = value; });
-      preview.refresh(
-        sectionsState.getOrderedFilteredYaml(app.state.yaml),
-        app.state.template
-      );
+      if (window.settingsSync) {
+        settingsSync.updateFromToolbar(s => { s.layout.font_scale = value; });
+      } else {
+        preview.refresh(
+          sectionsState.getOrderedFilteredYaml(app.state.yaml),
+          app.state.template
+        );
+      }
     });
   });
 })();

@@ -86,12 +86,12 @@
 \begin{minipage}[t]{0.36\linewidth}
 \raggedleft
 {\footnotesize\color{cvink}
-<% if cv.personal.email %>\href{mailto:<< cv.personal.email >>}{<< cv.personal.email >>}\\<% endif %>
-<% if cv.personal.phone %><< cv.personal.phone >>\\<% endif %>
-<% if cv.personal.location %><< cv.personal.location >>\\<% endif %>
-<% if cv.personal.linkedin %>\href{https://<< cv.personal.linkedin >>}{<< link_text(cv.personal.linkedin, 'LinkedIn') >>}\\<% endif %>
-<% if cv.personal.github %>\href{https://<< cv.personal.github >>}{<< link_text(cv.personal.github, 'GitHub') >>}\\<% endif %>
-<% if cv.personal.website %>\href{https://<< cv.personal.website >>}{<< cv.personal.website >>}\\<% endif %>
+<% if cv.personal.email and contact_visible('email') %>\href{mailto:<< cv.personal.email >>}{<< cv.personal.email >>}\\<% endif %>
+<% if cv.personal.phone and contact_visible('phone') %><< cv.personal.phone >>\\<% endif %>
+<% if cv.personal.location and contact_visible('location') %><< cv.personal.location >>\\<% endif %>
+<% if cv.personal.linkedin and contact_visible('linkedin') %>\href{https://<< cv.personal.linkedin >>}{<< link_text(cv.personal.linkedin, 'LinkedIn', contact_link_style('linkedin')) >>}\\<% endif %>
+<% if cv.personal.github and contact_visible('github') %>\href{https://<< cv.personal.github >>}{<< link_text(cv.personal.github, 'GitHub', contact_link_style('github')) >>}\\<% endif %>
+<% if cv.personal.website and contact_visible('website') %>\href{https://<< cv.personal.website >>}{<< link_text(cv.personal.website, 'Website', contact_link_style('website')) >>}\\<% endif %>
 }
 \end{minipage}
 

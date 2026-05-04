@@ -18,6 +18,17 @@ EXPECTED_KEYS = {
     "awards",
     "extracurricular",
 }
+EXPECTED_PERSONAL_KEYS = [
+    "name",
+    "email",
+    "phone",
+    "location",
+    "website",
+    "linkedin",
+    "github",
+    "huggingface",
+]
+LINK_PERSONAL_KEYS = {"website", "linkedin", "github", "huggingface"}
 EXPECTED_SECTION_ORDERS = {
     "academic-research": ["summary", "education", "experience", "publications", "projects", "skills", "awards", "languages", "certifications", "extracurricular"],
     "banking": ["summary", "experience", "education", "skills", "projects", "awards", "certifications", "languages", "publications", "extracurricular"],
@@ -45,6 +56,14 @@ def test_every_template_meta_has_complete_defaults_block():
         assert defaults["layout"]["density"] in {"comfortable", "balanced", "compact"}, meta_path
         assert defaults["layout"]["font_scale"] in {"small", "normal", "large"}, meta_path
         assert defaults["personal"]["link_display"] in {"label", "url", "both"}, meta_path
+        personal_fields = defaults["personal"]["fields"]
+        assert [field["key"] for field in personal_fields] == EXPECTED_PERSONAL_KEYS, meta_path
+
+        for field in personal_fields:
+            assert isinstance(field["visible"], bool), meta_path
+            if "link_display" in field:
+                assert field["key"] in LINK_PERSONAL_KEYS, meta_path
+                assert field["link_display"] in {"label", "url", "both"}, meta_path
 
         sections = defaults["sections"]
         keys = [section["key"] for section in sections]
@@ -114,6 +133,9 @@ def test_load_template_meta_malformed_defaults_returns_empty_defaults(tmp_path):
             "    font_scale: normal\n"
             "  personal:\n"
             "    link_display: label\n"
+            "    fields:\n"
+            "      - key: name\n"
+            "        visible: true\n"
             "  sections:\n"
             "    - key: summary\n"
             "      title: SUMMARY\n"
@@ -125,6 +147,9 @@ def test_load_template_meta_malformed_defaults_returns_empty_defaults(tmp_path):
             "    font_scale: huge\n"
             "  personal:\n"
             "    link_display: label\n"
+            "    fields:\n"
+            "      - key: name\n"
+            "        visible: true\n"
             "  sections:\n"
             "    - key: summary\n"
             "      title: SUMMARY\n"
@@ -136,6 +161,9 @@ def test_load_template_meta_malformed_defaults_returns_empty_defaults(tmp_path):
             "    font_scale: normal\n"
             "  personal:\n"
             "    link_display: full\n"
+            "    fields:\n"
+            "      - key: name\n"
+            "        visible: true\n"
             "  sections:\n"
             "    - key: summary\n"
             "      title: SUMMARY\n"
@@ -147,6 +175,9 @@ def test_load_template_meta_malformed_defaults_returns_empty_defaults(tmp_path):
             "    font_scale: normal\n"
             "  personal:\n"
             "    link_display: label\n"
+            "    fields:\n"
+            "      - key: email\n"
+            "        visible: true\n"
             "  sections:\n"
             "    - key: summary\n"
             "      title: SUMMARY\n"
@@ -158,6 +189,11 @@ def test_load_template_meta_malformed_defaults_returns_empty_defaults(tmp_path):
             "    font_scale: normal\n"
             "  personal:\n"
             "    link_display: label\n"
+            "    fields:\n"
+            "      - key: name\n"
+            "        visible: true\n"
+            "      - key: name\n"
+            "        visible: false\n"
             "  sections:\n"
             "    - key: summary\n"
             "      title: SUMMARY\n"

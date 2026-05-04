@@ -648,3 +648,26 @@ def test_classic_shows_all_fields_by_default():
     assert "+1-555-0000" in out
     assert "Seoul" in out
     assert "linkedin.com/in/user" in out or "LinkedIn" in out
+
+
+@pytest.mark.parametrize("template", TEMPLATES_WITH_GITHUB_LINK)
+def test_contact_visibility_hides_github_across_templates(template):
+    renderer = LaTeXRenderer(
+        TEMPLATES_DIR,
+        template=template,
+        personal_fields=[{"key": "github", "visible": False}],
+    )
+    out = renderer.render(_make_cv())
+    assert r"\href{https://github.com/user}" not in out
+
+
+@pytest.mark.parametrize("template", TEMPLATES_WITH_GITHUB_LINK)
+def test_contact_link_style_override_applies_across_templates(template):
+    renderer = LaTeXRenderer(
+        TEMPLATES_DIR,
+        template=template,
+        link_display="url",
+        personal_fields=[{"key": "github", "visible": True, "link_display": "label"}],
+    )
+    out = renderer.render(_make_cv())
+    assert r"\href{https://github.com/user}{GitHub}" in out

@@ -31,12 +31,36 @@ function createElement() {
   };
 }
 
+function createTimerHarness() {
+  let nextId = 1;
+  const pending = new Map();
+  return {
+    setTimeout(callback, delay = 0) {
+      const id = nextId++;
+      pending.set(id, { callback, delay });
+      return id;
+    },
+    clearTimeout(id) {
+      pending.delete(id);
+    },
+    runAll() {
+      while (pending.size > 0) {
+        const ready = Array.from(pending.entries())
+          .sort((a, b) => a[1].delay - b[1].delay || a[0] - b[0]);
+        const [id, task] = ready[0];
+        pending.delete(id);
+        task.callback();
+      }
+    },
+  };
+}
+
 function createContext(options = {}) {
   const domReadyCallbacks = [];
   const elements = new Map();
   const localStorageData = new Map();
   const editorChangeCallbacks = [];
-  const counters = { previewRenders: 0 };
+  const counters = { previewRenders: 0, previewSnapshots: [], buildPanelCalls: 0, reorderCalls: 0 };
 
   let order = (options.initialOrder || []).slice();
   const hidden = new Set(options.initialHidden || []);
@@ -103,15 +127,15 @@ function createContext(options = {}) {
   const context = {
     console,
     TextEncoder,
-    setTimeout,
-    clearTimeout,
-    fetch: async (_url, options = {}) => {
-      if (options.method === 'POST') {
+    setTimeout: options.setTimeout || setTimeout,
+    clearTimeout: options.clearTimeout || clearTimeout,
+    fetch: async (_url, requestOptions = {}) => {
+      if (requestOptions.method === 'POST') {
         return { ok: true, json: async () => ({}) };
       }
       return {
         ok: true,
-        json: async () => ({ content: 'layout:\n  density: balanced\n' }),
+        json: async () => ({ content: options.initialSettingsYaml || 'layout:\n  density: balanced\n' }),
       };
     },
     localStorage: {
@@ -138,6 +162,10 @@ function createContext(options = {}) {
       state: {
         yaml: options.initialYaml || 'personal:\n  name: Test User\n',
         template: 'classic',
+        density: 'balanced',
+        font_scale: 'normal',
+        link_display: 'both',
+        personal_fields: [],
       },
       setState(patch) {
         Object.assign(this.state, patch);
@@ -149,10 +177,16 @@ function createContext(options = {}) {
     preview: {
       refresh() {
         counters.previewRenders += 1;
+        counters.previewSnapshots.push({
+          link_display: context.app.state.link_display,
+          personal_fields: JSON.parse(JSON.stringify(context.app.state.personal_fields || [])),
+        });
       },
     },
     sectionsUI: {
-      buildPanel() {},
+      buildPanel() {
+        counters.buildPanelCalls += 1;
+      },
     },
     sectionsState: {
       DEFAULT_ORDER: [],
@@ -160,6 +194,7 @@ function createContext(options = {}) {
         return yaml;
       },
       reorderMainArea(yaml, sectionOrder) {
+        counters.reorderCalls += 1;
         if (typeof options.reorderMainArea === 'function') {
           return options.reorderMainArea(yaml, sectionOrder);
         }
@@ -190,17 +225,48 @@ function createContext(options = {}) {
       VALID_FONT: ['small', 'normal', 'large'],
       DEFAULT_SETTINGS: {
         layout: { density: 'balanced', font_scale: 'normal' },
-        personal: { link_display: 'label' },
+        personal: {
+          link_display: 'label',
+          fields: [
+            { key: 'name', visible: true },
+            { key: 'email', visible: true },
+            { key: 'phone', visible: true },
+            { key: 'location', visible: true },
+            { key: 'website', visible: true },
+            { key: 'linkedin', visible: true },
+            { key: 'github', visible: true },
+            { key: 'huggingface', visible: true },
+          ],
+        },
         sections: [],
       },
-      settingsToYaml() {
-        return 'layout:\n  density: balanced\n';
+      settingsToYaml(settings) {
+        return JSON.stringify(settings);
       },
-      parseSettings() {
+      parseSettings(raw) {
+        if (raw && raw.trim().startsWith('{')) {
+          return {
+            value: JSON.parse(raw),
+            errors: [],
+            warnings: [],
+          };
+        }
         return {
           value: {
             layout: { density: 'balanced', font_scale: 'normal' },
-            personal: { link_display: 'label' },
+            personal: {
+              link_display: 'label',
+              fields: [
+                { key: 'name', visible: true },
+                { key: 'email', visible: true },
+                { key: 'phone', visible: true },
+                { key: 'location', visible: true },
+                { key: 'website', visible: true },
+                { key: 'linkedin', visible: true },
+                { key: 'github', visible: true },
+                { key: 'huggingface', visible: true },
+              ],
+            },
             sections: order.map((key) => ({
               key,
               title: key.toUpperCase(),
@@ -285,4 +351,103 @@ test('section order changes trigger one preview render', async () => {
   context.sectionsState.setOrder(['summary']);
 
   assert.equal(counters.previewRenders, 1);
+});
+
+test('contact-originated updates apply personal settings before preview refresh', async () => {
+  const initialSettings = {
+    layout: { density: 'balanced', font_scale: 'normal' },
+    personal: {
+      link_display: 'label',
+      fields: [
+        { key: 'name', visible: true },
+        { key: 'email', visible: true },
+        { key: 'phone', visible: true },
+        { key: 'location', visible: true },
+        { key: 'website', visible: true },
+        { key: 'linkedin', visible: true },
+        { key: 'github', visible: true },
+        { key: 'huggingface', visible: true },
+      ],
+    },
+    sections: [{ key: 'summary', title: 'SUMMARY', visible: true }],
+  };
+  const { context, counters, domReadyCallbacks } = createContext({
+    initialOrder: ['summary'],
+    initialSettingsYaml: JSON.stringify(initialSettings),
+  });
+  await bootSettingsSync(context, domReadyCallbacks);
+
+  counters.previewRenders = 0;
+  counters.previewSnapshots = [];
+  counters.buildPanelCalls = 0;
+  counters.reorderCalls = 0;
+
+  context.window.settingsSync.updateFromToolbar((next) => {
+    next.personal.link_display = 'url';
+    next.personal.fields.find((field) => field.key === 'github').visible = false;
+  }, { applyToolbar: true, applyContact: true });
+
+  assert.equal(context.app.state.link_display, 'url');
+  assert.equal(context.app.state.personal_fields.find((field) => field.key === 'github').visible, false);
+  assert.equal(counters.previewRenders, 1);
+  assert.equal(counters.buildPanelCalls, 0);
+  assert.equal(counters.reorderCalls, 0);
+  assert.equal(counters.previewSnapshots[0].link_display, 'url');
+  assert.equal(
+    counters.previewSnapshots[0].personal_fields.find((field) => field.key === 'github').visible,
+    false
+  );
+});
+
+test('settings editor batches preview and section panel updates while typing', async () => {
+  const timers = createTimerHarness();
+  const initialSettings = {
+    layout: { density: 'balanced', font_scale: 'normal' },
+    personal: {
+      link_display: 'label',
+      fields: [
+        { key: 'name', visible: true },
+        { key: 'email', visible: true },
+        { key: 'phone', visible: true },
+        { key: 'location', visible: true },
+        { key: 'website', visible: true },
+        { key: 'linkedin', visible: true },
+        { key: 'github', visible: true },
+        { key: 'huggingface', visible: true },
+      ],
+    },
+    sections: [{ key: 'summary', title: 'SUMMARY', visible: true }],
+  };
+  const { context, counters, domReadyCallbacks, elements } = createContext({
+    initialOrder: ['summary'],
+    initialSettingsYaml: JSON.stringify(initialSettings),
+    setTimeout: timers.setTimeout,
+    clearTimeout: timers.clearTimeout,
+  });
+  await bootSettingsSync(context, domReadyCallbacks);
+
+  elements.get('file-tab-settings').click();
+  counters.previewRenders = 0;
+  counters.buildPanelCalls = 0;
+  counters.reorderCalls = 0;
+
+  context.window.editorAdapter.setValue(JSON.stringify({
+    ...initialSettings,
+    layout: { density: 'compact', font_scale: 'normal' },
+  }));
+  context.window.editorAdapter.setValue(JSON.stringify({
+    ...initialSettings,
+    layout: { density: 'comfortable', font_scale: 'normal' },
+  }));
+
+  assert.equal(counters.previewRenders, 0);
+  assert.equal(counters.buildPanelCalls, 0);
+  assert.equal(counters.reorderCalls, 0);
+
+  timers.runAll();
+
+  assert.equal(context.app.state.density, 'comfortable');
+  assert.equal(counters.previewRenders, 1);
+  assert.equal(counters.buildPanelCalls, 1);
+  assert.equal(counters.reorderCalls, 1);
 });

@@ -64,12 +64,12 @@
 <% if cv.personal.tagline %>{\normalsize\itshape\color{cvmute} << cv.personal.tagline >>}\\[4pt]<% endif %>
 {\small\color{cvmute}
 <% set parts = [] %>
-<% if cv.personal.email %><% set parts = parts + ['\\href{mailto:' + cv.personal.email + '}{' + cv.personal.email + '}'] %><% endif %>
-<% if cv.personal.phone %><% set parts = parts + [cv.personal.phone] %><% endif %>
-<% if cv.personal.location %><% set parts = parts + [cv.personal.location] %><% endif %>
-<% if cv.personal.linkedin %><% set parts = parts + ['\\href{https://' + cv.personal.linkedin + '}{' + link_text(cv.personal.linkedin, 'LinkedIn') + '}'] %><% endif %>
-<% if cv.personal.github %><% set parts = parts + ['\\href{https://' + cv.personal.github + '}{' + link_text(cv.personal.github, 'GitHub') + '}'] %><% endif %>
-<% if cv.personal.huggingface %><% set parts = parts + ['\\href{https://' + cv.personal.huggingface + '}{' + link_text(cv.personal.huggingface, 'Hugging Face') + '}'] %><% endif %>
+<% if cv.personal.email and contact_visible('email') %><% set parts = parts + ['\\href{mailto:' + cv.personal.email + '}{' + cv.personal.email + '}'] %><% endif %>
+<% if cv.personal.phone and contact_visible('phone') %><% set parts = parts + [cv.personal.phone] %><% endif %>
+<% if cv.personal.location and contact_visible('location') %><% set parts = parts + [cv.personal.location] %><% endif %>
+<% if cv.personal.linkedin and contact_visible('linkedin') %><% set parts = parts + ['\\href{https://' + cv.personal.linkedin + '}{' + link_text(cv.personal.linkedin, 'LinkedIn', contact_link_style('linkedin')) + '}'] %><% endif %>
+<% if cv.personal.github and contact_visible('github') %><% set parts = parts + ['\\href{https://' + cv.personal.github + '}{' + link_text(cv.personal.github, 'GitHub', contact_link_style('github')) + '}'] %><% endif %>
+<% if cv.personal.huggingface and contact_visible('huggingface') %><% set parts = parts + ['\\href{https://' + cv.personal.huggingface + '}{' + link_text(cv.personal.huggingface, 'Hugging Face', contact_link_style('huggingface')) + '}'] %><% endif %>
 << parts | join(' \\textperiodcentered\\ ') >>
 }
 \end{center}

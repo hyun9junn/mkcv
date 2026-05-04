@@ -3,15 +3,30 @@ const contactUI = (() => {
   const { PERSONAL_FIELD_CATALOG, LINK_FIELDS } = window.SETTINGS_HELPERS;
 
   let _openPickerKey = null;
+  let _cachedYaml = null;
+  let _cachedPersonalValues = null;
 
-  function _getPersonalValue(key) {
+  function _getPersonalValues() {
+    const yaml = app.state.yaml || '';
+    if (yaml === _cachedYaml && _cachedPersonalValues) return _cachedPersonalValues;
+
+    const values = Object.fromEntries(PERSONAL_FIELD_CATALOG.map(field => [field.key, '']));
     try {
-      const parsed = jsyaml.load(app.state.yaml || '');
-      const val = parsed?.personal?.[key];
-      return val != null ? String(val) : '';
+      const parsed = jsyaml.load(yaml);
+      const personal = parsed?.personal;
+      if (personal && typeof personal === 'object') {
+        for (const field of PERSONAL_FIELD_CATALOG) {
+          const val = personal[field.key];
+          values[field.key] = val != null ? String(val) : '';
+        }
+      }
     } catch {
-      return '';
+      // Leave values empty when resume.yaml is invalid mid-edit.
     }
+
+    _cachedYaml = yaml;
+    _cachedPersonalValues = values;
+    return values;
   }
 
   function _currentSettings() {
@@ -41,18 +56,19 @@ const contactUI = (() => {
     row.className = 'field-row' +
       (locked ? ' locked-row' : '') +
       (!visible && !locked ? ' hidden-row' : '');
+    row.title = value || '';
 
     // Toggle
     const tog = document.createElement('div');
     tog.className = 'f-toggle' + (!visible ? ' off' : '') + (locked ? ' locked' : '');
     if (!locked) {
-      tog.addEventListener('click', () => {
+      tog.addEventListener('click', e => {
+        e.stopPropagation();
         if (!window.settingsSync) return;
         settingsSync.updateFromToolbar(s => {
           const f = s.personal.fields.find(f => f.key === key);
           if (f) f.visible = !f.visible;
-        });
-        rebuild(_currentSettings());
+        }, { applyToolbar: true, applyContact: true });
       });
     }
     row.appendChild(tog);
@@ -61,13 +77,8 @@ const contactUI = (() => {
     const keyEl = document.createElement('span');
     keyEl.className = 'f-key';
     keyEl.textContent = key;
+    keyEl.title = value || '';
     row.appendChild(keyEl);
-
-    // Value preview
-    const valEl = document.createElement('span');
-    valEl.className = 'f-val';
-    valEl.textContent = value;
-    row.appendChild(valEl);
 
     // Right control
     const ctrl = document.createElement('div');
@@ -101,8 +112,7 @@ const contactUI = (() => {
               if (!f) return;
               if (opt.val === null) delete f.link_display;
               else f.link_display = opt.val;
-            });
-            rebuild(_currentSettings());
+            }, { applyToolbar: true, applyContact: true });
           });
           picker.appendChild(span);
         }
@@ -120,8 +130,7 @@ const contactUI = (() => {
           settingsSync.updateFromToolbar(s => {
             const f = s.personal.fields.find(f => f.key === key);
             if (f) delete f.link_display;
-          });
-          rebuild(_currentSettings());
+          }, { applyToolbar: true, applyContact: true });
         });
         pill.appendChild(txt);
         pill.appendChild(x);
@@ -149,6 +158,7 @@ const contactUI = (() => {
 
     const fields = settings.personal?.fields ?? [];
     const globalDefault = settings.personal?.link_display ?? 'label';
+    const personalValues = _getPersonalValues();
 
     // Update global seg
     const seg = document.getElementById('contact-global-seg');
@@ -164,7 +174,7 @@ const contactUI = (() => {
     for (const fieldDef of PERSONAL_FIELD_CATALOG) {
       const fieldSettings = fields.find(f => f.key === fieldDef.key)
         ?? { key: fieldDef.key, visible: true };
-      const value = _getPersonalValue(fieldDef.key);
+      const value = personalValues[fieldDef.key] ?? '';
       const row = _buildFieldRow(fieldDef, fieldSettings, value, globalDefault);
       body.appendChild(row);
       if (fieldDef.key === 'name') {
@@ -218,8 +228,10 @@ const contactUI = (() => {
         e.stopPropagation();
         const span = e.target.closest('span[data-value]');
         if (!span || !window.settingsSync) return;
-        settingsSync.updateFromToolbar(s => { s.personal.link_display = span.dataset.value; });
-        rebuild(_currentSettings());
+        settingsSync.updateFromToolbar(
+          s => { s.personal.link_display = span.dataset.value; },
+          { applyToolbar: true, applyContact: true }
+        );
       });
     }
 
