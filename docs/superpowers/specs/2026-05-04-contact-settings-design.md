@@ -100,7 +100,7 @@ Opens below the pill on click, closes on outside click or Escape. Minimum width 
 
 **Link field right-hand control — three states:**
 
-1. **Inheriting** (no `link_display` key on the field): dashed `↑ url` inherit tag. Clicking opens the inline picker.
+1. **Inheriting** (no `link_display` key on the field): dashed `↑ url` inherit tag, where "url" reflects the current global default dynamically — if the global changes to "label", the tag reads `↑ label`. Clicking opens the inline picker.
 2. **Picker open** (after clicking the inherit tag): inline segmented control `↑ · label · url · both`. `↑` re-sets to inherit and closes the picker. Selecting a value sets the override and closes the picker.
 3. **Override set** (`link_display` key present on field): accent-colored pill `label ×`. Clicking `×` removes the override key and returns to the inherit state.
 
