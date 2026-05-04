@@ -57,6 +57,7 @@ _CV_SCHEMA_CACHE: dict | None = None
 _VALID_DENSITIES = {"comfortable", "balanced", "compact"}
 _VALID_FONT_SCALES = {"small", "normal", "large"}
 _VALID_LINK_DISPLAYS = {"label", "url", "both"}
+_FIELD_LINK_DISPLAYS = {"default", "label", "url", "both"}
 _PERSONAL_FIELD_KEYS = [
     "name",
     "email",
@@ -95,8 +96,9 @@ def _normalize_template_defaults(defaults: object) -> dict:
         return {}
     if layout.get("font_scale") not in _VALID_FONT_SCALES:
         return {}
-    if personal.get("link_display") not in _VALID_LINK_DISPLAYS:
+    if personal.get("default_link_display") not in _VALID_LINK_DISPLAYS:
         return {}
+
     personal_fields = personal.get("fields")
     if not isinstance(personal_fields, list):
         return {}
@@ -110,12 +112,14 @@ def _normalize_template_defaults(defaults: object) -> dict:
             return {}
         if not isinstance(field.get("visible"), bool):
             return {}
+
         link_display = field.get("link_display")
-        if link_display is not None:
-            if key not in _LINK_PERSONAL_KEYS:
+        if key in _LINK_PERSONAL_KEYS:
+            if link_display not in _FIELD_LINK_DISPLAYS:
                 return {}
-            if link_display not in _VALID_LINK_DISPLAYS:
-                return {}
+        elif link_display is not None:
+            return {}
+
         personal_keys.append(key)
 
     if personal_keys != _PERSONAL_FIELD_KEYS:

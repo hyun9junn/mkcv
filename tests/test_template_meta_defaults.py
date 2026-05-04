@@ -55,15 +55,16 @@ def test_every_template_meta_has_complete_defaults_block():
 
         assert defaults["layout"]["density"] in {"comfortable", "balanced", "compact"}, meta_path
         assert defaults["layout"]["font_scale"] in {"small", "normal", "large"}, meta_path
-        assert defaults["personal"]["link_display"] in {"label", "url", "both"}, meta_path
+        assert defaults["personal"]["default_link_display"] in {"label", "url", "both"}, meta_path
         personal_fields = defaults["personal"]["fields"]
         assert [field["key"] for field in personal_fields] == EXPECTED_PERSONAL_KEYS, meta_path
 
         for field in personal_fields:
             assert isinstance(field["visible"], bool), meta_path
-            if "link_display" in field:
-                assert field["key"] in LINK_PERSONAL_KEYS, meta_path
-                assert field["link_display"] in {"label", "url", "both"}, meta_path
+            if field["key"] in LINK_PERSONAL_KEYS:
+                assert field["link_display"] in {"default", "label", "url", "both"}, meta_path
+            else:
+                assert "link_display" not in field, meta_path
 
         sections = defaults["sections"]
         keys = [section["key"] for section in sections]
@@ -201,6 +202,20 @@ def test_load_template_meta_malformed_defaults_returns_empty_defaults(tmp_path):
             "    - key: summary\n"
             "      title: SUMMARY AGAIN\n"
             "      visible: false\n"
+        ),
+        (
+            "  layout:\n"
+            "    density: balanced\n"
+            "    font_scale: normal\n"
+            "  personal:\n"
+            "    link_display: label\n"
+            "    fields:\n"
+            "      - key: name\n"
+            "        visible: true\n"
+            "  sections:\n"
+            "    - key: summary\n"
+            "      title: SUMMARY\n"
+            "      visible: true\n"
         ),
     ],
 )

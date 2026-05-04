@@ -273,7 +273,7 @@ async def test_templates_meta_includes_defaults_block(app):
     defaults = data["meta"]["classic"]["defaults"]
     assert defaults["layout"]["density"] in {"comfortable", "balanced", "compact"}
     assert defaults["layout"]["font_scale"] in {"small", "normal", "large"}
-    assert defaults["personal"]["link_display"] in {"label", "url", "both"}
+    assert defaults["personal"]["default_link_display"] in {"label", "url", "both"}
     assert any(section["key"] == "summary" for section in defaults["sections"])
 
 
