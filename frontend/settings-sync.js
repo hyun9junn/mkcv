@@ -103,6 +103,7 @@ const settingsSync = (() => {
       density: settings.layout.density,
       font_scale: settings.layout.font_scale,
       link_display: settings.personal?.link_display ?? 'label',
+      personal_fields: settings.personal?.fields ?? [],
     });
   }
 
@@ -118,9 +119,14 @@ const settingsSync = (() => {
     _reorderAndSaveResume(order);
   }
 
+  function _applyToContact(settings) {
+    if (window.contactUI) contactUI.rebuild(settings);
+  }
+
   function _applyAll(settings) {
     _applyToToolbar(settings);
     _applyToSections(settings);
+    _applyToContact(settings);
   }
 
   // ── Reorder mycv.yaml to match section order ──
