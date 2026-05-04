@@ -212,7 +212,7 @@ const settingsSync = (() => {
     }
   }
 
-  // ── Save to backend ──
+  // ── Save to localStorage ──
 
   function _save(yaml) {
     try {
