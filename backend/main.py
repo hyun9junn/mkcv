@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import subprocess
 import tempfile
 from contextlib import asynccontextmanager
@@ -267,7 +268,7 @@ async def lifespan(app: FastAPI):
     for template_dir in sorted(TEMPLATES_DIR.iterdir()):
         if template_dir.is_dir():
             if (template_dir / "cv.tex.j2").exists():
-                _template_validation_cache[template_dir.name] = _validate_template(template_dir.name)
+                _template_validation_cache[template_dir.name] = await asyncio.to_thread(_validate_template, template_dir.name)
             if (template_dir / "cv.tex.j2").exists() or (template_dir / "meta.yaml").exists():
                 _template_meta_cache[template_dir.name] = _load_template_meta(template_dir)
     yield
@@ -468,7 +469,8 @@ async def export_pdf(req: CVRequest):
         tex_path = Path(tmpdir) / "cv.tex"
         tex_path.write_text(latex_content)
         try:
-            result = subprocess.run(
+            result = await asyncio.to_thread(
+                subprocess.run,
                 ["pdflatex", "-interaction=nonstopmode", "cv.tex"],
                 cwd=tmpdir,
                 capture_output=True,
@@ -520,7 +522,8 @@ async def preview_pdf(req: CVRequest):
         tex_path = Path(tmpdir) / "cv.tex"
         tex_path.write_text(latex_content)
         try:
-            result = subprocess.run(
+            result = await asyncio.to_thread(
+                subprocess.run,
                 ["pdflatex", "-interaction=nonstopmode", "cv.tex"],
                 cwd=tmpdir,
                 capture_output=True,
@@ -601,7 +604,7 @@ async def list_templates():
 async def validate_template(name: str):
     if not _template_exists(name):
         return JSONResponse(status_code=404, content={"error": "not_found", "message": f"Template '{name}' not found"})
-    result = _validate_template(name)
+    result = await asyncio.to_thread(_validate_template, name)
     _template_validation_cache[name] = result
     return result
 
