@@ -1,7 +1,7 @@
 import pytest
 from pathlib import Path
 from backend.models import CVData, PersonalInfo
-from backend.renderers.latex import LaTeXRenderer, _build_layout_preamble, _FONT_SIZE, _make_jinja_filters
+from backend.renderers.latex import LaTeXRenderer, _build_layout_preamble, _FONT_SIZE, _make_jinja_filters, _make_contact_helpers, _make_link_text_fn
 
 TEMPLATES_DIR = Path("backend/templates")
 TEMPLATES_WITH_GITHUB_LINK = [
@@ -522,9 +522,6 @@ def test_filters_available_in_template(tmp_path, minimal_cv):
     result = renderer.render(minimal_cv)
     assert r'\Huge\bfseries' in result   # name_size filter worked
     assert r'\small ' in result           # shrink_if_long(3) triggered (Alice=5>3)
-
-
-from backend.renderers.latex import _make_contact_helpers, _make_link_text_fn
 
 
 def test_contact_visible_defaults_true_when_no_fields():
