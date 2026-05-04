@@ -363,7 +363,14 @@ async def export_latex(req: CVRequest):
     if not _template_exists(req.template):
         return _error("unknown_template", f"Template '{req.template}' not found")
 
-    renderer = LaTeXRenderer(TEMPLATES_DIR, template=req.template, density=req.density, font_scale=req.font_scale, link_display=req.link_display, personal_fields=req.personal_fields or [])
+    renderer = LaTeXRenderer(
+        TEMPLATES_DIR,
+        template=req.template,
+        density=req.density,
+        font_scale=req.font_scale,
+        link_display=req.link_display,
+        personal_fields=req.personal_fields or [],
+    )
     content = renderer.render(cv, req.section_order, req.section_titles)
     OUTPUT_DIR.mkdir(exist_ok=True)
     (OUTPUT_DIR / "cv.tex").write_text(content)
@@ -386,7 +393,14 @@ async def export_pdf(req: CVRequest):
     if not _template_exists(req.template):
         return _error("unknown_template", f"Template '{req.template}' not found")
 
-    renderer = LaTeXRenderer(TEMPLATES_DIR, template=req.template, density=req.density, font_scale=req.font_scale, link_display=req.link_display, personal_fields=req.personal_fields or [])
+    renderer = LaTeXRenderer(
+        TEMPLATES_DIR,
+        template=req.template,
+        density=req.density,
+        font_scale=req.font_scale,
+        link_display=req.link_display,
+        personal_fields=req.personal_fields or [],
+    )
     latex_content = renderer.render(cv, req.section_order, req.section_titles)
 
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -433,7 +447,14 @@ async def preview_pdf(req: CVRequest):
     if not _template_exists(req.template):
         return _error("unknown_template", f"Template '{req.template}' not found")
 
-    renderer = LaTeXRenderer(TEMPLATES_DIR, template=req.template, density=req.density, font_scale=req.font_scale, link_display=req.link_display, personal_fields=req.personal_fields or [])
+    renderer = LaTeXRenderer(
+        TEMPLATES_DIR,
+        template=req.template,
+        density=req.density,
+        font_scale=req.font_scale,
+        link_display=req.link_display,
+        personal_fields=req.personal_fields or [],
+    )
     latex_content = renderer.render(cv, req.section_order, req.section_titles)
 
     with tempfile.TemporaryDirectory() as tmpdir:

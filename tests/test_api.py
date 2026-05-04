@@ -301,10 +301,8 @@ async def test_export_latex_invalid_density_returns_422(app):
     assert resp.status_code == 422
 
 
-@pytest.mark.asyncio
 async def test_preview_pdf_accepts_personal_fields(app):
-    """personal_fields is accepted without error; field visibility is respected."""
-    resp = None
+    """personal_fields is accepted by the API without error; a valid PDF is returned."""
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         resp = await client.post("/api/preview/pdf", json={
             "yaml": "personal:\n  name: Test\n  email: t@test.com\n  github: github.com/test\n",
@@ -319,10 +317,8 @@ async def test_preview_pdf_accepts_personal_fields(app):
     assert resp.headers["content-type"] == "application/pdf"
 
 
-@pytest.mark.asyncio
 async def test_preview_pdf_personal_fields_defaults_to_empty(app):
     """Omitting personal_fields does not cause an error."""
-    resp = None
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         resp = await client.post("/api/preview/pdf", json={
             "yaml": "personal:\n  name: Test\n  email: t@test.com\n",
