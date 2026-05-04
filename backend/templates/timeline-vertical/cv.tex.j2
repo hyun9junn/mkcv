@@ -89,8 +89,8 @@
 <% if cv.personal.email %>\href{mailto:<< cv.personal.email >>}{<< cv.personal.email >>}\\<% endif %>
 <% if cv.personal.phone %><< cv.personal.phone >>\\<% endif %>
 <% if cv.personal.location %><< cv.personal.location >>\\<% endif %>
-<% if cv.personal.linkedin %>\href{https://<< cv.personal.linkedin >>}{<< cv.personal.linkedin >>}\\<% endif %>
-<% if cv.personal.github %>\href{https://<< cv.personal.github >>}{<< cv.personal.github >>}\\<% endif %>
+<% if cv.personal.linkedin %>\href{https://<< cv.personal.linkedin >>}{<< link_text(cv.personal.linkedin, 'LinkedIn') >>}\\<% endif %>
+<% if cv.personal.github %>\href{https://<< cv.personal.github >>}{<< link_text(cv.personal.github, 'GitHub') >>}\\<% endif %>
 <% if cv.personal.website %>\href{https://<< cv.personal.website >>}{<< cv.personal.website >>}\\<% endif %>
 }
 \end{minipage}

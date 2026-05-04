@@ -82,8 +82,8 @@
 \begin{center}\small
 <% set sep = joiner(" \\,\\textbullet\\, ") %>
 <% if cv.personal.phone %><< sep() >><< cv.personal.phone >><% endif %>
-<% if cv.personal.linkedin %><< sep() >>\href{https://<< cv.personal.linkedin >>}{<< cv.personal.linkedin >>}<% endif %>
-<% if cv.personal.github %><< sep() >>\href{https://<< cv.personal.github >>}{<< cv.personal.github >>}<% endif %>
+<% if cv.personal.linkedin %><< sep() >>\href{https://<< cv.personal.linkedin >>}{<< link_text(cv.personal.linkedin, 'LinkedIn') >>}<% endif %>
+<% if cv.personal.github %><< sep() >>\href{https://<< cv.personal.github >>}{<< link_text(cv.personal.github, 'GitHub') >>}<% endif %>
 <% if cv.personal.website %><< sep() >>\href{https://<< cv.personal.website >>}{<< cv.personal.website >>}<% endif %>
 <% if cv.personal.orcid %><< sep() >>ORCID: << cv.personal.orcid >><% endif %>
 <% if cv.personal.scholar %><< sep() >>\href{https://<< cv.personal.scholar >>}{Scholar}<% endif %>

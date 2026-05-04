@@ -95,13 +95,13 @@
 {\footnotesize\color{cvsidemute} << cv.personal.location >>}\\[3pt]
 <% endif %>
 <% if cv.personal.github %>
-{\footnotesize\color{cvsidemute}\href{https://<< cv.personal.github >>}{<< cv.personal.github >>}}\\[3pt]
+{\footnotesize\color{cvsidemute}\href{https://<< cv.personal.github >>}{<< link_text(cv.personal.github, 'GitHub') >>}}\\[3pt]
 <% endif %>
 <% if cv.personal.linkedin %>
-{\footnotesize\color{cvsidemute}\href{https://<< cv.personal.linkedin >>}{LinkedIn}}\\[3pt]
+{\footnotesize\color{cvsidemute}\href{https://<< cv.personal.linkedin >>}{<< link_text(cv.personal.linkedin, 'LinkedIn') >>}}\\[3pt]
 <% endif %>
 <% if cv.personal.huggingface %>
-{\footnotesize\color{cvsidemute}\href{https://<< cv.personal.huggingface >>}{Hugging Face}}\\[3pt]
+{\footnotesize\color{cvsidemute}\href{https://<< cv.personal.huggingface >>}{<< link_text(cv.personal.huggingface, 'Hugging Face') >>}}\\[3pt]
 <% endif %>
 <% if cv.personal.website %>
 {\footnotesize\color{cvsidemute}\href{https://<< cv.personal.website >>}{<< cv.personal.website >>}}\\[3pt]

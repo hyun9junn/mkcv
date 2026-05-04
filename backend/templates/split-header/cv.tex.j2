@@ -84,9 +84,9 @@
   <% if cv.personal.phone %><< cv.personal.phone >>\\[1.5pt]<% endif %>
   <% if cv.personal.location %><< cv.personal.location >>\\[1.5pt]<% endif %>
   <% if cv.personal.website %>\href{https://<< cv.personal.website >>}{Website}\\[1.5pt]<% endif %>
-  <% if cv.personal.linkedin %>\href{https://<< cv.personal.linkedin >>}{LinkedIn}\\[1.5pt]<% endif %>
-  <% if cv.personal.github %>\href{https://<< cv.personal.github >>}{GitHub}\\[1.5pt]<% endif %>
-  <% if cv.personal.huggingface %>\href{https://<< cv.personal.huggingface >>}{Hugging Face}\\[1.5pt]<% endif %>
+  <% if cv.personal.linkedin %>\href{https://<< cv.personal.linkedin >>}{<< link_text(cv.personal.linkedin, 'LinkedIn') >>}\\[1.5pt]<% endif %>
+  <% if cv.personal.github %>\href{https://<< cv.personal.github >>}{<< link_text(cv.personal.github, 'GitHub') >>}\\[1.5pt]<% endif %>
+  <% if cv.personal.huggingface %>\href{https://<< cv.personal.huggingface >>}{<< link_text(cv.personal.huggingface, 'Hugging Face') >>}\\[1.5pt]<% endif %>
   }
   \vspace{2pt}
   \end{minipage}%

@@ -83,6 +83,22 @@ async def test_export_latex(app):
     assert "Alice" in resp.text
 
 
+async def test_export_latex_respects_link_display(app):
+    yaml = """
+personal:
+  name: Alice
+  email: alice@example.com
+  github: github.com/alice
+"""
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        resp = await client.post(
+            "/api/export/latex",
+            json={"yaml": yaml, "template": "classic", "link_display": "both"},
+        )
+    assert resp.status_code == 200
+    assert r"\href{https://github.com/alice}{GitHub (github.com/alice)}" in resp.text
+
+
 async def test_export_unknown_template_returns_error(app):
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         resp = await client.post("/api/export/latex", json={"yaml": VALID_YAML, "template": "nonexistent"})

@@ -1,8 +1,38 @@
 import pytest
 from pathlib import Path
+from backend.models import CVData, PersonalInfo
 from backend.renderers.latex import LaTeXRenderer, _build_layout_preamble, _FONT_SIZE, _make_jinja_filters
 
 TEMPLATES_DIR = Path("backend/templates")
+TEMPLATES_WITH_GITHUB_LINK = [
+    "academic-research",
+    "banking",
+    "brutalist-mono",
+    "classic",
+    "column-skills",
+    "editorial-magazine",
+    "executive-corporate",
+    "gazette",
+    "heritage",
+    "hipster",
+    "modern-startup",
+    "resume-tech",
+    "sidebar-minimal",
+    "split-header",
+    "timeline-vertical",
+]
+
+
+def _social_cv() -> CVData:
+    return CVData(
+        personal=PersonalInfo(
+            name="Jane Smith",
+            email="jane@example.com",
+            github="github.com/janesmith",
+            linkedin="linkedin.com/in/janesmith",
+            huggingface="huggingface.co/janesmith",
+        )
+    )
 
 
 def test_latex_contains_name(sample_cv):
@@ -173,6 +203,20 @@ def test_renderer_unknown_font_scale_falls_back(tmp_path, minimal_cv):
     renderer = LaTeXRenderer(tmp_path, template="mini", font_scale="huge")
     result = renderer.render(minimal_cv)
     assert "\\documentclass[11pt]{article}" in result
+
+
+@pytest.mark.parametrize("template", TEMPLATES_WITH_GITHUB_LINK)
+@pytest.mark.parametrize(
+    ("link_display", "expected_text"),
+    [
+        ("label", r"\href{https://github.com/janesmith}{GitHub}"),
+        ("url", r"\href{https://github.com/janesmith}{github.com/janesmith}"),
+        ("both", r"\href{https://github.com/janesmith}{GitHub (github.com/janesmith)}"),
+    ],
+)
+def test_link_display_changes_personal_github_text_across_templates(template, link_display, expected_text):
+    output = LaTeXRenderer(TEMPLATES_DIR, template=template, link_display=link_display).render(_social_cv())
+    assert expected_text in output
 
 
 def test_name_size_short():
