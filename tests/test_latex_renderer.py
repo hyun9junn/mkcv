@@ -583,3 +583,68 @@ def test_link_text_without_style_uses_global():
 def test_link_text_invalid_style_falls_back_to_global():
     fn = _make_link_text_fn("label")
     assert fn("github.com/user", "GitHub", "invalid") == "GitHub"
+
+
+def _make_cv(github="github.com/user", linkedin=None, email="a@b.com", phone=None, location=None):
+    return CVData(
+        personal=PersonalInfo(
+            name="Test User",
+            email=email,
+            phone=phone,
+            location=location,
+            linkedin=linkedin,
+            github=github,
+        )
+    )
+
+
+def test_classic_hides_github_when_not_visible():
+    renderer = LaTeXRenderer(
+        TEMPLATES_DIR, template="classic",
+        personal_fields=[
+            {"key": "name",   "visible": True},
+            {"key": "email",  "visible": True},
+            {"key": "github", "visible": False},
+        ],
+    )
+    out = renderer.render(_make_cv())
+    assert "github.com/user" not in out
+
+
+def test_classic_shows_github_when_visible():
+    renderer = LaTeXRenderer(
+        TEMPLATES_DIR, template="classic",
+        personal_fields=[{"key": "github", "visible": True}],
+    )
+    out = renderer.render(_make_cv())
+    assert "github.com/user" in out
+
+
+def test_classic_github_label_override():
+    renderer = LaTeXRenderer(
+        TEMPLATES_DIR, template="classic",
+        link_display="url",
+        personal_fields=[{"key": "github", "visible": True, "link_display": "label"}],
+    )
+    out = renderer.render(_make_cv())
+    assert "GitHub" in out
+    assert "github.com/user" not in out.split("GitHub")[1][:30]
+
+
+def test_classic_hides_phone_when_not_visible():
+    renderer = LaTeXRenderer(
+        TEMPLATES_DIR, template="classic",
+        personal_fields=[{"key": "phone", "visible": False}],
+    )
+    out = renderer.render(_make_cv(phone="+1-555-0000"))
+    assert "+1-555-0000" not in out
+
+
+def test_classic_shows_all_fields_by_default():
+    renderer = LaTeXRenderer(TEMPLATES_DIR, template="classic")
+    cv = _make_cv(phone="+1-555-0000", location="Seoul", linkedin="linkedin.com/in/user")
+    out = renderer.render(cv)
+    assert "a@b.com" in out
+    assert "+1-555-0000" in out
+    assert "Seoul" in out
+    assert "linkedin.com/in/user" in out or "LinkedIn" in out
