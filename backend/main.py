@@ -24,7 +24,6 @@ from backend.models import (
 )
 
 TEMPLATES_DIR = Path(__file__).parent / "templates"
-OUTPUT_DIR = Path("output")
 CV_FILE       = Path("mycv.yaml")
 SETTINGS_FILE = Path("settings.yaml")
 
@@ -408,8 +407,6 @@ async def export_markdown(req: CVRequest):
         return _error("validation_error", e.message, e.errors)
 
     content = MarkdownRenderer().render(cv, req.section_order)
-    OUTPUT_DIR.mkdir(exist_ok=True)
-    (OUTPUT_DIR / "cv.md").write_text(content)
     return Response(
         content=content,
         media_type="text/markdown",
@@ -438,8 +435,6 @@ async def export_latex(req: CVRequest):
         personal_fields=req.personal_fields or [],
     )
     content = renderer.render(cv, req.section_order, req.section_titles)
-    OUTPUT_DIR.mkdir(exist_ok=True)
-    (OUTPUT_DIR / "cv.tex").write_text(content)
     return Response(
         content=content,
         media_type="application/x-latex",
@@ -492,8 +487,6 @@ async def export_pdf(req: CVRequest):
 
         pdf_bytes = (Path(tmpdir) / "cv.pdf").read_bytes()
 
-    OUTPUT_DIR.mkdir(exist_ok=True)
-    (OUTPUT_DIR / "cv.pdf").write_bytes(pdf_bytes)
     return Response(
         content=pdf_bytes,
         media_type="application/pdf",
