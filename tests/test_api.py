@@ -341,3 +341,23 @@ async def test_file_post_endpoint_removed(app):
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         resp = await client.post("/api/file", json={"content": "test"})
     assert resp.status_code in (404, 405)
+
+
+async def test_settings_get_removed(app):
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        resp = await client.get("/api/settings")
+    assert resp.status_code == 404
+
+
+async def test_settings_post_removed(app):
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        resp = await client.post("/api/settings", json={"content": "layout:\n  density: balanced\n"})
+    assert resp.status_code in (404, 405)
+
+
+async def test_settings_no_disk_write(app, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        await client.post("/api/export/markdown", json={"yaml": VALID_YAML, "template": "classic"})
+        await client.post("/api/export/latex", json={"yaml": VALID_YAML, "template": "classic"})
+    assert not (tmp_path / "settings.yaml").exists()

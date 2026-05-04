@@ -214,14 +214,12 @@ const settingsSync = (() => {
 
   // ── Save to backend ──
 
-  async function _save(yaml) {
+  function _save(yaml) {
     try {
-      await fetch('/api/settings', {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ content: yaml }),
-      });
-    } catch {}
+      localStorage.setItem('mkcv:default:settings.yaml', yaml);
+    } catch {
+      _toast('Settings not saved — browser storage is full or unavailable.', 'warn');
+    }
   }
 
   function _scheduleSave() {
@@ -356,6 +354,15 @@ const settingsSync = (() => {
 
   function _migrate() {
     const FLAG = 'mkcv_migrated_to_settings_yaml';
+
+    // Always check for key rename from intermediate versions (safe to run every time)
+    if (!localStorage.getItem('mkcv:default:settings.yaml') && localStorage.getItem('mkcv_settings_yaml')) {
+      try {
+        localStorage.setItem('mkcv:default:settings.yaml', localStorage.getItem('mkcv_settings_yaml'));
+        localStorage.removeItem('mkcv_settings_yaml');
+      } catch {}
+    }
+
     if (localStorage.getItem(FLAG)) return null;
     let migrated = false;
     const next   = JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
@@ -404,35 +411,24 @@ const settingsSync = (() => {
 
   // ── Init ──
 
-  document.addEventListener('DOMContentLoaded', async () => {
+  document.addEventListener('DOMContentLoaded', () => {
     // Wire tab buttons
     document.getElementById('file-tab-resume')  ?.addEventListener('click', switchToResume);
     document.getElementById('file-tab-settings')?.addEventListener('click', switchToSettings);
 
-    // Migration (before loading from backend)
+    // Migration (before loading from localStorage)
     const migrated = _migrate();
 
-    // Load settings.yaml from backend
-    let fromBackend = false;
-    try {
-      const resp = await fetch('/api/settings');
-      if (resp.ok) {
-        const { content } = await resp.json();
-        if (content && content.trim()) {
-          _settingsYaml = content;
-          _parsed       = parseSettings(content);
-          fromBackend   = true;
-        }
-      }
-    } catch {}
-
-    if (!fromBackend) {
-      if (migrated) {
-        _settingsYaml = settingsToYaml(migrated);
-        _parsed       = parseSettings(_settingsYaml);
-        _toast('Migrated layout & section settings to settings.yaml');
-      }
-      await _save(_settingsYaml); // write defaults (or migrated) to disk
+    // Load settings from localStorage
+    const stored = localStorage.getItem('mkcv:default:settings.yaml');
+    if (stored && stored.trim()) {
+      _settingsYaml = stored;
+      _parsed       = parseSettings(stored);
+    } else if (migrated) {
+      _settingsYaml = settingsToYaml(migrated);
+      _parsed       = parseSettings(_settingsYaml);
+      _toast('Migrated layout & section settings to settings.yaml');
+      _save(_settingsYaml);
     }
 
     // Apply to toolbar and section chips

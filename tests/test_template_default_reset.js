@@ -38,6 +38,9 @@ function createContext(options = {}) {
   const domReadyCallbacks = [];
   const elements = new Map();
   const localStorageData = new Map();
+  if (options.initialSettingsYaml) {
+    localStorageData.set('mkcv:default:settings.yaml', options.initialSettingsYaml);
+  }
   const editorChangeCallbacks = [];
   const counters = { previewRenders: 0, buildPanelCalls: 0, reorderCalls: [] };
 
@@ -90,12 +93,7 @@ function createContext(options = {}) {
     TextEncoder,
     setTimeout,
     clearTimeout,
-    fetch: async (url, requestOptions = {}) => {
-      if (url === '/api/settings' && !requestOptions.method) {
-        return { ok: true, json: async () => ({ content: options.initialSettingsYaml || '' }) };
-      }
-      return { ok: true, json: async () => ({}) };
-    },
+    fetch: async () => ({ ok: false }),
     localStorage: {
       getItem(key) {
         return localStorageData.has(key) ? localStorageData.get(key) : null;
