@@ -173,15 +173,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (!wrapper.contains(e.target)) window.templateUI.closeDropdown();
     });
 
-    /* Badge labels for well-known templates */
-    const BADGES = {
-        classic:           "Default",
-        "scholar-index":   "Popular",
-        foundry:           "New",
-        "ats-signal":      "New",
-        "signature-split": "New",
-    };
-
     try {
         const data = await (await fetch("/api/templates")).json();
         const validationMap = data.validation || {};
@@ -196,7 +187,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 .map(part => part.charAt(0).toUpperCase() + part.slice(1))
                 .join(" ");
             const description = meta.description  || "";
-            const badge       = BADGES[name] || (isValid === false ? "⚠ Error" : "");
+            const badge       = isValid === false ? "⚠ Error" : (meta.ui?.badge || "");
             const isFirst     = name === app.state.template;
 
             const opt = document.createElement("div");

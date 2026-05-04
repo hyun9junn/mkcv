@@ -1,6 +1,8 @@
 display_name: "Mono Forge"
 description: "Indie devs, hackers, toolmakers — monospace brutalism, boxed header, and zero-polish technical attitude."
 audience: engineering
+render:
+  section_title_case: upper
 recommended_sections:
   - experience
   - projects
@@ -45,32 +47,32 @@ defaults:
         link_display: default
   sections:
     - key: summary
-      title: "readme"
+      title: "README"
       visible: true
     - key: experience
-      title: "experience"
+      title: "EXPERIENCE"
       visible: true
     - key: projects
-      title: "projects"
+      title: "PROJECTS"
       visible: true
     - key: skills
-      title: "stack"
+      title: "STACK"
       visible: true
     - key: education
-      title: "education"
+      title: "EDUCATION"
       visible: true
     - key: publications
-      title: "papers"
+      title: "PAPERS"
       visible: false
     - key: certifications
-      title: "certs"
+      title: "CERTS"
       visible: false
     - key: awards
-      title: "awards"
+      title: "AWARDS"
       visible: false
     - key: languages
-      title: "languages"
+      title: "LANGUAGES"
       visible: false
     - key: extracurricular
-      title: "misc"
+      title: "MISC"
       visible: false

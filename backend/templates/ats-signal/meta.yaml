@@ -1,6 +1,10 @@
 display_name: "ATS Signal"
 description: "ATS-first tech resume — single-column flow, bold section rules, and clean parsing for software roles."
 audience: general
+ui:
+  badge: "New"
+render:
+  section_title_case: upper
 defaults:
   layout:
     density: compact
@@ -57,5 +61,5 @@ defaults:
       title: "LANGUAGES"
       visible: false
     - key: extracurricular
-      title: "EXTRACURRICULAR"
+      title: "ACTIVITIES"
       visible: false

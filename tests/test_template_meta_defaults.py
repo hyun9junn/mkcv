@@ -63,43 +63,67 @@ EXPECTED_DISPLAY_NAMES = {
     "signature-split": "Signature Split",
     "trackline": "Trackline",
 }
+EXPECTED_UI_BADGES = {
+    "classic": "Default",
+    "scholar-index": "Popular",
+    "foundry": "New",
+    "ats-signal": "New",
+    "signature-split": "New",
+}
+EXPECTED_SECTION_TITLE_CASE_POLICIES = {
+    "classic": "title",
+    "scholar-index": "title",
+    "dealbook": "upper",
+    "mono-forge": "upper",
+    "skillboard": "upper",
+    "masthead": "title",
+    "boardroom": "upper",
+    "letterpress": "lower",
+    "chancellor": "title",
+    "studio-pop": "upper",
+    "foundry": "upper",
+    "ats-signal": "upper",
+    "slate-rail": "upper",
+    "signature-split": "upper",
+    "trackline": "lower",
+}
 EXPECTED_CURATED_TITLES = {
     "scholar-index": {
-        "summary": "Research Summary",
-        "experience": "Research and Professional Experience",
-        "skills": "Technical Skills",
-        "awards": "Awards and Honors",
-        "extracurricular": "Service and Activities",
+        "summary": "RESEARCH SUMMARY",
+        "experience": "RESEARCH AND PROFESSIONAL EXPERIENCE",
+        "skills": "TECHNICAL SKILLS",
+        "awards": "AWARDS AND HONORS",
+        "extracurricular": "SERVICE AND ACTIVITIES",
     },
     "mono-forge": {
-        "summary": "readme",
-        "skills": "stack",
-        "publications": "papers",
-        "certifications": "certs",
-        "extracurricular": "misc",
+        "summary": "README",
+        "skills": "STACK",
+        "publications": "PAPERS",
+        "certifications": "CERTS",
+        "extracurricular": "MISC",
     },
     "masthead": {
-        "summary": "Editor's Note",
-        "experience": "Career",
-        "projects": "Selected Works",
-        "publications": "Bylines and Publications",
-        "awards": "Honours",
-        "extracurricular": "Beyond the Page",
+        "summary": "EDITOR'S NOTE",
+        "experience": "CAREER",
+        "projects": "SELECTED WORKS",
+        "publications": "BYLINES AND PUBLICATIONS",
+        "awards": "HONOURS",
+        "extracurricular": "BEYOND THE PAGE",
     },
     "letterpress": {
-        "summary": "prologue",
-        "experience": "appointments",
-        "publications": "published works",
-        "skills": "competencies",
-        "awards": "honours and distinctions",
-        "extracurricular": "civic and other interests",
+        "summary": "PROLOGUE",
+        "experience": "APPOINTMENTS",
+        "publications": "PUBLISHED WORKS",
+        "skills": "COMPETENCIES",
+        "awards": "HONOURS AND DISTINCTIONS",
+        "extracurricular": "CIVIC AND OTHER INTERESTS",
     },
     "signature-split": {
-        "summary": "Statement",
-        "projects": "Selected Work",
-        "publications": "Press and Publications",
-        "awards": "Recognition",
-        "extracurricular": "Beyond Studio",
+        "summary": "STATEMENT",
+        "projects": "SELECTED WORK",
+        "publications": "PRESS AND PUBLICATIONS",
+        "awards": "RECOGNITION",
+        "extracurricular": "BEYOND STUDIO",
     },
 }
 EXPECTED_DEFAULT_VISIBILITY = {
@@ -161,6 +185,25 @@ def test_template_meta_curated_titles_and_visibility_are_applied():
             assert sections[key]["visible"] is expected_visible
 
 
+def test_every_template_meta_default_title_is_uppercase_for_settings_and_chips():
+    for meta_path in sorted(TEMPLATES_DIR.glob("*/meta.yaml")):
+        data = yaml.safe_load(meta_path.read_text()) or {}
+        sections = data["defaults"]["sections"]
+        for section in sections:
+            assert section["title"] == section["title"].upper(), meta_path
+
+
+def test_template_meta_declares_expected_ui_badges_and_render_casing():
+    for meta_path in sorted(TEMPLATES_DIR.glob("*/meta.yaml")):
+        data = yaml.safe_load(meta_path.read_text()) or {}
+        template_name = meta_path.parent.name
+        expected_badge = EXPECTED_UI_BADGES.get(template_name, "")
+        expected_case = EXPECTED_SECTION_TITLE_CASE_POLICIES[template_name]
+
+        assert data.get("ui", {}).get("badge", "") == expected_badge, meta_path
+        assert data.get("render", {}).get("section_title_case") == expected_case, meta_path
+
+
 def test_load_template_meta_missing_file_returns_empty_defaults(tmp_path):
     template_dir = tmp_path / "missing-meta"
     template_dir.mkdir()
@@ -168,6 +211,8 @@ def test_load_template_meta_missing_file_returns_empty_defaults(tmp_path):
     meta = _load_template_meta(template_dir)
 
     assert meta["display_name"] == "Missing Meta"
+    assert meta["ui"] == {"badge": ""}
+    assert meta["render"] == {"section_title_case": "title"}
     assert meta["defaults"] == {}
 
 
@@ -179,6 +224,8 @@ def test_load_template_meta_non_mapping_returns_empty_defaults(tmp_path):
     meta = _load_template_meta(template_dir)
 
     assert meta["display_name"] == "bad-meta"
+    assert meta["ui"] == {"badge": ""}
+    assert meta["render"] == {"section_title_case": "title"}
     assert meta["defaults"] == {}
 
 
@@ -192,6 +239,8 @@ def test_load_template_meta_invalid_yaml_syntax_returns_empty_defaults(tmp_path)
     assert meta["display_name"] == "invalid-yaml"
     assert meta["description"] == ""
     assert meta["audience"] == ""
+    assert meta["ui"] == {"badge": ""}
+    assert meta["render"] == {"section_title_case": "title"}
     assert meta["defaults"] == {}
 
 
@@ -207,7 +256,42 @@ def test_load_template_meta_malformed_defaults_returns_empty_defaults(tmp_path):
     meta = _load_template_meta(template_dir)
 
     assert meta["display_name"] == "Bad Defaults"
+    assert meta["ui"] == {"badge": ""}
+    assert meta["render"] == {"section_title_case": "title"}
     assert meta["defaults"] == {}
+
+
+def test_load_template_meta_normalizes_optional_badge_and_section_title_case(tmp_path):
+    template_dir = tmp_path / "meta-driven"
+    template_dir.mkdir()
+    (template_dir / "meta.yaml").write_text(
+        "display_name: Meta Driven\n"
+        "ui:\n"
+        "  badge: Popular\n"
+        "render:\n"
+        "  section_title_case: lower\n"
+    )
+
+    meta = _load_template_meta(template_dir)
+
+    assert meta["ui"] == {"badge": "Popular"}
+    assert meta["render"] == {"section_title_case": "lower"}
+
+
+def test_load_template_meta_invalid_optional_badge_and_casing_fall_back_safely(tmp_path):
+    template_dir = tmp_path / "bad-optional-meta"
+    template_dir.mkdir()
+    (template_dir / "meta.yaml").write_text(
+        "ui:\n"
+        "  badge: 123\n"
+        "render:\n"
+        "  section_title_case: loud\n"
+    )
+
+    meta = _load_template_meta(template_dir)
+
+    assert meta["ui"] == {"badge": ""}
+    assert meta["render"] == {"section_title_case": "title"}
 
 
 @pytest.mark.parametrize(

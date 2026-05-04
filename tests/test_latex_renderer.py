@@ -143,6 +143,75 @@ def test_classic_latex_skips_custom_section_not_in_order(sample_cv):
     assert "Selected Talks" not in output
 
 
+def test_masthead_uppercase_settings_titles_render_as_title_case():
+    from backend.models import CVData, PersonalInfo
+
+    cv = CVData(
+        personal=PersonalInfo(name="Jane Smith", email="j@example.com"),
+        summary="A brief editor's note.",
+    )
+
+    output = LaTeXRenderer(TEMPLATES_DIR, template="masthead").render(
+        cv,
+        section_order=["summary"],
+        section_titles={"summary": "EDITOR'S NOTE"},
+    )
+
+    assert r"\section{Editor's Note}" in output
+
+
+def test_letterpress_uppercase_settings_titles_render_as_lowercase():
+    from backend.models import CVData, PersonalInfo
+
+    cv = CVData(
+        personal=PersonalInfo(name="Jane Smith", email="j@example.com"),
+        summary="A formal preface.",
+    )
+
+    output = LaTeXRenderer(TEMPLATES_DIR, template="letterpress").render(
+        cv,
+        section_order=["summary"],
+        section_titles={"summary": "PROLOGUE"},
+    )
+
+    assert r"\section{prologue}" in output
+
+
+def test_ats_signal_uppercase_settings_titles_stay_uppercase():
+    from backend.models import CVData, PersonalInfo
+
+    cv = CVData(
+        personal=PersonalInfo(name="Jane Smith", email="j@example.com"),
+        summary="A compact ATS summary.",
+    )
+
+    output = LaTeXRenderer(TEMPLATES_DIR, template="ats-signal").render(
+        cv,
+        section_order=["summary"],
+        section_titles={"summary": "SUMMARY"},
+    )
+
+    assert r"\section{SUMMARY}" in output
+
+
+def test_template_render_metadata_can_force_lowercase_on_builtin_titles(tmp_path, minimal_cv):
+    template_dir = tmp_path / "meta-lower"
+    template_dir.mkdir()
+    (template_dir / "cv.tex.j2").write_text(r"\section{<< section_titles.summary >>}")
+    (template_dir / "meta.yaml").write_text(
+        "render:\n"
+        "  section_title_case: lower\n"
+    )
+
+    output = LaTeXRenderer(tmp_path, template="meta-lower").render(
+        minimal_cv,
+        section_order=["summary"],
+        section_titles={"summary": "EDITOR'S NOTE"},
+    )
+
+    assert r"\section{editor's note}" in output
+
+
 def test_font_size_map():
     assert _FONT_SIZE["small"] == "10pt"
     assert _FONT_SIZE["normal"] == "11pt"
@@ -468,8 +537,8 @@ def test_studio_pop_sidebar_skills_and_languages_respect_section_order():
     shown_output = LaTeXRenderer(TEMPLATES_DIR, template="studio-pop").render(
         cv, section_order=["summary", "skills", "languages"]
     )
-    assert r"\sidesection{Skills}" in shown_output
-    assert r"\sidesection{Languages}" in shown_output
+    assert r"\sidesection{SKILLS}" in shown_output
+    assert r"\sidesection{LANGUAGES}" in shown_output
 
 
 def test_foundry_long_job_title_triggers_shrink():

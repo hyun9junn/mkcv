@@ -1,6 +1,10 @@
 display_name: "Foundry"
 description: "SWE, AI, startup operators — airy ink-only layout, Garamond display, and project-friendly breathing room."
 audience: engineering
+ui:
+  badge: "New"
+render:
+  section_title_case: upper
 defaults:
   layout:
     density: balanced
@@ -57,5 +61,5 @@ defaults:
       title: "LANGUAGES"
       visible: false
     - key: extracurricular
-      title: "EXTRACURRICULAR"
+      title: "ACTIVITIES"
       visible: false

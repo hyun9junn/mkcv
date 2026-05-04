@@ -1,6 +1,8 @@
 display_name: "Masthead"
 description: "Writers, editors, brand leads — oversized serif masthead, drop-cap summary, and narrative-first pacing."
 audience: general
+render:
+  section_title_case: title
 recommended_sections:
   - summary
   - experience
@@ -46,32 +48,32 @@ defaults:
         link_display: default
   sections:
     - key: summary
-      title: "Editor's Note"
+      title: "EDITOR'S NOTE"
       visible: true
     - key: experience
-      title: "Career"
+      title: "CAREER"
       visible: true
     - key: publications
-      title: "Bylines and Publications"
+      title: "BYLINES AND PUBLICATIONS"
       visible: true
     - key: awards
-      title: "Honours"
+      title: "HONOURS"
       visible: true
     - key: education
-      title: "Education"
+      title: "EDUCATION"
       visible: true
     - key: projects
-      title: "Selected Works"
+      title: "SELECTED WORKS"
       visible: true
     - key: skills
-      title: "Skills and Tooling"
+      title: "SKILLS AND TOOLING"
       visible: true
     - key: languages
-      title: "Languages"
+      title: "LANGUAGES"
       visible: false
     - key: certifications
-      title: "Certifications"
+      title: "CERTIFICATIONS"
       visible: false
     - key: extracurricular
-      title: "Beyond the Page"
+      title: "BEYOND THE PAGE"
       visible: false

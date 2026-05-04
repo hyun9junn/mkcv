@@ -136,6 +136,7 @@ function createContext() {
               'signature-split': {
                 display_name: 'Signature Split',
                 description: 'Creative direction.',
+                ui: { badge: 'Popular' },
                 defaults: signatureDefaults,
               },
             },
@@ -236,4 +237,15 @@ test('template selection syncs settings.yaml and applies template defaults', asy
   assert.equal(refreshCalls.at(-1).template, 'signature-split');
   assert.equal(syncedSettings.at(-1).template, 'signature-split');
   assert.deepEqual(JSON.parse(JSON.stringify(defaultApplications.at(-1))), signatureDefaults);
+});
+
+test('template picker shows badge from template metadata', async () => {
+  const { context, domReadyCallbacks, elements } = createContext();
+
+  await bootTemplates(context, domReadyCallbacks);
+
+  const options = elements.get('template-dropdown').children;
+  const signatureOption = options.find((child) => child.dataset.name === 'signature-split');
+
+  assert.match(signatureOption.innerHTML, /Popular/);
 });

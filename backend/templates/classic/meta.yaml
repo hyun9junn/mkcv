@@ -1,6 +1,10 @@
 display_name: "Classic"
 description: "General-purpose default — clean serif, no color, and minimal visual risk for almost any role."
 audience: general
+ui:
+  badge: "Default"
+render:
+  section_title_case: title
 defaults:
   layout:
     density: balanced
@@ -57,5 +61,5 @@ defaults:
       title: "AWARDS"
       visible: false
     - key: extracurricular
-      title: "EXTRACURRICULAR"
+      title: "EXTRACURRICULAR ACTIVITIES"
       visible: false

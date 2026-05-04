@@ -1,6 +1,10 @@
 display_name: "Scholar Index"
 description: "MS, PhD, labs, research internships — indigo rules, small caps, and publication-first structure."
 audience: academic
+ui:
+  badge: "Popular"
+render:
+  section_title_case: title
 defaults:
   layout:
     density: compact
@@ -30,32 +34,32 @@ defaults:
         link_display: default
   sections:
     - key: summary
-      title: "Research Summary"
+      title: "RESEARCH SUMMARY"
       visible: true
     - key: education
-      title: "Education"
+      title: "EDUCATION"
       visible: true
     - key: experience
-      title: "Research and Professional Experience"
+      title: "RESEARCH AND PROFESSIONAL EXPERIENCE"
       visible: true
     - key: publications
-      title: "Publications"
+      title: "PUBLICATIONS"
       visible: true
     - key: projects
-      title: "Projects"
+      title: "PROJECTS"
       visible: true
     - key: skills
-      title: "Technical Skills"
+      title: "TECHNICAL SKILLS"
       visible: true
     - key: awards
-      title: "Awards and Honors"
+      title: "AWARDS AND HONORS"
       visible: true
     - key: languages
-      title: "Languages"
+      title: "LANGUAGES"
       visible: false
     - key: certifications
-      title: "Certifications"
+      title: "CERTIFICATIONS"
       visible: false
     - key: extracurricular
-      title: "Service and Activities"
+      title: "SERVICE AND ACTIVITIES"
       visible: false

@@ -1,6 +1,9 @@
 from pathlib import Path
+from functools import lru_cache
 from typing import Optional, List
+import re
 import jinja2
+import yaml
 from backend.models import CVData
 from backend.renderers.base import BaseRenderer
 
@@ -21,6 +24,28 @@ DEFAULT_SECTION_TITLES = {
     "awards":         "Awards",
     "extracurricular":"Extracurricular Activities",
 }
+_BUILTIN_SECTION_KEYS = set(DEFAULT_SECTION_TITLES)
+_TITLE_CASE_SMALL_WORDS = {
+    "a",
+    "an",
+    "and",
+    "as",
+    "at",
+    "but",
+    "by",
+    "for",
+    "in",
+    "nor",
+    "of",
+    "on",
+    "or",
+    "the",
+    "to",
+    "via",
+    "with",
+}
+_VALID_SECTION_TITLE_CASES = {"upper", "lower", "title"}
+_TITLE_WORD_RE = re.compile(r"[A-Za-z0-9]+(?:'[A-Za-z0-9]+)?")
 
 _FONT_SIZE = {
     "small":  "10pt",
@@ -107,6 +132,106 @@ def _make_jinja_filters() -> dict:
     }
 
 
+@lru_cache(maxsize=None)
+def _load_template_meta_data(templates_dir: str, template: str) -> dict:
+    meta_path = Path(templates_dir) / template / "meta.yaml"
+    if not meta_path.exists():
+        return {}
+
+    try:
+        data = yaml.safe_load(meta_path.read_text()) or {}
+    except yaml.YAMLError:
+        return {}
+
+    if not isinstance(data, dict):
+        return {}
+    return data
+
+
+@lru_cache(maxsize=None)
+def _load_template_default_titles(templates_dir: str, template: str) -> dict[str, str]:
+    data = _load_template_meta_data(templates_dir, template)
+
+    sections = data.get("defaults", {}).get("sections", [])
+    if not isinstance(sections, list):
+        return {}
+
+    titles = {}
+    for section in sections:
+        if not isinstance(section, dict):
+            continue
+        key = section.get("key")
+        title = section.get("title")
+        if key in _BUILTIN_SECTION_KEYS and isinstance(title, str) and title.strip():
+            titles[key] = title
+    return titles
+
+
+@lru_cache(maxsize=None)
+def _load_template_render_config(templates_dir: str, template: str) -> dict[str, str]:
+    data = _load_template_meta_data(templates_dir, template)
+    render = data.get("render")
+    if not isinstance(render, dict):
+        return {"section_title_case": "title"}
+
+    section_title_case = render.get("section_title_case")
+    if section_title_case not in _VALID_SECTION_TITLE_CASES:
+        return {"section_title_case": "title"}
+
+    return {"section_title_case": section_title_case}
+
+
+def _smart_title_case(text: str) -> str:
+    matches = list(_TITLE_WORD_RE.finditer(text))
+    if not matches:
+        return text
+
+    lower_text = text.lower()
+    pieces = []
+    last_index = 0
+    last_word_index = len(matches) - 1
+
+    for idx, match in enumerate(matches):
+        start, end = match.span()
+        word = lower_text[start:end]
+        pieces.append(lower_text[last_index:start])
+
+        if idx not in (0, last_word_index) and word in _TITLE_CASE_SMALL_WORDS:
+            pieces.append(word)
+        else:
+            pieces.append(word[:1].upper() + word[1:])
+
+        last_index = end
+
+    pieces.append(lower_text[last_index:])
+    return "".join(pieces)
+
+
+def _transform_builtin_section_title(templates_dir: Path, template: str, title: str) -> str:
+    policy = _load_template_render_config(str(templates_dir), template)["section_title_case"]
+    if policy == "upper":
+        return title.upper()
+    if policy == "lower":
+        return title.lower()
+    return _smart_title_case(title)
+
+
+def _prepare_section_titles(templates_dir: Path, template: str, section_titles: Optional[dict]) -> dict:
+    merged = dict(_load_template_default_titles(str(templates_dir), template))
+    if section_titles:
+        merged.update(section_titles)
+
+    prepared = {}
+    for key, title in merged.items():
+        if not isinstance(title, str):
+            continue
+        if key in _BUILTIN_SECTION_KEYS:
+            prepared[key] = _transform_builtin_section_title(templates_dir, template, title)
+        else:
+            prepared[key] = title
+    return prepared
+
+
 class LaTeXRenderer(BaseRenderer):
     def __init__(
         self,
@@ -151,7 +276,7 @@ class LaTeXRenderer(BaseRenderer):
         custom_by_key = {cs.key: cs for cs in cv.custom_sections}
         font_size = _FONT_SIZE.get(self.font_scale, _FONT_SIZE["normal"])
         layout_preamble = _build_layout_preamble(self.density)
-        titles = section_titles or {}
+        titles = _prepare_section_titles(self.templates_dir, self.template, section_titles)
         return env.get_template("cv.tex.j2").render(
             cv=cv,
             section_order=order,

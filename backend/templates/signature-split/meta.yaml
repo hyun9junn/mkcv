@@ -1,6 +1,10 @@
 display_name: "Signature Split"
 description: "Creative directors, brand strategists, art leads — asymmetric nameplate, quote-like role kickers, and portfolio energy."
 audience: general
+ui:
+  badge: "New"
+render:
+  section_title_case: upper
 recommended_sections:
   - summary
   - experience
@@ -46,32 +50,32 @@ defaults:
         link_display: default
   sections:
     - key: summary
-      title: "Statement"
+      title: "STATEMENT"
       visible: true
     - key: experience
-      title: "Experience"
+      title: "EXPERIENCE"
       visible: true
     - key: projects
-      title: "Selected Work"
+      title: "SELECTED WORK"
       visible: true
     - key: skills
-      title: "Skills"
+      title: "SKILLS"
       visible: true
     - key: awards
-      title: "Recognition"
+      title: "RECOGNITION"
       visible: true
     - key: education
-      title: "Education"
+      title: "EDUCATION"
       visible: true
     - key: publications
-      title: "Press and Publications"
+      title: "PRESS AND PUBLICATIONS"
       visible: false
     - key: certifications
-      title: "Certifications"
+      title: "CERTIFICATIONS"
       visible: false
     - key: languages
-      title: "Languages"
+      title: "LANGUAGES"
       visible: false
     - key: extracurricular
-      title: "Beyond Studio"
+      title: "BEYOND STUDIO"
       visible: false

@@ -58,6 +58,7 @@ _VALID_DENSITIES = {"comfortable", "balanced", "compact"}
 _VALID_FONT_SCALES = {"small", "normal", "large"}
 _VALID_LINK_DISPLAYS = {"label", "url", "both"}
 _FIELD_LINK_DISPLAYS = {"default", "label", "url", "both"}
+_VALID_SECTION_TITLE_CASES = {"upper", "lower", "title"}
 _PERSONAL_FIELD_KEYS = [
     "name",
     "email",
@@ -148,6 +149,29 @@ def _normalize_template_defaults(defaults: object) -> dict:
     return defaults
 
 
+def _normalize_template_ui(ui: object) -> dict:
+    if not isinstance(ui, dict):
+        return {"badge": ""}
+
+    badge = ui.get("badge")
+    if not isinstance(badge, str):
+        return {"badge": ""}
+
+    badge = badge.strip()
+    return {"badge": badge if badge else ""}
+
+
+def _normalize_template_render(render: object) -> dict:
+    if not isinstance(render, dict):
+        return {"section_title_case": "title"}
+
+    section_title_case = render.get("section_title_case")
+    if section_title_case not in _VALID_SECTION_TITLE_CASES:
+        return {"section_title_case": "title"}
+
+    return {"section_title_case": section_title_case}
+
+
 def _load_template_meta(template_dir: Path) -> dict:
     meta_path = template_dir / "meta.yaml"
     if not meta_path.exists():
@@ -155,6 +179,8 @@ def _load_template_meta(template_dir: Path) -> dict:
             "display_name": template_dir.name.replace("-", " ").title(),
             "description": "",
             "audience": "",
+            "ui": _normalize_template_ui(None),
+            "render": _normalize_template_render(None),
             "defaults": {},
         }
     try:
@@ -168,6 +194,8 @@ def _load_template_meta(template_dir: Path) -> dict:
         "display_name": data.get("display_name", template_dir.name),
         "description": data.get("description", ""),
         "audience": data.get("audience", ""),
+        "ui": _normalize_template_ui(data.get("ui")),
+        "render": _normalize_template_render(data.get("render")),
         "defaults": _normalize_template_defaults(data.get("defaults")),
     }
 

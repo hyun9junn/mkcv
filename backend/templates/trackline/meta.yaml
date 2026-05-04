@@ -1,6 +1,8 @@
 display_name: "Trackline"
 description: "Product, design, data, research — left-rail chronology, strong career storytelling, and clean progression through time."
 audience: general
+render:
+  section_title_case: lower
 recommended_sections:
   - experience
   - projects
@@ -72,5 +74,5 @@ defaults:
       title: "LANGUAGES"
       visible: false
     - key: extracurricular
-      title: "EXTRACURRICULAR"
+      title: "ACTIVITIES"
       visible: false

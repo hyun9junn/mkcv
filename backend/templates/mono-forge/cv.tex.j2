@@ -83,12 +83,12 @@
 % =========================
 <% macro render_section(key) %>
 <% if key == 'summary' and cv.summary %>
-\section{<< section_titles.get(key, 'readme') >>}
+\section{<< section_titles.get(key, 'Readme') >>}
 << cv.summary >>
 <% endif %>
 
 <% if key == 'experience' and cv.experience %>
-\section{<< section_titles.get(key, 'experience') >>}
+\section{<< section_titles.get(key, 'Experience') >>}
 <% for job in cv.experience %>
 {<< job.title | shrink_if_long(48) >>\cvrole{<< job.title >>}} \texttt{@} \cvorg{<< job.company >>} \hfill \cvdate{[<< job.start_date >> -- << job.end_date if job.end_date else "Present" >>]}
 <% if job.location %>\\{\footnotesize\color{cvmute}// << job.location >>}<% endif %>
@@ -104,7 +104,7 @@
 <% endif %>
 
 <% if key == 'education' and cv.education %>
-\section{<< section_titles.get(key, 'education') >>}
+\section{<< section_titles.get(key, 'Education') >>}
 <% for edu in cv.education %>
 {<< edu.degree | shrink_if_long(48) >>\cvrole{<< edu.degree >>}} \texttt{@} \cvorg{<< edu.institution >>} \hfill \cvdate{[<% if edu.year %><< edu.year >><% elif edu.start_date %><< edu.start_date >> -- << edu.end_date if edu.end_date else "Present" >><% endif %>]}
 <% if edu.gpa %>\\{\footnotesize gpa: << edu.gpa >>}<% endif %>
@@ -114,7 +114,7 @@
 <% endif %>
 
 <% if key == 'skills' and cv.skills %>
-\section{<< section_titles.get(key, 'stack') >>}
+\section{<< section_titles.get(key, 'Stack') >>}
 \begin{tabular}{@{}p{0.20\linewidth}@{\hspace{8pt}}p{0.76\linewidth}@{}}
 <% for group in cv.skills %>
 {\bfseries\color{cvaccent}<< group.category >>} & << group.items | join(", ") >> \\[2pt]
@@ -123,7 +123,7 @@
 <% endif %>
 
 <% if key == 'projects' and cv.projects %>
-\section{<< section_titles.get(key, 'projects') >>}
+\section{<< section_titles.get(key, 'Projects') >>}
 <% for proj in cv.projects %>
 {<< proj.name | shrink_if_long(40) >>\cvrole{<% if proj.url %>\href{https://<< proj.url >>}{<< proj.name >>}<% else %><< proj.name >><% endif %>}}<% if proj.url %> \hfill \cvdate{<< proj.url >>}<% endif %>\\
 \cvorg{// << proj.description >>}
@@ -139,7 +139,7 @@
 <% endif %>
 
 <% if key == 'publications' and cv.publications %>
-\section{<< section_titles.get(key, 'papers') >>}
+\section{<< section_titles.get(key, 'Papers') >>}
 \begin{itemize}[leftmargin=1.4em,itemsep=3pt,topsep=\cvitembefore,label={\color{cvaccent}\$}]
 <% for pub in cv.publications %>
   \item <% if pub.url %>\href{https://<< pub.url >>}{\textbf{<< pub.title >>}}<% else %>\textbf{<< pub.title >>}<% endif %><% if pub.authors %>. {\footnotesize << pub.authors | join(", ") >>}<% endif %><% if pub.venue %>. \cvorg{<< pub.venue >>}<% endif %><% if pub.date %>, << pub.date >><% endif %>.
@@ -148,7 +148,7 @@
 <% endif %>
 
 <% if key == 'awards' and cv.awards %>
-\section{<< section_titles.get(key, 'awards') >>}
+\section{<< section_titles.get(key, 'Awards') >>}
 <% for award in cv.awards %>
 \cvrole{<< award.name >>}<% if award.issuer %> --- \cvorg{<< award.issuer >>}<% endif %><% if award.date %> \hfill \cvdate{<< award.date >>}<% endif %>\\
 <% if award.description %>{\footnotesize << award.description >>}\\<% endif %>
@@ -156,19 +156,19 @@
 <% endif %>
 
 <% if key == 'certifications' and cv.certifications %>
-\section{<< section_titles.get(key, 'certs') >>}
+\section{<< section_titles.get(key, 'Certs') >>}
 <% for cert in cv.certifications %>
 \cvrole{<< cert.name >>}<% if cert.issuer %> --- \cvorg{<< cert.issuer >>}<% endif %><% if cert.date %> \hfill \cvdate{<< cert.date >>}<% endif %>\\
 <% endfor %>
 <% endif %>
 
 <% if key == 'languages' and cv.languages %>
-\section{<< section_titles.get(key, 'languages') >>}
+\section{<< section_titles.get(key, 'Languages') >>}
 <% for lang in cv.languages %>\cvrole{<< lang.language >>}=\cvorg{<< lang.proficiency >>}<% if not loop.last %>\quad <% endif %><% endfor %>
 <% endif %>
 
 <% if key == 'extracurricular' and cv.extracurricular %>
-\section{<< section_titles.get(key, 'misc') >>}
+\section{<< section_titles.get(key, 'Misc') >>}
 <% for act in cv.extracurricular %>
 \cvrole{<< act.title >>}<% if act.organization %> --- \cvorg{<< act.organization >>}<% endif %><% if act.date %> \hfill \cvdate{<< act.date >>}<% endif %>\\
 <% if act.highlights %>

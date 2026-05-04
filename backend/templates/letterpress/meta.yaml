@@ -1,6 +1,8 @@
 display_name: "Letterpress"
 description: "Law, classics, senior academia — newspaper nameplate, formal long-form tone, and publication-heavy credibility."
 audience: academic
+render:
+  section_title_case: lower
 recommended_sections:
   - publications
   - experience
@@ -46,32 +48,32 @@ defaults:
         link_display: default
   sections:
     - key: summary
-      title: "prologue"
+      title: "PROLOGUE"
       visible: true
     - key: education
-      title: "education"
+      title: "EDUCATION"
       visible: true
     - key: experience
-      title: "appointments"
+      title: "APPOINTMENTS"
       visible: true
     - key: publications
-      title: "published works"
+      title: "PUBLISHED WORKS"
       visible: true
     - key: awards
-      title: "honours and distinctions"
+      title: "HONOURS AND DISTINCTIONS"
       visible: true
     - key: languages
-      title: "languages"
+      title: "LANGUAGES"
       visible: true
     - key: projects
-      title: "works and projects"
+      title: "WORKS AND PROJECTS"
       visible: false
     - key: skills
-      title: "competencies"
+      title: "COMPETENCIES"
       visible: false
     - key: certifications
-      title: "certifications"
+      title: "CERTIFICATIONS"
       visible: false
     - key: extracurricular
-      title: "civic and other interests"
+      title: "CIVIC AND OTHER INTERESTS"
       visible: false
