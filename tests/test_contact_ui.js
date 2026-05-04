@@ -70,6 +70,15 @@ class MockElement {
     return false;
   }
 
+  closest(selector) {
+    let current = this;
+    while (current) {
+      if (selector === 'span[data-value]' && current.tagName === 'SPAN' && current.dataset.value != null) return current;
+      current = current.parentNode;
+    }
+    return null;
+  }
+
   querySelectorAll(selector) {
     const matches = [];
     const visit = (node) => {
@@ -124,6 +133,11 @@ function createContext() {
     getElementById(id) {
       return elements.get(id) || null;
     },
+    createTextNode(text) {
+      const node = new MockElement('text', document);
+      node.textContent = text;
+      return node;
+    },
     addEventListener(type, callback) {
       if (type === 'DOMContentLoaded') {
         domReadyCallbacks.push(callback);
@@ -174,16 +188,16 @@ function createContext() {
 
   const settings = {
     personal: {
-      link_display: 'label',
+      default_link_display: 'label',
       fields: [
         { key: 'name', visible: true },
         { key: 'email', visible: true },
         { key: 'phone', visible: true },
         { key: 'location', visible: true },
-        { key: 'website', visible: true },
-        { key: 'linkedin', visible: true },
-        { key: 'github', visible: true },
-        { key: 'huggingface', visible: true },
+        { key: 'website', visible: true, link_display: 'default' },
+        { key: 'linkedin', visible: true, link_display: 'default' },
+        { key: 'github', visible: true, link_display: 'default' },
+        { key: 'huggingface', visible: true, link_display: 'default' },
       ],
     },
   };
@@ -287,4 +301,33 @@ test('contact rows keep raw values in hover title instead of an inline value col
   assert.equal(emailRow.children.length, 3);
   assert.equal(emailRow.children[1].className, 'f-key');
   assert.equal(emailRow.children[2].className, 'f-ctrl');
+});
+
+test('clicking the global contact segment writes personal.default_link_display', async () => {
+  const { context, domReadyCallbacks, elements } = createContext();
+  await bootContactUI(context, domReadyCallbacks);
+
+  elements.get('contact-pill').dispatchEvent('click');
+  const urlSpan = elements.get('contact-global-seg').children[1];
+  urlSpan.dispatchEvent('click');
+
+  assert.equal(context.settingsSync.getSettings().personal.default_link_display, 'url');
+});
+
+test('clearing a link override writes explicit default instead of deleting link_display', async () => {
+  const { context, domReadyCallbacks, elements } = createContext();
+  context.settingsSync.getSettings().personal.fields.find((field) => field.key === 'github').link_display = 'label';
+  await bootContactUI(context, domReadyCallbacks);
+
+  elements.get('contact-pill').dispatchEvent('click');
+  const body = elements.get('contact-fields-body');
+  const githubRow = body.children[7];
+  const overridePill = githubRow.children[2].children[0];
+  const clearButton = overridePill.children[1];
+  clearButton.dispatchEvent('click');
+
+  assert.equal(
+    context.settingsSync.getSettings().personal.fields.find((field) => field.key === 'github').link_display,
+    'default'
+  );
 });

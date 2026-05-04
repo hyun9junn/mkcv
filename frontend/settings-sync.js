@@ -106,7 +106,7 @@ const settingsSync = (() => {
     app.setState({
       density: settings.layout.density,
       font_scale: settings.layout.font_scale,
-      link_display: settings.personal?.link_display ?? 'label',
+      link_display: settings.personal?.default_link_display ?? 'label',
       personal_fields: settings.personal?.fields ?? [],
     });
   }

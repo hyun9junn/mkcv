@@ -49,7 +49,7 @@ const contactUI = (() => {
     const { key, locked } = fieldDef;
     const visible = fieldSettings.visible;
     const isLink = LINK_FIELDS.has(key);
-    const override = isLink ? fieldSettings.link_display : null;
+    const style = isLink ? (fieldSettings.link_display ?? 'default') : null;
     const pickerOpen = _openPickerKey === key;
 
     const row = document.createElement('div');
@@ -94,10 +94,10 @@ const contactUI = (() => {
         const picker = document.createElement('div');
         picker.className = 'f-picker';
         const opts = [
-          { val: null,    label: '↑',    cls: 'p-inherit' },
-          { val: 'label', label: 'label', cls: '' },
-          { val: 'url',   label: 'url',   cls: '' },
-          { val: 'both',  label: 'both',  cls: '' },
+          { val: 'default', label: 'default', cls: 'p-inherit' },
+          { val: 'label',   label: 'label',   cls: '' },
+          { val: 'url',     label: 'url',     cls: '' },
+          { val: 'both',    label: 'both',    cls: '' },
         ];
         for (const opt of opts) {
           const span = document.createElement('span');
@@ -110,17 +110,16 @@ const contactUI = (() => {
             settingsSync.updateFromToolbar(s => {
               const f = s.personal.fields.find(f => f.key === key);
               if (!f) return;
-              if (opt.val === null) delete f.link_display;
-              else f.link_display = opt.val;
+              f.link_display = opt.val;
             }, { applyToolbar: true, applyContact: true });
           });
           picker.appendChild(span);
         }
         ctrl.appendChild(picker);
-      } else if (override) {
+      } else if (style !== 'default') {
         const pill = document.createElement('div');
         pill.className = 'f-override';
-        const txt = document.createTextNode(override + ' ');
+        const txt = document.createTextNode(style + ' ');
         const x = document.createElement('span');
         x.className = 'f-override-x';
         x.textContent = '×';
@@ -129,7 +128,7 @@ const contactUI = (() => {
           if (!window.settingsSync) return;
           settingsSync.updateFromToolbar(s => {
             const f = s.personal.fields.find(f => f.key === key);
-            if (f) delete f.link_display;
+            if (f) f.link_display = 'default';
           }, { applyToolbar: true, applyContact: true });
         });
         pill.appendChild(txt);
@@ -138,7 +137,7 @@ const contactUI = (() => {
       } else {
         const tag = document.createElement('span');
         tag.className = 'f-inherit';
-        tag.textContent = `↑ ${globalDefault}`;
+        tag.textContent = `default (${globalDefault})`;
         tag.addEventListener('click', e => {
           e.stopPropagation();
           _openPickerKey = key;
@@ -157,7 +156,7 @@ const contactUI = (() => {
     if (!body) return;
 
     const fields = settings.personal?.fields ?? [];
-    const globalDefault = settings.personal?.link_display ?? 'label';
+    const globalDefault = settings.personal?.default_link_display ?? 'label';
     const personalValues = _getPersonalValues();
 
     // Update global seg
@@ -173,7 +172,9 @@ const contactUI = (() => {
 
     for (const fieldDef of PERSONAL_FIELD_CATALOG) {
       const fieldSettings = fields.find(f => f.key === fieldDef.key)
-        ?? { key: fieldDef.key, visible: true };
+        ?? (LINK_FIELDS.has(fieldDef.key)
+          ? { key: fieldDef.key, visible: true, link_display: 'default' }
+          : { key: fieldDef.key, visible: true });
       const value = personalValues[fieldDef.key] ?? '';
       const row = _buildFieldRow(fieldDef, fieldSettings, value, globalDefault);
       body.appendChild(row);
@@ -229,7 +230,7 @@ const contactUI = (() => {
         const span = e.target.closest('span[data-value]');
         if (!span || !window.settingsSync) return;
         settingsSync.updateFromToolbar(
-          s => { s.personal.link_display = span.dataset.value; },
+          s => { s.personal.default_link_display = span.dataset.value; },
           { applyToolbar: true, applyContact: true }
         );
       });

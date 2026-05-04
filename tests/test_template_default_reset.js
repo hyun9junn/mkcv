@@ -182,16 +182,16 @@ function createContext(options = {}) {
         template: 'classic',
         layout: { density: 'balanced', font_scale: 'normal' },
         personal: {
-          link_display: 'label',
+          default_link_display: 'label',
           fields: [
             { key: 'name', visible: true },
             { key: 'email', visible: true },
             { key: 'phone', visible: true },
             { key: 'location', visible: true },
-            { key: 'website', visible: true },
-            { key: 'linkedin', visible: true },
-            { key: 'github', visible: true },
-            { key: 'huggingface', visible: true },
+            { key: 'website', visible: true, link_display: 'default' },
+            { key: 'linkedin', visible: true, link_display: 'default' },
+            { key: 'github', visible: true, link_display: 'default' },
+            { key: 'huggingface', visible: true, link_display: 'default' },
           ],
         },
         sections: [
@@ -212,7 +212,7 @@ function createContext(options = {}) {
 
         if (rawDefaults?.layout?.density) normalized.layout.density = rawDefaults.layout.density;
         if (rawDefaults?.layout?.font_scale) normalized.layout.font_scale = rawDefaults.layout.font_scale;
-        if (rawDefaults?.personal?.link_display) normalized.personal.link_display = rawDefaults.personal.link_display;
+        if (rawDefaults?.personal?.default_link_display) normalized.personal.default_link_display = rawDefaults.personal.default_link_display;
         if (Array.isArray(rawDefaults?.personal?.fields) && rawDefaults.personal.fields.length > 0) {
           const seen = new Set();
           normalized.personal.fields = rawDefaults.personal.fields
@@ -248,7 +248,7 @@ function createContext(options = {}) {
             value: {
               template: context.app.state.template,
               layout: { density: 'comfortable', font_scale: 'large' },
-              personal: { link_display: 'both' },
+              personal: { default_link_display: 'both' },
               sections: order.map((key) => ({
                 key,
                 title: sectionTitles.get(key) || key.toUpperCase(),
@@ -317,7 +317,7 @@ test('settings helpers normalize template defaults and accept current template n
 
   assert.equal(normalized.template, 'resume-tech');
   assert.deepEqual(JSON.parse(JSON.stringify(normalized.layout)), { density: 'compact', font_scale: 'normal' });
-  assert.equal(normalized.personal.link_display, 'label');
+  assert.equal(normalized.personal.default_link_display, 'label');
   assert.ok(Array.isArray(normalized.personal.fields));
   assert.equal(normalized.personal.fields.length, 8);
   assert.deepEqual(JSON.parse(JSON.stringify(normalized.personal.fields[0])), {
@@ -345,16 +345,16 @@ test('applying template defaults prefers the live selected template over stale s
       template: 'classic',
       layout: { density: 'comfortable', font_scale: 'large' },
       personal: {
-        link_display: 'both',
+        default_link_display: 'both',
         fields: [
           { key: 'name', visible: true },
           { key: 'email', visible: true },
           { key: 'phone', visible: true },
           { key: 'location', visible: true },
-          { key: 'website', visible: true },
-          { key: 'linkedin', visible: true },
-          { key: 'github', visible: true },
-          { key: 'huggingface', visible: true },
+          { key: 'website', visible: true, link_display: 'default' },
+          { key: 'linkedin', visible: true, link_display: 'default' },
+          { key: 'github', visible: true, link_display: 'default' },
+          { key: 'huggingface', visible: true, link_display: 'default' },
         ],
       },
       sections: [
@@ -375,16 +375,16 @@ test('applying template defaults prefers the live selected template over stale s
   context.window.settingsSync.applyTemplateDefaults({
     layout: { density: 'compact', font_scale: 'small' },
     personal: {
-      link_display: 'url',
+      default_link_display: 'url',
       fields: [
         { key: 'name', visible: true },
         { key: 'email', visible: true },
         { key: 'phone', visible: false },
         { key: 'location', visible: true },
         { key: 'website', visible: true, link_display: 'both' },
-        { key: 'linkedin', visible: true },
+        { key: 'linkedin', visible: true, link_display: 'default' },
         { key: 'github', visible: false, link_display: 'label' },
-        { key: 'huggingface', visible: true },
+        { key: 'huggingface', visible: true, link_display: 'default' },
       ],
     },
     sections: [
@@ -412,16 +412,16 @@ test('applying template defaults prefers the live selected template over stale s
   assert.equal(nextSettings.template, 'split-header');
   assert.deepEqual(nextSettings.layout, { density: 'compact', font_scale: 'small' });
   assert.deepEqual(nextSettings.personal, {
-    link_display: 'url',
+    default_link_display: 'url',
     fields: [
       { key: 'name', visible: true },
       { key: 'email', visible: true },
       { key: 'phone', visible: false },
       { key: 'location', visible: true },
       { key: 'website', visible: true, link_display: 'both' },
-      { key: 'linkedin', visible: true },
+      { key: 'linkedin', visible: true, link_display: 'default' },
       { key: 'github', visible: false, link_display: 'label' },
-      { key: 'huggingface', visible: true },
+      { key: 'huggingface', visible: true, link_display: 'default' },
     ],
   });
   assert.deepEqual(
@@ -443,16 +443,16 @@ test('applying missing template defaults falls back to app defaults while preser
       template: 'resume-tech',
       layout: { density: 'compact', font_scale: 'small' },
       personal: {
-        link_display: 'both',
+        default_link_display: 'both',
         fields: [
           { key: 'name', visible: true },
           { key: 'email', visible: false },
           { key: 'phone', visible: true },
           { key: 'location', visible: true },
-          { key: 'website', visible: true },
-          { key: 'linkedin', visible: true },
-          { key: 'github', visible: true },
-          { key: 'huggingface', visible: true },
+          { key: 'website', visible: true, link_display: 'default' },
+          { key: 'linkedin', visible: true, link_display: 'default' },
+          { key: 'github', visible: true, link_display: 'default' },
+          { key: 'huggingface', visible: true, link_display: 'default' },
         ],
       },
       sections: [
@@ -469,16 +469,16 @@ test('applying missing template defaults falls back to app defaults while preser
   assert.equal(nextSettings.template, 'resume-tech');
   assert.deepEqual(nextSettings.layout, { density: 'balanced', font_scale: 'normal' });
   assert.deepEqual(nextSettings.personal, {
-    link_display: 'label',
+    default_link_display: 'label',
     fields: [
       { key: 'name', visible: true },
       { key: 'email', visible: true },
       { key: 'phone', visible: true },
       { key: 'location', visible: true },
-      { key: 'website', visible: true },
-      { key: 'linkedin', visible: true },
-      { key: 'github', visible: true },
-      { key: 'huggingface', visible: true },
+      { key: 'website', visible: true, link_display: 'default' },
+      { key: 'linkedin', visible: true, link_display: 'default' },
+      { key: 'github', visible: true, link_display: 'default' },
+      { key: 'huggingface', visible: true, link_display: 'default' },
     ],
   });
   assert.deepEqual(

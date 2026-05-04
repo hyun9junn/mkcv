@@ -226,16 +226,16 @@ function createContext(options = {}) {
       DEFAULT_SETTINGS: {
         layout: { density: 'balanced', font_scale: 'normal' },
         personal: {
-          link_display: 'label',
+          default_link_display: 'label',
           fields: [
             { key: 'name', visible: true },
             { key: 'email', visible: true },
             { key: 'phone', visible: true },
             { key: 'location', visible: true },
-            { key: 'website', visible: true },
-            { key: 'linkedin', visible: true },
-            { key: 'github', visible: true },
-            { key: 'huggingface', visible: true },
+            { key: 'website', visible: true, link_display: 'default' },
+            { key: 'linkedin', visible: true, link_display: 'default' },
+            { key: 'github', visible: true, link_display: 'default' },
+            { key: 'huggingface', visible: true, link_display: 'default' },
           ],
         },
         sections: [],
@@ -255,16 +255,16 @@ function createContext(options = {}) {
           value: {
             layout: { density: 'balanced', font_scale: 'normal' },
             personal: {
-              link_display: 'label',
+              default_link_display: 'label',
               fields: [
                 { key: 'name', visible: true },
                 { key: 'email', visible: true },
                 { key: 'phone', visible: true },
                 { key: 'location', visible: true },
-                { key: 'website', visible: true },
-                { key: 'linkedin', visible: true },
-                { key: 'github', visible: true },
-                { key: 'huggingface', visible: true },
+                { key: 'website', visible: true, link_display: 'default' },
+                { key: 'linkedin', visible: true, link_display: 'default' },
+                { key: 'github', visible: true, link_display: 'default' },
+                { key: 'huggingface', visible: true, link_display: 'default' },
               ],
             },
             sections: order.map((key) => ({
@@ -357,16 +357,16 @@ test('contact-originated updates apply personal settings before preview refresh'
   const initialSettings = {
     layout: { density: 'balanced', font_scale: 'normal' },
     personal: {
-      link_display: 'label',
+      default_link_display: 'label',
       fields: [
         { key: 'name', visible: true },
         { key: 'email', visible: true },
         { key: 'phone', visible: true },
         { key: 'location', visible: true },
-        { key: 'website', visible: true },
-        { key: 'linkedin', visible: true },
-        { key: 'github', visible: true },
-        { key: 'huggingface', visible: true },
+        { key: 'website', visible: true, link_display: 'default' },
+        { key: 'linkedin', visible: true, link_display: 'default' },
+        { key: 'github', visible: true, link_display: 'default' },
+        { key: 'huggingface', visible: true, link_display: 'default' },
       ],
     },
     sections: [{ key: 'summary', title: 'SUMMARY', visible: true }],
@@ -383,7 +383,7 @@ test('contact-originated updates apply personal settings before preview refresh'
   counters.reorderCalls = 0;
 
   context.window.settingsSync.updateFromToolbar((next) => {
-    next.personal.link_display = 'url';
+    next.personal.default_link_display = 'url';
     next.personal.fields.find((field) => field.key === 'github').visible = false;
   }, { applyToolbar: true, applyContact: true });
 
@@ -404,16 +404,16 @@ test('settings editor batches preview and section panel updates while typing', a
   const initialSettings = {
     layout: { density: 'balanced', font_scale: 'normal' },
     personal: {
-      link_display: 'label',
+      default_link_display: 'label',
       fields: [
         { key: 'name', visible: true },
         { key: 'email', visible: true },
         { key: 'phone', visible: true },
         { key: 'location', visible: true },
-        { key: 'website', visible: true },
-        { key: 'linkedin', visible: true },
-        { key: 'github', visible: true },
-        { key: 'huggingface', visible: true },
+        { key: 'website', visible: true, link_display: 'default' },
+        { key: 'linkedin', visible: true, link_display: 'default' },
+        { key: 'github', visible: true, link_display: 'default' },
+        { key: 'huggingface', visible: true, link_display: 'default' },
       ],
     },
     sections: [{ key: 'summary', title: 'SUMMARY', visible: true }],
