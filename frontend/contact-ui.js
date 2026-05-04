@@ -52,6 +52,7 @@ const contactUI = (() => {
           const f = s.personal.fields.find(f => f.key === key);
           if (f) f.visible = !f.visible;
         });
+        rebuild(_currentSettings());
       });
     }
     row.appendChild(tog);
@@ -101,6 +102,7 @@ const contactUI = (() => {
               if (opt.val === null) delete f.link_display;
               else f.link_display = opt.val;
             });
+            rebuild(_currentSettings());
           });
           picker.appendChild(span);
         }
@@ -119,6 +121,7 @@ const contactUI = (() => {
             const f = s.personal.fields.find(f => f.key === key);
             if (f) delete f.link_display;
           });
+          rebuild(_currentSettings());
         });
         pill.appendChild(txt);
         pill.appendChild(x);
@@ -216,6 +219,7 @@ const contactUI = (() => {
         const span = e.target.closest('span[data-value]');
         if (!span || !window.settingsSync) return;
         settingsSync.updateFromToolbar(s => { s.personal.link_display = span.dataset.value; });
+        rebuild(_currentSettings());
       });
     }
 

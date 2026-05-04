@@ -59,6 +59,7 @@ const exporter = (() => {
       body.density = app.state.density;
       body.font_scale = app.state.font_scale;
       body.link_display = app.state.link_display;
+      body.personal_fields = app.state.personal_fields ?? [];
     }
     try {
       const resp = await fetch(`/api/export/${format}`, {

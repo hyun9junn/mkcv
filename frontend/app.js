@@ -5,6 +5,7 @@ const app = {
     density: "balanced",
     font_scale: "normal",
     link_display: "label",
+    personal_fields: [],
   },
   setState(patch) {
     Object.assign(this.state, patch);
