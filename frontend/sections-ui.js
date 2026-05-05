@@ -69,7 +69,11 @@ const sectionsUI = (() => {
       const hidden = present && sectionsState.isHidden(key);
 
       const chip = document.createElement("div");
-      chip.className = "chip" + ((!hidden && present) ? " on" : "") + (!present ? " absent" : "");
+      chip.className =
+        "chip" +
+        ((!hidden && present) ? " on" : "") +
+        (hidden ? " hidden" : "") +
+        (!present ? " absent" : "");
       chip.dataset.key = key;
 
       chip.innerHTML = `
@@ -92,11 +96,17 @@ const sectionsUI = (() => {
         if (!present) {
           if (sectionsState.SECTION_DEFS[key]) {
             if (appendDefaultSection(key)) {
+              const wasHidden = sectionsState.isHidden(key);
+              if (wasHidden) {
+                sectionsState.toggleHidden(key);
+              }
               buildPanel();
-              preview.refresh(
-                sectionsState.getOrderedFilteredYaml(app.state.yaml),
-                app.state.template
-              );
+              if (!wasHidden) {
+                preview.refresh(
+                  sectionsState.getOrderedFilteredYaml(app.state.yaml),
+                  app.state.template
+                );
+              }
               showToast(`${sectionTitle} added`, "info");
             }
           } else {
