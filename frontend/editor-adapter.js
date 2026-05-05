@@ -188,31 +188,59 @@ function _shiftTab(editor) {
 }
 
 const INITIAL_YAML = `personal:
-  name: Your Name
-  email: you@example.com
-  phone: "+1-000-000-0000"
-  location: City, Country
-  github: github.com/yourusername
+  name: Gildong Hong
+  email: gildong.park@example.com
+  phone: "+82-10-1234-5678"
+  location: Seoul, South Korea
+  website: gildong.dev
+  linkedin: linkedin.com/in/minseopark
+  github: github.com/minseopark
 
 summary: >
-  Write a brief professional summary here.
+  Product-minded software engineer with 6+ years of experience building
+  internal platforms, developer tooling, and customer-facing web products.
+  Enjoys turning ambiguous requirements into reliable systems with strong UX,
+  clean APIs, and observability baked in.
 
 experience:
-  - title: Job Title
-    company: Company Name
-    start_date: "2020"
+  - title: Senior Software Engineer
+    company: Orbit Labs
+    start_date: "2022-03"
     end_date: null
+    location: Seoul
     highlights:
-      - Key achievement or responsibility
+      - Led development of a workflow automation platform used by 40+ operations teammates across three regions.
+      - Reduced API p95 latency by 38% by profiling slow database queries, introducing async job offloading, and tightening cache invalidation rules.
+      - Partnered with design and support to ship self-serve admin tools that cut manual ticket volume by roughly 25%.
+  - title: Software Engineer
+    company: Novera Cloud
+    start_date: "2019-01"
+    end_date: "2022-02"
+    location: Seoul
+    highlights:
+      - Built React and FastAPI features for a B2B analytics product serving finance and retail customers.
+      - Introduced CI checks and reusable component patterns that reduced regressions during weekly releases.
+      - Migrated reporting jobs from ad-hoc scripts to scheduled workers with retry and alerting support.
 
 education:
-  - degree: B.S. Your Major
-    institution: University Name
-    year: "2020"
+  - degree: B.S. in Computer Science
+    institution: Korea University
+    year: "2018"
 
 skills:
   - category: Languages
-    items: [Python, JavaScript]
+    items: [Python, TypeScript, SQL, Go]
+  - category: Frameworks
+    items: [FastAPI, React, Node.js, PostgreSQL]
+  - category: Tools
+    items: [Docker, Redis, AWS, GitHub Actions]
+
+projects:
+  - name: Incident Review Assistant
+    description: Internal tool for summarizing incidents and tracking follow-up actions.
+    highlights:
+      - Combined Slack exports, ticket metadata, and runbook links into a single searchable timeline for engineering teams.
+      - Helped shorten postmortem prep time and kept cross-functional action items visible after production incidents.
 `;
 
 document.addEventListener("DOMContentLoaded", () => {
