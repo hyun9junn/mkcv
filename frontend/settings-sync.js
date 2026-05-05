@@ -464,6 +464,7 @@ const settingsSync = (() => {
     applyTemplateDefaults,
     getYaml:     () => _settingsYaml,
     getSettings: () => _parsed.value || DEFAULT_SETTINGS,
+    setYaml:     (yaml) => _onYamlChange(yaml),
   };
 })();
 
