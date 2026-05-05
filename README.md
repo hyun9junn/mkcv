@@ -29,6 +29,8 @@ Open **http://localhost:8000** in your browser and start editing.
 
 > **Note:** If you get a `pull access denied` error, the image may still be private. In that case, use the [local dev setup](#local-development) below.
 
+> **Note:** If you don't have Docker, install [Docker Desktop](https://www.docker.com/products/docker-desktop) first, then come back here.
+
 ---
 
 ## Features
