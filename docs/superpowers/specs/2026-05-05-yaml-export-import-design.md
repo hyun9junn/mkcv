@@ -40,7 +40,9 @@ The module communicates with the rest of the app only through existing public in
 | Read settings YAML | `window.settingsSync.getYaml()` |
 | Write settings YAML | `window.settingsSync.setYaml(yaml)` |
 
-`settingsSync.setYaml()` does not yet exist and must be added to `settings-sync.js` as part of this work.
+**`settingsSync.setYaml()` does not yet exist** and must be added to `settings-sync.js` as a thin public wrapper around the internal `_onYamlChange(yaml)`. This ensures the editor, UI controls, preview, and localStorage all update consistently — the same path used when the user types in the editor.
+
+`yaml-backup.js` includes its own 4-line inline download helper (`URL.createObjectURL` / `a.download` / `a.click` / `URL.revokeObjectURL`). The `triggerDownload` function in `export.js` is private to that module's IIFE and cannot be reused.
 
 The existing `onChange` handlers in `file-sync.js` and `settings-sync.js` persist writes to `localStorage` automatically — no extra wiring needed.
 
