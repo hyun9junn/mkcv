@@ -18,7 +18,15 @@ Everything is stored locally in your browser. No account needed, no data leaves 
 
 ## Quick Start
 
-The easiest way to run mkcv is with Docker — no Python or LaTeX setup required.
+### Option A — Hugging Face Space (no install)
+
+Try it instantly in your browser — no Docker or Python needed:
+
+**[https://huggingface.co/spaces/Hyun9junn/mkcv](https://huggingface.co/spaces/Hyun9junn/mkcv)**
+
+### Option B — Docker (run locally)
+
+> **Don't have Docker?** Install [Docker Desktop](https://www.docker.com/products/docker-desktop) first, then come back here.
 
 ```bash
 docker pull ghcr.io/hyun9junn/mkcv:latest
@@ -28,8 +36,6 @@ docker run --rm -p 8000:8000 ghcr.io/hyun9junn/mkcv:latest
 Open **http://localhost:8000** in your browser and start editing.
 
 > **Note:** If you get a `pull access denied` error, the image may still be private. In that case, use the [local dev setup](#local-development) below.
-
-> **Note:** If you don't have Docker, install [Docker Desktop](https://www.docker.com/products/docker-desktop) first, then come back here.
 
 ---
 
