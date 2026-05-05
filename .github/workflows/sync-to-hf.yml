@@ -10,13 +10,64 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          lfs: true
 
-      - name: Push to Hugging Face Space
+      - name: Configure git
+        run: |
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+
+      - name: Stage runtime files
+        run: |
+          mkdir /tmp/hf-space
+          rsync -a \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='.venv' \
+            --exclude='.DS_Store' \
+            --exclude='.pytest_cache' \
+            --exclude='.worktrees' \
+            --exclude='__pycache__' \
+            --exclude='*.pyc' \
+            --exclude='node_modules' \
+            --exclude='docs' \
+            --exclude='tests' \
+            --exclude='README.md' \
+            --exclude='preview.png' \
+            . /tmp/hf-space/
+
+      - name: Write HF Space README
+        run: |
+          python3 - <<'PYEOF'
+          readme = """\
+          ---
+          title: mkcv
+          emoji: \U0001f4c4
+          colorFrom: blue
+          colorTo: indigo
+          sdk: docker
+          app_port: 8000
+          pinned: false
+          ---
+
+          # mkcv
+
+          A web app for authoring and exporting your CV from a single YAML source of truth.
+
+          Write your CV once in YAML — get a live PDF preview, and export to Markdown, LaTeX, or PDF with one click.
+
+          For the full documentation and usage guide, visit the [GitHub repository](https://github.com/hyun9junn/mkcv).
+          """
+          import textwrap
+          with open('/tmp/hf-space/README.md', 'w') as f:
+              f.write(textwrap.dedent(readme))
+          PYEOF
+
+      - name: Commit and push to HF Space
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
-          git remote add hf https://Hyun9junn:$HF_TOKEN@huggingface.co/spaces/Hyun9junn/mkcv
-          git push hf main --force
+          cd /tmp/hf-space
+          git init -b main
+          git add .
+          git commit -m "sync: ${{ github.sha }}"
+          git push https://Hyun9junn:$HF_TOKEN@huggingface.co/spaces/Hyun9junn/mkcv main --force
