@@ -83,13 +83,13 @@ test('editor adapter boots with a realistic software engineer resume sample', ()
   const initialYaml = context.app.state.yaml;
   const parsed = jsyaml.load(initialYaml);
 
-  assert.match(initialYaml, /name: Minseo Park/);
+  assert.match(initialYaml, /name: Gildong Hong/);
   assert.match(initialYaml, /Senior Software Engineer/);
   assert.match(initialYaml, /Orbit Labs/);
   assert.match(initialYaml, /Incident Review Assistant/);
 
-  assert.equal(parsed.personal.name, 'Minseo Park');
-  assert.equal(parsed.personal.github, 'github.com/minseopark');
+  assert.equal(parsed.personal.name, 'Gildong Hong');
+  assert.equal(parsed.personal.github, 'github.com/gildonghong');
   assert.equal(parsed.experience.length, 2);
   assert.equal(parsed.skills.length, 3);
   assert.equal(parsed.projects[0].name, 'Incident Review Assistant');
