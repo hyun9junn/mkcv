@@ -64,6 +64,11 @@ Two new items added to the existing `#export-menu`, separated from the PDF/LaTeX
 - **↓ YAML backup** — triggers export immediately, no extra dialog
 - **↑ Import YAML…** — opens a hidden `<input type="file" accept=".zip">` to trigger the OS file picker, then shows a confirmation modal
 
+**Follow existing patterns throughout:**
+- Menu item click handlers must be wired the same way as `btn-pdf`, `btn-md`, `btn-tex` in `export.js` (event listeners on `DOMContentLoaded`)
+- The import confirmation reuses the existing `#filename-modal` HTML structure and CSS (repurposed as a confirm dialog — hide the `<input>`, change the button label to "Import")
+- The blob download uses the same `URL.createObjectURL` / `a.download` / `a.click` / `URL.revokeObjectURL` pattern already used in `export.js`
+
 The confirmation modal text:
 > "This will replace your current [resume.yaml / settings.yaml / resume.yaml and settings.yaml] with the contents of the backup. Continue?"
 
