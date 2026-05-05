@@ -94,7 +94,7 @@ test('clearMkcvStorage removes all mkcv-prefixed keys and leaves others', () => 
   store.set('mkcv_sections_state', '{}');
   store.set('mkcv_density', 'compact');
   store.set('mkcv_font_scale', 'large');
-  store.set('mkcv_settings_v2_migrated', '1');
+  store.set('mkcv_migrated_to_settings_yaml', '1');
   store.set('mkcv_yaml', 'old');
   store.set('mkcv_settings_yaml', 'old');
   store.set('some_other_app_key', 'keep me');
@@ -108,7 +108,7 @@ test('clearMkcvStorage removes all mkcv-prefixed keys and leaves others', () => 
   assert.equal(store.has('mkcv_sections_state'), false, 'sections state key should be cleared');
   assert.equal(store.has('mkcv_density'), false, 'density key should be cleared');
   assert.equal(store.has('mkcv_font_scale'), false, 'font scale key should be cleared');
-  assert.equal(store.has('mkcv_settings_v2_migrated'), false, 'migration flag should be cleared');
+  assert.equal(store.has('mkcv_migrated_to_settings_yaml'), false, 'migration flag should be cleared');
   assert.equal(store.has('mkcv_yaml'), false, 'legacy yaml key should be cleared');
   assert.equal(store.has('mkcv_settings_yaml'), false, 'legacy settings key should be cleared');
   assert.equal(store.get('some_other_app_key'), 'keep me', 'non-mkcv keys must be preserved');
