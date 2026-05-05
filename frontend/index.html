@@ -1371,6 +1371,31 @@ document.addEventListener('DOMContentLoaded', () => {
 
   /* Preview loading → update pane header */
   const origShowLoading = preview && preview._showLoading;
+
+  /* Reset-all button */
+  window.clearMkcvStorage = function () {
+    const keys = Array.from({ length: localStorage.length }, (_, i) => localStorage.key(i));
+    keys.filter(k => k.startsWith('mkcv')).forEach(k => localStorage.removeItem(k));
+  };
+
+  const resetAllModal   = document.getElementById('reset-all-modal');
+  const resetAllBtn     = document.getElementById('btn-reset-all');
+  const resetAllCancel  = document.getElementById('reset-all-cancel');
+  const resetAllConfirm = document.getElementById('reset-all-confirm');
+
+  resetAllBtn.addEventListener('click', () => {
+    resetAllModal.classList.add('open');
+  });
+  resetAllCancel.addEventListener('click', () => {
+    resetAllModal.classList.remove('open');
+  });
+  resetAllModal.addEventListener('click', (e) => {
+    if (e.target === resetAllModal) resetAllModal.classList.remove('open');
+  });
+  resetAllConfirm.addEventListener('click', () => {
+    window.clearMkcvStorage();
+    location.reload();
+  });
 });
 </script>
 
