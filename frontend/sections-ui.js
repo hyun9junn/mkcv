@@ -114,16 +114,16 @@ const sectionsUI = (() => {
           }
           return;
         }
-        const currentYaml = app.state.yaml || '';
-        const newYaml = hidden
-          ? sectionsState.moveFromInvisible(currentYaml, key)
-          : sectionsState.moveToInvisible(currentYaml, key);
-        if (newYaml !== currentYaml) {
-          if (!window.settingsSync || window.settingsSync.activeTab === 'resume') {
+        if (!window.settingsSync) {
+          const currentYaml = app.state.yaml || '';
+          const newYaml = hidden
+            ? sectionsState.moveFromInvisible(currentYaml, key)
+            : sectionsState.moveToInvisible(currentYaml, key);
+          if (newYaml !== currentYaml) {
             window.editorAdapter.suppressNextPreviewRefresh();
             window.editorAdapter.setValuePreserveScroll(newYaml);
+            app.setState({ yaml: newYaml });
           }
-          app.setState({ yaml: newYaml });
         }
         sectionsState.toggleHidden(key);
         buildPanel();

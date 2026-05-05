@@ -267,6 +267,25 @@ const sectionsState = (() => {
 
   const INVISIBLE_MARKER = '### invisible sections';
 
+  function _uniqKeys(keys) {
+    const out = [];
+    for (const key of keys || []) {
+      if (!key || out.includes(key)) continue;
+      out.push(key);
+    }
+    return out;
+  }
+
+  function _getTopLevelKeys(text) {
+    const keys = [];
+    for (const line of String(text || '').split('\n')) {
+      if (!line || /^\s/.test(line) || line.startsWith('#')) continue;
+      const match = line.match(/^([A-Za-z0-9_]+):(?:\s|$)/);
+      if (match) keys.push(match[1]);
+    }
+    return keys;
+  }
+
   function _splitAtMarker(rawYaml) {
     const lines = rawYaml.split('\n');
     const idx = lines.findIndex(l => l.trim() === INVISIBLE_MARKER);
@@ -282,6 +301,27 @@ const sectionsState = (() => {
     const iv = (invisible || '').trim();
     if (!iv) return m + '\n';
     return m + '\n\n' + INVISIBLE_MARKER + '\n\n' + iv + '\n';
+  }
+
+  function getYamlSectionLayout(rawYaml) {
+    const { main, invisible } = _splitAtMarker(rawYaml);
+    return {
+      mainKeys: _getTopLevelKeys(main).filter((key) => key !== 'personal'),
+      invisibleKeys: _getTopLevelKeys(invisible).filter((key) => key !== 'personal'),
+    };
+  }
+
+  function getYamlSectionState(rawYaml, fallbackOrder = DEFAULT_ORDER) {
+    const { mainKeys, invisibleKeys } = getYamlSectionLayout(rawYaml);
+    const present = _uniqKeys([...mainKeys, ...invisibleKeys]);
+    const order = _uniqKeys(Array.isArray(fallbackOrder) ? fallbackOrder : DEFAULT_ORDER);
+    for (const key of present) {
+      if (!order.includes(key)) order.push(key);
+    }
+    return {
+      order,
+      hidden: _uniqKeys(invisibleKeys),
+    };
   }
 
   function _extractBlock(text, key) {
@@ -339,7 +379,11 @@ const sectionsState = (() => {
 
   function appendToMainArea(rawYaml, yamlToAppend) {
     const { main, invisible } = _splitAtMarker(rawYaml);
-    const newMain = main.replace(/\n*$/, '\n') + yamlToAppend;
+    const trimmedMain = main.trimEnd();
+    const trimmedAppend = String(yamlToAppend || '').trimStart();
+    const newMain = trimmedMain
+      ? trimmedMain + '\n\n' + trimmedAppend
+      : trimmedAppend;
     return _joinParts(newMain, invisible);
   }
 
@@ -367,6 +411,61 @@ const sectionsState = (() => {
     if (leftover) blocks.push(leftover);
 
     return _joinParts(blocks.join('\n\n'), invisible);
+  }
+
+  function syncYamlToSectionState(rawYaml, order, hidden, opts = {}) {
+    const hiddenSet = new Set(Array.isArray(hidden) ? hidden : []);
+    const materializeSet = new Set(Array.isArray(opts.materialize) ? opts.materialize : []);
+    const { mainKeys, invisibleKeys } = getYamlSectionLayout(rawYaml);
+    const desiredOrder = _uniqKeys([
+      ...(Array.isArray(order) ? order : []),
+      ...mainKeys,
+      ...invisibleKeys,
+    ]);
+
+    const { main, invisible } = _splitAtMarker(rawYaml);
+    let remainingMain = main;
+    let remainingInvisible = invisible;
+    const blocksByKey = new Map();
+
+    const personalBlock = _extractBlock(remainingMain, 'personal');
+    if (personalBlock !== null) remainingMain = _removeBlock(remainingMain, 'personal');
+
+    for (const key of desiredOrder) {
+      const fromMain = _extractBlock(remainingMain, key);
+      if (fromMain !== null) {
+        blocksByKey.set(key, fromMain);
+        remainingMain = _removeBlock(remainingMain, key);
+      }
+
+      const fromInvisible = _extractBlock(remainingInvisible, key);
+      if (fromInvisible !== null) {
+        if (!blocksByKey.has(key)) blocksByKey.set(key, fromInvisible);
+        remainingInvisible = _removeBlock(remainingInvisible, key);
+      }
+    }
+
+    const mainBlocks = [];
+    const invisibleBlocks = [];
+    for (const key of desiredOrder) {
+      let block = blocksByKey.get(key);
+      if (block == null && materializeSet.has(key) && SECTION_DEFS[key]?.yaml) {
+        block = SECTION_DEFS[key].yaml.trimEnd();
+      }
+      if (block == null) continue;
+      if (hiddenSet.has(key)) invisibleBlocks.push(block);
+      else mainBlocks.push(block);
+    }
+
+    const mainParts = [];
+    const invisibleParts = [];
+    if (personalBlock !== null) mainParts.push(personalBlock);
+    if (mainBlocks.length) mainParts.push(...mainBlocks);
+    if (remainingMain.trim()) mainParts.push(remainingMain.trim());
+    if (invisibleBlocks.length) invisibleParts.push(...invisibleBlocks);
+    if (remainingInvisible.trim()) invisibleParts.push(remainingInvisible.trim());
+
+    return _joinParts(mainParts.join('\n\n'), invisibleParts.join('\n\n'));
   }
 
   function clearInvisibleArea(rawYaml) {
@@ -429,6 +528,9 @@ const sectionsState = (() => {
     appendToMainArea,
     clearInvisibleArea,
     reorderMainArea,
+    getYamlSectionLayout,
+    getYamlSectionState,
+    syncYamlToSectionState,
   };
 })();
 

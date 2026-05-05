@@ -1,4 +1,4 @@
-/* global app, sectionsState, sectionsUI, preview, validator */
+/* global app, sectionsState, sectionsUI, preview, validator, jsyaml */
 const settingsSync = (() => {
   const { SECTION_CATALOG, KNOWN_KEYS, VALID_DENSITY, VALID_FONT, DEFAULT_SETTINGS, settingsToYaml, parseSettings, normalizeTemplateDefaults } =
     window.SETTINGS_HELPERS;
@@ -10,7 +10,9 @@ const settingsSync = (() => {
   let _editorEffectsTimer = null;
   let _pendingEditorApply = false;
   let _pendingEditorPreview = false;
+  let _pendingEditorPreviousSettings = null;
   let _suppress      = false; // block re-entrant editor updates
+  let _suppressResumeSectionSync = false;
   const _EDITOR_SYNC_DEBOUNCE_MS = 300;
   const _tabScroll   = {
     resume: { left: 0, top: 0 },
@@ -94,6 +96,134 @@ const settingsSync = (() => {
     window.editorAdapter.scrollTo(_tabScroll[tab].left, _tabScroll[tab].top);
   }
 
+  function _clone(value) {
+    return value == null ? value : JSON.parse(JSON.stringify(value));
+  }
+
+  function _arraysEqual(a, b) {
+    if (a === b) return true;
+    if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) return false;
+    for (let i = 0; i < a.length; i++) {
+      if (a[i] !== b[i]) return false;
+    }
+    return true;
+  }
+
+  function _getSectionStateFromSettings(settings) {
+    const settingsKeys = (settings.sections || []).map((section) => section.key);
+    const hidden = (settings.sections || [])
+      .filter((section) => !section.visible)
+      .map((section) => section.key);
+    const knownOrder = window.sectionsState ? sectionsState.DEFAULT_ORDER : [];
+    const extra = knownOrder.filter((key) => !settingsKeys.includes(key));
+    return { order: [...settingsKeys, ...extra], hidden };
+  }
+
+  function _persistSectionState(sectionState) {
+    try {
+      localStorage.setItem('mkcv_sections_state', JSON.stringify(sectionState));
+    } catch {}
+  }
+
+  function _getCurrentSectionState() {
+    const order = window.sectionsState ? sectionsState.getOrder() : [];
+    return {
+      order,
+      hidden: order.filter((key) => sectionsState.isHidden(key)),
+    };
+  }
+
+  function _buildSettingsFromSectionState(sectionState, baseSettings = _parsed.value) {
+    const existing = new Map((baseSettings?.sections || []).map((section) => [section.key, section]));
+    const next = _clone(baseSettings || DEFAULT_SETTINGS);
+    next.sections = sectionState.order
+      .filter((key) => SECTION_CATALOG.some((section) => section.key === key))
+      .map((key) => ({
+        key,
+        title: existing.get(key)?.title ?? (SECTION_CATALOG.find((section) => section.key === key)?.defaultTitle ?? key.toUpperCase()),
+        visible: !sectionState.hidden.includes(key),
+      }));
+    return next;
+  }
+
+  function _materializeKeysFromVisibilityChanges(settings, previousSettings) {
+    if (
+      !window.sectionsState ||
+      !previousSettings?.sections ||
+      typeof sectionsState.getExpandedPresentKeys !== 'function'
+    ) return [];
+    const present = new Set(sectionsState.getExpandedPresentKeys(app.state.yaml));
+    const previousVisible = new Map(
+      previousSettings.sections.map((section) => [section.key, section.visible !== false])
+    );
+    return (settings.sections || [])
+      .filter((section) =>
+        section.visible &&
+        previousVisible.get(section.key) === false &&
+        !present.has(section.key) &&
+        !!sectionsState.SECTION_DEFS?.[section.key]?.yaml
+      )
+      .map((section) => section.key);
+  }
+
+  function _saveResumeYaml(yaml) {
+    if (_activeTab === 'resume') {
+      window.editorAdapter.suppressNextPreviewRefresh();
+      window.editorAdapter.setValuePreserveScroll(yaml);
+      return;
+    }
+    try {
+      localStorage.setItem('mkcv:default:resume.yaml', yaml);
+    } catch {
+      _toast('Resume not saved — browser storage is full or unavailable.', 'warn');
+    }
+  }
+
+  function _applySectionStateToResume(sectionState, opts = {}) {
+    const yaml = app.state.yaml;
+    if (!yaml || !yaml.trim() || !window.sectionsState) return;
+    const nextYaml = typeof sectionsState.syncYamlToSectionState === 'function'
+      ? sectionsState.syncYamlToSectionState(yaml, sectionState.order, sectionState.hidden, {
+          materialize: opts.materialize,
+        })
+      : sectionsState.reorderMainArea(yaml, sectionState.order);
+    if (nextYaml === yaml) return;
+    _suppressResumeSectionSync = true;
+    app.setState({ yaml: nextYaml });
+    _saveResumeYaml(nextYaml);
+    _suppressResumeSectionSync = false;
+  }
+
+  function _syncSettingsFromResumeYaml(yaml) {
+    if (
+      _suppressResumeSectionSync ||
+      !_parsed.value ||
+      !window.sectionsState ||
+      typeof sectionsState.getYamlSectionState !== 'function'
+    ) return;
+    try {
+      const parsedResume = jsyaml.load(yaml);
+      if (!parsedResume || typeof parsedResume !== 'object') return;
+    } catch {
+      return;
+    }
+
+    const currentState = _getCurrentSectionState();
+    const nextState = sectionsState.getYamlSectionState(yaml, currentState.order);
+    const stateChanged =
+      !_arraysEqual(nextState.order, currentState.order) ||
+      !_arraysEqual(nextState.hidden, currentState.hidden);
+    if (stateChanged) {
+      _persistSectionState(nextState);
+      if (window.sectionsUI) sectionsUI.buildPanel();
+    }
+
+    const nextSettings = _buildSettingsFromSectionState(nextState);
+    const nextYaml = settingsToYaml(nextSettings);
+    if (!stateChanged && nextYaml === _settingsYaml) return;
+    _onYamlChange(nextYaml, { skipApply: true, skipPreview: true });
+  }
+
   // ── Apply settings to toolbar + sections ──
 
   function _applyToToolbar(settings) {
@@ -111,16 +241,13 @@ const settingsSync = (() => {
     });
   }
 
-  function _applyToSections(settings) {
-    const settingsKeys = settings.sections.map(s => s.key);
-    const hidden       = settings.sections.filter(s => !s.visible).map(s => s.key);
-    // Append any known keys not already in settings (preserves their default order at the end)
-    const knownOrder = window.sectionsState ? sectionsState.DEFAULT_ORDER : [];
-    const extra      = knownOrder.filter(k => !settingsKeys.includes(k));
-    const order      = [...settingsKeys, ...extra];
-    try { localStorage.setItem('mkcv_sections_state', JSON.stringify({ order, hidden })); } catch {}
+  function _applyToSections(settings, opts = {}) {
+    const sectionState = _getSectionStateFromSettings(settings);
+    _persistSectionState(sectionState);
     if (window.sectionsUI) sectionsUI.buildPanel();
-    _reorderAndSaveResume(order);
+    _applySectionStateToResume(sectionState, {
+      materialize: _materializeKeysFromVisibilityChanges(settings, opts.previousSettings),
+    });
   }
 
   function _applyToContact(settings) {
@@ -146,16 +273,16 @@ const settingsSync = (() => {
     return true;
   }
 
-  function _applyAll(settings) {
+  function _applyAll(settings, opts = {}) {
     _applyTemplateSelection(settings, { refreshPreview: false });
     _applyToToolbar(settings);
-    _applyToSections(settings);
+    _applyToSections(settings, opts);
     _applyToContact(settings);
   }
 
   function _applySelected(settings, opts = {}) {
     if (opts.applyToolbar) _applyToToolbar(settings);
-    if (opts.applySections) _applyToSections(settings);
+    if (opts.applySections) _applyToSections(settings, { previousSettings: opts.previousSettings });
     if (opts.applyContact) _applyToContact(settings);
   }
 
@@ -173,43 +300,28 @@ const settingsSync = (() => {
     _editorEffectsTimer = null;
     _pendingEditorApply = false;
     _pendingEditorPreview = false;
+    _pendingEditorPreviousSettings = null;
   }
 
   function _scheduleEditorEffects(opts = {}) {
     _pendingEditorApply = _pendingEditorApply || !!opts.apply;
     _pendingEditorPreview = _pendingEditorPreview || !!opts.preview;
+    if (_pendingEditorPreviousSettings == null && opts.previousSettings) {
+      _pendingEditorPreviousSettings = _clone(opts.previousSettings);
+    }
     clearTimeout(_editorEffectsTimer);
     _editorEffectsTimer = setTimeout(() => {
       _editorEffectsTimer = null;
       const shouldApply = _pendingEditorApply;
       const shouldPreview = _pendingEditorPreview;
+      const previousSettings = _pendingEditorPreviousSettings;
       _pendingEditorApply = false;
       _pendingEditorPreview = false;
+      _pendingEditorPreviousSettings = null;
       if (!_parsed.value) return;
-      if (shouldApply) _applyAll(_parsed.value);
+      if (shouldApply) _applyAll(_parsed.value, { previousSettings });
       if (shouldPreview) _refreshPreview();
     }, _EDITOR_SYNC_DEBOUNCE_MS);
-  }
-
-  // ── Reorder mycv.yaml to match section order ──
-
-  function _reorderAndSaveResume(sectionOrder) {
-    const yaml = app.state.yaml;
-    if (!yaml || !yaml.trim() || !window.sectionsState) return;
-    const reordered = sectionsState.reorderMainArea(yaml, sectionOrder);
-    if (reordered === yaml) return;
-    app.setState({ yaml: reordered });
-    if (_activeTab === 'resume') {
-      window.editorAdapter.suppressNextPreviewRefresh();
-      window.editorAdapter.setValuePreserveScroll(reordered);
-      // file-sync's onChange handler saves automatically
-    } else {
-      try {
-        localStorage.setItem('mkcv:default:resume.yaml', reordered);
-      } catch {
-        _toast('Resume not saved — browser storage is full or unavailable.', 'warn');
-      }
-    }
   }
 
   // ── Save to localStorage ──
@@ -233,6 +345,7 @@ const settingsSync = (() => {
   // opts.skipPreview — caller will handle preview refresh (avoid double render)
 
   function _onYamlChange(yaml, opts = {}) {
+    const previousSettings = _clone(_parsed.value);
     _settingsYaml = yaml;
     _parsed       = parseSettings(yaml);
 
@@ -245,10 +358,10 @@ const settingsSync = (() => {
     if (opts.fromEditor && (shouldApply || shouldPreview)) {
       // Typing in settings.yaml should feel like resume.yaml: batch expensive UI sync
       // and preview work until the user pauses, instead of rerendering every keypress.
-      _scheduleEditorEffects({ apply: shouldApply, preview: shouldPreview });
+      _scheduleEditorEffects({ apply: shouldApply, preview: shouldPreview, previousSettings });
     } else {
       _clearEditorEffects();
-      if (shouldApply) _applyAll(_parsed.value);
+      if (shouldApply) _applyAll(_parsed.value, { previousSettings });
       if (shouldPreview) _refreshPreview();
     }
 
@@ -266,10 +379,11 @@ const settingsSync = (() => {
 
   function updateFromToolbar(mutator, opts = {}) {
     if (!_parsed.value) return;
+    const previousSettings = _clone(_parsed.value);
     const next = JSON.parse(JSON.stringify(_parsed.value));
     mutator(next);
     const hasSelectiveApply = opts.applyToolbar || opts.applySections || opts.applyContact;
-    if (hasSelectiveApply) _applySelected(next, opts);
+    if (hasSelectiveApply) _applySelected(next, { ...opts, previousSettings });
     _onYamlChange(settingsToYaml(next), {
       skipApply: hasSelectiveApply ? true : (opts.skipApply ?? true),
       skipPreview: opts.skipPreview,
@@ -279,27 +393,18 @@ const settingsSync = (() => {
   // ── Public: called via monkey-patched sections-state methods ──
 
   function notifySectionStateChange() {
-    // Always refresh preview immediately — sectionsState is already updated by the caller.
+    if (!_parsed.value) return;
+    const sectionState = _getCurrentSectionState();
+    _applySectionStateToResume(sectionState);
     if (window.preview && window.sectionsState) {
       preview.refresh(
         sectionsState.getOrderedFilteredYaml(app.state.yaml),
         app.state.template
       );
     }
-    if (!_parsed.value) return;
-    const order    = sectionsState.getOrder();
-    const existing = new Map((_parsed.value.sections || []).map(s => [s.key, s]));
-    const next     = JSON.parse(JSON.stringify(_parsed.value));
-    next.sections  = order
-      .filter(k => SECTION_CATALOG.some(c => c.key === k))
-      .map(k => ({
-        key:     k,
-        title:   existing.get(k)?.title ?? (SECTION_CATALOG.find(c => c.key === k)?.defaultTitle ?? k.toUpperCase()),
-        visible: !sectionsState.isHidden(k),
-      }));
+    const next = _buildSettingsFromSectionState(sectionState);
     // skipApply: sections already updated; skipPreview: we already refreshed above
     _onYamlChange(settingsToYaml(next), { skipApply: true, skipPreview: true });
-    _reorderAndSaveResume(order);
   }
 
   // ── Public: called by sectionsUI to update section title inline ──
@@ -453,6 +558,11 @@ const settingsSync = (() => {
     window.editorAdapter.onChange((val) => {
       if (_activeTab !== 'settings' || _suppress) return;
       _onYamlChange(val, { fromEditor: true });
+    });
+
+    window.editorAdapter.onChange((val) => {
+      if (_activeTab !== 'resume') return;
+      _syncSettingsFromResumeYaml(val);
     });
   });
 

@@ -275,6 +275,11 @@ test('clicking an absent hidden built-in section adds it as visible content', ()
   absentCertificationsChip.querySelector('.chip-dot').click();
 
   assert.match(context.app.state.yaml, /^certifications:/m, 'section should be appended to the main YAML area');
+  assert.match(
+    context.app.state.yaml,
+    /Wrote tests first\.\n\ncertifications:/,
+    'added section should be separated from the previous block by a blank line'
+  );
   assert.equal(
     context.window.sectionsState.isHidden('certifications'),
     false,
