@@ -224,6 +224,19 @@
       transition: opacity .15s;
     }
     .export-btn:hover { opacity: .85; }
+    /* Reset-all button (masthead, left of Export) */
+    .reset-all-btn {
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--ink-2);
+      border: 1px solid var(--rule);
+      transition: color .15s, border-color .15s;
+    }
+    .reset-all-btn:hover { color: var(--err); border-color: var(--err); }
+    .btn-danger { background: var(--err); color: white; }
+    .btn-danger:hover { filter: brightness(1.08); }
     #export-menu {
       position: absolute;
       top: calc(100% + 8px);
@@ -944,6 +957,8 @@
     <!-- Hidden button for templates.js compat -->
     <button id="btn-validate-template" style="display:none"></button>
 
+    <button class="reset-all-btn" id="btn-reset-all" title="Clear all data and restore defaults">Reset</button>
+
     <div style="position:relative">
       <button class="export-btn" id="export-trigger">
         Export
@@ -1022,7 +1037,7 @@
     <span class="ctrl-label">Sections</span>
     <!-- sections-ui.js renders chips into #sections-panel -->
     <div class="sections-rail" id="sections-panel"></div>
-    <button class="reset-sections-btn" id="reset-sections-order-btn">Reset settings</button>
+    <button class="reset-sections-btn" id="reset-sections-order-btn">Restore recommended</button>
   </div>
 </div>
 
@@ -1096,6 +1111,23 @@
 
 <!-- ═══ TOAST STACK ═══ -->
 <div class="toast-stack" id="toast-stack"></div>
+
+<!-- ═══ RESET ALL MODAL ═══ -->
+<div class="modal-backdrop" id="reset-all-modal">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="eyebrow">Reset</div>
+      <h2>Start over?</h2>
+    </div>
+    <div class="modal-body">
+      This will clear your resume and all settings, restoring the app to its initial state. This cannot be undone.
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" id="reset-all-cancel">Cancel</button>
+      <button class="btn btn-danger" id="reset-all-confirm">Reset</button>
+    </div>
+  </div>
+</div>
 
 <!-- ═══ RESET MODAL ═══ -->
 <div class="modal-backdrop" id="reset-modal">
