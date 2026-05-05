@@ -7,6 +7,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     texlive-fonts-extra \
     texlive-pictures \
     lmodern \
+    tex-gyre \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

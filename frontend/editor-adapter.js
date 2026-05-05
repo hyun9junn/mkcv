@@ -193,8 +193,8 @@ const INITIAL_YAML = `personal:
   phone: "+82-10-1234-5678"
   location: Seoul, South Korea
   website: gildong.dev
-  linkedin: linkedin.com/in/minseopark
-  github: github.com/minseopark
+  linkedin: linkedin.com/in/gildonghong
+  github: github.com/gildonghong
 
 summary: >
   Product-minded software engineer with 6+ years of experience building
