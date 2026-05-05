@@ -149,6 +149,57 @@ const settingsSync = (() => {
     return new Set();
   }
 
+  function _formatResumeSectionTitleComments(yaml, settings = _parsed.value) {
+    if (typeof yaml !== 'string' || !yaml.trim()) return yaml;
+
+    const titleByKey = Object.fromEntries(
+      (settings?.sections || [])
+        .filter((section) =>
+          section &&
+          typeof section.key === 'string' &&
+          KNOWN_KEYS.has(section.key) &&
+          typeof section.title === 'string' &&
+          section.title.trim()
+        )
+        .map((section) => [section.key, section.title.trim()])
+    );
+
+    if (Object.keys(titleByKey).length === 0) return yaml;
+
+    const hasTrailingNewline = yaml.endsWith('\n');
+    let changed = false;
+    const nextLines = yaml.split('\n').map((line) => {
+      if (!line || /^\s/.test(line) || line.trimStart().startsWith('#')) return line;
+
+      const match = line.match(/^([A-Za-z0-9_]+):(.*)$/);
+      if (!match) return line;
+
+      const [, key, rest = ''] = match;
+      const title = titleByKey[key];
+      if (!title) return line;
+
+      const contentBeforeComment = rest.split('#', 1)[0].trimEnd();
+      const nextLine = `${key}:${contentBeforeComment} # ${title}`;
+      if (nextLine !== line) changed = true;
+      return nextLine;
+    });
+
+    if (!changed) return yaml;
+
+    const nextYaml = nextLines.join('\n');
+    return hasTrailingNewline && !nextYaml.endsWith('\n') ? `${nextYaml}\n` : nextYaml;
+  }
+
+  function _syncResumeSectionTitleComments(settings = _parsed.value) {
+    const yaml = app.state.yaml;
+    const nextYaml = _formatResumeSectionTitleComments(yaml, settings);
+    if (nextYaml === yaml) return;
+    _suppressResumeSectionSync = true;
+    app.setState({ yaml: nextYaml });
+    _saveResumeYaml(nextYaml);
+    _suppressResumeSectionSync = false;
+  }
+
   function _buildSettingsFromSectionState(sectionState, baseSettings = _parsed.value) {
     const existing = new Map((baseSettings?.sections || []).map((section) => [section.key, section]));
     const presentKeys = _getPresentSectionKeys(app.state.yaml);
@@ -201,11 +252,12 @@ const settingsSync = (() => {
   function _applySectionStateToResume(sectionState, opts = {}) {
     const yaml = app.state.yaml;
     if (!yaml || !yaml.trim() || !window.sectionsState) return;
-    const nextYaml = typeof sectionsState.syncYamlToSectionState === 'function'
+    const structuralYaml = typeof sectionsState.syncYamlToSectionState === 'function'
       ? sectionsState.syncYamlToSectionState(yaml, sectionState.order, sectionState.hidden, {
           materialize: opts.materialize,
         })
       : sectionsState.reorderMainArea(yaml, sectionState.order);
+    const nextYaml = _formatResumeSectionTitleComments(structuralYaml, opts.settings ?? _parsed.value);
     if (nextYaml === yaml) return;
     _suppressResumeSectionSync = true;
     app.setState({ yaml: nextYaml });
@@ -273,6 +325,7 @@ const settingsSync = (() => {
     if (window.sectionsUI) sectionsUI.buildPanel();
     _applySectionStateToResume(sectionState, {
       materialize: _materializeKeysFromVisibilityChanges(settings, opts.previousSettings),
+      settings,
     });
   }
 
@@ -442,6 +495,7 @@ const settingsSync = (() => {
     if (!section) return;
     section.title = newTitle;
     _onYamlChange(settingsToYaml(next), { skipApply: true });
+    _syncResumeSectionTitleComments(next);
   }
 
   function applyTemplateDefaults(rawDefaults, opts = {}) {
@@ -598,6 +652,7 @@ const settingsSync = (() => {
     notifySectionStateChange,
     updateSectionTitle,
     applyTemplateDefaults,
+    formatResumeSectionTitleComments: (yaml) => _formatResumeSectionTitleComments(yaml),
     getYaml:     () => _settingsYaml,
     getSettings: () => _parsed.value || DEFAULT_SETTINGS,
     setYaml:     (yaml) => _onYamlChange(yaml),

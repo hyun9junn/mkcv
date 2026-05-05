@@ -532,6 +532,36 @@ test('after revealing one hidden absent section in resume tab, revealing another
   );
 });
 
+test('clicking an absent built-in chip materializes the section with its selected title comment', async () => {
+  const { context } = await boot({
+    loadSectionsUI: true,
+    initialYaml: [
+      'personal:',
+      '  name: Test User',
+      '',
+      'summary: >',
+      '  Short summary.',
+      '',
+    ].join('\n'),
+  });
+
+  context.window.settingsSync.updateSectionTitle('certifications', 'Selected Certifications');
+  context.window.sectionsUI.buildPanel();
+
+  const panel = context.document.getElementById('sections-panel');
+  const certificationsChip = panel.children.find((chip) => chip.dataset.key === 'certifications');
+  assert.ok(certificationsChip, 'expected certifications chip to exist');
+  assert.match(certificationsChip.className, /\babsent\b/);
+
+  certificationsChip.querySelector('.chip-dot').click();
+
+  assert.match(
+    context.app.state.yaml,
+    /^certifications:\s+# Selected Certifications$/m,
+    'materialized absent sections should carry the currently selected title in resume.yaml'
+  );
+});
+
 test('reordering hidden chips updates the invisible-area order inside resume.yaml', async () => {
   const { context } = await boot({
     initialYaml: [
@@ -715,4 +745,72 @@ test('resume-tab hide and show keeps chip order stable after deferred editor syn
     .map((chip) => chip.dataset.key)
     .filter((key) => ['summary', 'experience', 'projects'].includes(key));
   assert.deepEqual(chipOrder, ['summary', 'experience', 'projects']);
+});
+
+test('renaming a built-in section title mirrors it into resume.yaml as an inline comment', async () => {
+  const { context } = await boot({
+    initialYaml: [
+      'personal:',
+      '  name: Test User',
+      '',
+      'summary: >',
+      '  Short summary.',
+      '',
+      'projects:',
+      '  - name: Resume Builder',
+      '    description: Sync sections reliably.',
+      '',
+    ].join('\n'),
+  });
+
+  context.window.settingsSync.updateSectionTitle('projects', 'Selected Projects');
+
+  assert.match(
+    context.app.state.yaml,
+    /^projects:\s+# Selected Projects$/m,
+    'projects should advertise its selected display title directly in resume.yaml'
+  );
+});
+
+test('applying template defaults mirrors selected built-in titles into resume.yaml comments', async () => {
+  const { context } = await boot({
+    initialYaml: [
+      'personal:',
+      '  name: Test User',
+      '',
+      'summary: >',
+      '  Short summary.',
+      '',
+      'projects:',
+      '  - name: Resume Builder',
+      '    description: Sync sections reliably.',
+      '',
+    ].join('\n'),
+  });
+
+  context.window.settingsSync.applyTemplateDefaults({
+    sections: [
+      { key: 'summary', title: 'Profile', visible: true },
+      { key: 'experience', title: 'Experience', visible: true },
+      { key: 'education', title: 'Education', visible: true },
+      { key: 'skills', title: 'Skills', visible: true },
+      { key: 'projects', title: 'Selected Projects', visible: true },
+      { key: 'certifications', title: 'Certifications', visible: false },
+      { key: 'publications', title: 'Publications', visible: false },
+      { key: 'languages', title: 'Languages', visible: false },
+      { key: 'awards', title: 'Awards', visible: false },
+      { key: 'extracurricular', title: 'Activities', visible: false },
+    ],
+  });
+
+  assert.match(
+    context.app.state.yaml,
+    /^summary:\s+>\s+# Profile$/m,
+    'summary should keep its block-scalar marker while advertising the selected title'
+  );
+  assert.match(
+    context.app.state.yaml,
+    /^projects:\s+# Selected Projects$/m,
+    'projects should reflect the template-selected display title in resume.yaml'
+  );
 });

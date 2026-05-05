@@ -330,9 +330,12 @@ const sectionsUI = (() => {
     const current = app.state.yaml || '';
     const order = typeof sectionsState.getOrder === "function" ? sectionsState.getOrder() : [];
     const hidden = order.filter((candidate) => candidate !== key && sectionsState.isHidden(candidate));
-    const newYaml = typeof sectionsState.materializeSection === "function"
+    const structuralYaml = typeof sectionsState.materializeSection === "function"
       ? sectionsState.materializeSection(current, key, order, hidden)
       : sectionsState.appendToMainArea(current, def.yaml);
+    const newYaml = typeof window.settingsSync?.formatResumeSectionTitleComments === "function"
+      ? window.settingsSync.formatResumeSectionTitleComments(structuralYaml)
+      : structuralYaml;
     if (!window.settingsSync || window.settingsSync.activeTab === 'resume') {
       window.editorAdapter.suppressNextPreviewRefresh();
       window.editorAdapter.setValuePreserveScroll(newYaml);
