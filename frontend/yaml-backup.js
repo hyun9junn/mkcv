@@ -3,7 +3,7 @@ window.yamlBackup = (() => {
   function _toast(msg, type = 'info') {
     const stack = document.getElementById('toast-stack');
     if (!stack) return;
-    const el     = document.createElement('div');
+    const el = document.createElement('div');
     el.className = `toast ${type}`;
     el.innerHTML = `<span class="toast-title">${msg}</span><button class="toast-close" onclick="this.parentElement.remove()">×</button>`;
     stack.appendChild(el);
@@ -12,8 +12,8 @@ window.yamlBackup = (() => {
 
   function _download(blob, filename) {
     const url = URL.createObjectURL(blob);
-    const a   = document.createElement('a');
-    a.href     = url;
+    const a = document.createElement('a');
+    a.href = url;
     a.download = filename;
     a.click();
     URL.revokeObjectURL(url);
@@ -40,7 +40,7 @@ window.yamlBackup = (() => {
     _pendingResume = resumeYaml;
     _pendingSettings = settingsYaml;
     const files = [
-      resumeYaml   !== null && 'resume.yaml',
+      resumeYaml !== null && 'resume.yaml',
       settingsYaml !== null && 'settings.yaml',
     ].filter(Boolean).join(' and ');
     document.getElementById('import-modal-body').textContent =
