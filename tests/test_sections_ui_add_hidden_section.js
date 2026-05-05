@@ -132,7 +132,7 @@ function createElement(tagName = 'div') {
   return element;
 }
 
-function createContext() {
+function createContext(options = {}) {
   const elements = new Map();
   const domReadyCallbacks = [];
   const previewCalls = [];
@@ -154,13 +154,24 @@ function createContext() {
     elements.set(id, createElement('div'));
   }
 
+  const initialOrder = options.initialOrder || ['summary', 'experience', 'education', 'skills', 'projects', 'certifications'];
+  const initialHidden = options.initialHidden || ['certifications'];
   storage.set(
     'mkcv_sections_state',
     JSON.stringify({
-      hidden: ['certifications'],
-      order: ['summary', 'experience', 'education', 'skills', 'projects', 'certifications'],
+      hidden: initialHidden,
+      order: initialOrder,
     })
   );
+
+  const settingsSections = options.settingsSections || [
+    { key: 'summary', title: 'SUMMARY', visible: true },
+    { key: 'experience', title: 'EXPERIENCE', visible: true },
+    { key: 'education', title: 'EDUCATION', visible: true },
+    { key: 'skills', title: 'SKILLS', visible: true },
+    { key: 'projects', title: 'PROJECTS', visible: true },
+    { key: 'certifications', title: 'CERTIFICATIONS', visible: false },
+  ];
 
   const context = {
     console,
@@ -193,7 +204,7 @@ function createContext() {
     },
     app: {
       state: {
-        yaml: [
+        yaml: options.initialYaml || [
           'personal:',
           '  name: Test User',
           '',
@@ -234,17 +245,10 @@ function createContext() {
       },
     },
     settingsSync: {
-      activeTab: 'resume',
+      activeTab: options.activeTab || 'resume',
       getSettings() {
         return {
-          sections: [
-            { key: 'summary', title: 'SUMMARY', visible: true },
-            { key: 'experience', title: 'EXPERIENCE', visible: true },
-            { key: 'education', title: 'EDUCATION', visible: true },
-            { key: 'skills', title: 'SKILLS', visible: true },
-            { key: 'projects', title: 'PROJECTS', visible: true },
-            { key: 'certifications', title: 'CERTIFICATIONS', visible: false },
-          ],
+          sections: settingsSections,
         };
       },
     },
@@ -260,7 +264,40 @@ function loadScript(filename, context) {
 }
 
 test('clicking an absent hidden built-in section adds it as visible content', () => {
-  const { context, elements } = createContext();
+  const { context, elements } = createContext({
+    initialYaml: [
+      'personal:',
+      '  name: Test User',
+      '',
+      'summary: >',
+      '  Wrote tests first.',
+      '',
+      'projects:',
+      '  - name: Resume Builder',
+      '    description: Keeps YAML in sync.',
+      '',
+      '### invisible sections',
+      '',
+      'languages:',
+      '  - language: English',
+      '    proficiency: Native',
+      '',
+    ].join('\n'),
+    initialOrder: ['summary', 'certifications', 'projects', 'languages'],
+  });
+
+  let setValueCalls = 0;
+  let setValuePreserveScrollCalls = 0;
+  const originalSetValue = context.editorAdapter.setValue.bind(context.editorAdapter);
+  const originalSetValuePreserveScroll = context.editorAdapter.setValuePreserveScroll.bind(context.editorAdapter);
+  context.editorAdapter.setValue = (value) => {
+    setValueCalls += 1;
+    return originalSetValue(value);
+  };
+  context.editorAdapter.setValuePreserveScroll = (value) => {
+    setValuePreserveScrollCalls += 1;
+    return originalSetValuePreserveScroll(value);
+  };
 
   loadScript('frontend/sections-state.js', context);
   loadScript('frontend/sections-ui.js', context);
@@ -274,22 +311,76 @@ test('clicking an absent hidden built-in section adds it as visible content', ()
 
   absentCertificationsChip.querySelector('.chip-dot').click();
 
-  assert.match(context.app.state.yaml, /^certifications:/m, 'section should be appended to the main YAML area');
+  assert.match(context.app.state.yaml, /^certifications:/m, 'section should be materialized into the main YAML area');
   assert.match(
-    context.app.state.yaml,
-    /Wrote tests first\.\n\ncertifications:/,
-    'added section should be separated from the previous block by a blank line'
+    context.app.state.yaml.split('### invisible sections')[0],
+    /summary:[\s\S]*certifications:[\s\S]*projects:/,
+    'added section should follow the chip order inside the main YAML area'
   );
   assert.equal(
     context.window.sectionsState.isHidden('certifications'),
     false,
     'adding an absent hidden section should also reveal it'
   );
+  assert.equal(setValueCalls, 0, 'adding a section should not reset the resume editor state');
+  assert.equal(
+    setValuePreserveScrollCalls,
+    1,
+    'adding a section should preserve the current resume editor scroll position'
+  );
 
   const refreshedCertificationsChip = panel.children.find((chip) => chip.dataset.key === 'certifications');
   assert.ok(refreshedCertificationsChip, 'expected certifications chip after rebuild');
   assert.doesNotMatch(refreshedCertificationsChip.className, /\babsent\b/);
   assert.match(refreshedCertificationsChip.className, /\bon\b/, 'added section should render as visible');
+});
+
+test('clicking an absent visible built-in section inserts it by chip order instead of appending to the bottom', () => {
+  const { context, elements } = createContext({
+    initialYaml: [
+      'personal:',
+      '  name: Test User',
+      '',
+      'summary: >',
+      '  Wrote tests first.',
+      '',
+      'projects:',
+      '  - name: Resume Builder',
+      '    description: Keeps YAML in sync.',
+      '',
+    ].join('\n'),
+    initialOrder: ['summary', 'certifications', 'projects'],
+    initialHidden: [],
+    settingsSections: [
+      { key: 'summary', title: 'SUMMARY', visible: true },
+      { key: 'projects', title: 'PROJECTS', visible: true },
+      { key: 'certifications', title: 'CERTIFICATIONS', visible: true },
+    ],
+  });
+
+  loadScript('frontend/sections-state.js', context);
+  loadScript('frontend/sections-ui.js', context);
+
+  context.window.sectionsUI.buildPanel();
+
+  const panel = elements.get('sections-panel');
+  const certificationsChip = panel.children.find((chip) => chip.dataset.key === 'certifications');
+  assert.ok(certificationsChip, 'expected certifications chip to exist');
+  assert.match(certificationsChip.className, /\babsent\b/);
+
+  certificationsChip.querySelector('.chip-dot').click();
+
+  const mainArea = context.app.state.yaml.split('### invisible sections')[0];
+  assert.match(
+    mainArea,
+    /summary:[\s\S]*certifications:[\s\S]*projects:/,
+    'the inserted section should land between its ordered visible neighbors'
+  );
+  assert.doesNotMatch(
+    mainArea,
+    /projects:[\s\S]*certifications:/,
+    'the inserted section should not be forced to the bottom of the main YAML area'
+  );
 });
 
 test('sections below the invisible marker render as hidden chips, not absent chips', () => {

@@ -133,15 +133,34 @@ const settingsSync = (() => {
     };
   }
 
+  function _getPresentSectionKeys(rawYaml) {
+    if (!window.sectionsState) return new Set();
+
+    if (typeof sectionsState.getExpandedPresentKeys === 'function') {
+      const keys = sectionsState.getExpandedPresentKeys(rawYaml);
+      if (Array.isArray(keys) && keys.length > 0) return new Set(keys);
+    }
+
+    if (typeof sectionsState.getYamlSectionLayout === 'function') {
+      const layout = sectionsState.getYamlSectionLayout(rawYaml);
+      return new Set([...(layout?.mainKeys || []), ...(layout?.invisibleKeys || [])]);
+    }
+
+    return new Set();
+  }
+
   function _buildSettingsFromSectionState(sectionState, baseSettings = _parsed.value) {
     const existing = new Map((baseSettings?.sections || []).map((section) => [section.key, section]));
+    const presentKeys = _getPresentSectionKeys(app.state.yaml);
     const next = _clone(baseSettings || DEFAULT_SETTINGS);
     next.sections = sectionState.order
       .filter((key) => SECTION_CATALOG.some((section) => section.key === key))
       .map((key) => ({
         key,
         title: existing.get(key)?.title ?? (SECTION_CATALOG.find((section) => section.key === key)?.defaultTitle ?? key.toUpperCase()),
-        visible: !sectionState.hidden.includes(key),
+        visible: presentKeys.has(key)
+          ? !sectionState.hidden.includes(key)
+          : (existing.get(key)?.visible ?? DEFAULT_SETTINGS.sections.find((section) => section.key === key)?.visible ?? true),
       }));
     return next;
   }
@@ -210,6 +229,13 @@ const settingsSync = (() => {
 
     const currentState = _getCurrentSectionState();
     const nextState = sectionsState.getYamlSectionState(yaml, currentState.order);
+    const presentKeys = _getPresentSectionKeys(yaml);
+    nextState.hidden = Array.from(
+      new Set([
+        ...nextState.hidden,
+        ...currentState.hidden.filter((key) => !presentKeys.has(key)),
+      ])
+    );
     const stateChanged =
       !_arraysEqual(nextState.order, currentState.order) ||
       !_arraysEqual(nextState.hidden, currentState.hidden);
@@ -392,10 +418,10 @@ const settingsSync = (() => {
 
   // ── Public: called via monkey-patched sections-state methods ──
 
-  function notifySectionStateChange() {
+  function notifySectionStateChange(opts = {}) {
     if (!_parsed.value) return;
     const sectionState = _getCurrentSectionState();
-    _applySectionStateToResume(sectionState);
+    if (!opts.skipResumeSync) _applySectionStateToResume(sectionState);
     if (window.preview && window.sectionsState) {
       preview.refresh(
         sectionsState.getOrderedFilteredYaml(app.state.yaml),
@@ -550,7 +576,7 @@ const settingsSync = (() => {
         resetAll:     sectionsState.resetAll.bind(sectionsState),
       };
       sectionsState.setOrder     = (o)    => { orig.setOrder(o);     notifySectionStateChange(); };
-      sectionsState.toggleHidden = (k)    => { orig.toggleHidden(k); notifySectionStateChange(); };
+      sectionsState.toggleHidden = (k, opts) => { orig.toggleHidden(k); notifySectionStateChange(opts); };
       sectionsState.resetAll     = (...a) => { orig.resetAll(...a);   notifySectionStateChange(); };
     }
 

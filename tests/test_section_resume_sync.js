@@ -356,6 +356,182 @@ test('settings.yaml can reveal an absent built-in section by materializing it in
   assert.equal(context.window.sectionsState.isHidden('certifications'), false);
 });
 
+test('revealing one absent section from the resume tab does not flip other absent hidden sections to visible', async () => {
+  const { context } = await boot({
+    loadSectionsUI: true,
+    initialYaml: [
+      'personal:',
+      '  name: Test User',
+      '',
+      'summary: >',
+      '  Short summary.',
+      '',
+    ].join('\n'),
+  });
+
+  context.window.sectionsUI.buildPanel();
+
+  const panel = context.document.getElementById('sections-panel');
+  const certificationsChip = panel.children.find((chip) => chip.dataset.key === 'certifications');
+  assert.ok(certificationsChip, 'expected certifications chip to exist');
+  assert.match(certificationsChip.className, /\babsent\b/);
+
+  certificationsChip.querySelector('.chip-dot').click();
+
+  const sections = context.window.settingsSync.getSettings().sections;
+  assert.equal(
+    sections.find((section) => section.key === 'certifications')?.visible,
+    true,
+    'the clicked absent section should become visible'
+  );
+  assert.equal(
+    sections.find((section) => section.key === 'publications')?.visible,
+    false,
+    'other absent hidden sections should keep their previous visibility'
+  );
+  assert.equal(
+    sections.find((section) => section.key === 'languages')?.visible,
+    false,
+    'other absent hidden sections should stay false'
+  );
+});
+
+test('revealing an absent section while settings tab is open updates settings.yaml to visible true', async () => {
+  const { context } = await boot({
+    loadSectionsUI: true,
+    initialYaml: [
+      'personal:',
+      '  name: Test User',
+      '',
+      'summary: >',
+      '  Short summary.',
+      '',
+    ].join('\n'),
+  });
+
+  context.document.getElementById('file-tab-settings').click();
+  assert.equal(context.window.settingsSync.activeTab, 'settings');
+
+  context.window.sectionsUI.buildPanel();
+  const panel = context.document.getElementById('sections-panel');
+  const certificationsChip = panel.children.find((chip) => chip.dataset.key === 'certifications');
+  assert.ok(certificationsChip, 'expected certifications chip to exist');
+  assert.match(certificationsChip.className, /\babsent\b/);
+
+  certificationsChip.querySelector('.chip-dot').click();
+
+  const nextSettings = context.window.settingsSync.getSettings().sections;
+  assert.equal(
+    nextSettings.find((section) => section.key === 'certifications')?.visible,
+    true,
+    'clicked absent section should become visible in parsed settings state'
+  );
+  assert.match(
+    context.window.settingsSync.getYaml(),
+    /- key: certifications\n\s+title: "CERTIFICATIONS"\n\s+visible: true/,
+    'settings.yaml text should flip the clicked section to visible true'
+  );
+  assert.equal(
+    context.window.editorAdapter.value,
+    context.window.settingsSync.getYaml(),
+    'settings editor should stay in sync with the updated settings.yaml text'
+  );
+});
+
+test('revealing an absent section while settings tab is open still updates settings when resume yaml is invalid', async () => {
+  const { context } = await boot({
+    loadSectionsUI: true,
+    initialYaml: [
+      'personal:',
+      '  name: Test User',
+      '',
+      'summary: [unterminated',
+      '',
+    ].join('\n'),
+  });
+
+  context.document.getElementById('file-tab-settings').click();
+  assert.equal(context.window.settingsSync.activeTab, 'settings');
+
+  context.window.sectionsUI.buildPanel();
+  const panel = context.document.getElementById('sections-panel');
+  const certificationsChip = panel.children.find((chip) => chip.dataset.key === 'certifications');
+  assert.ok(certificationsChip, 'expected certifications chip to exist');
+  assert.match(certificationsChip.className, /\babsent\b/);
+
+  certificationsChip.querySelector('.chip-dot').click();
+
+  assert.equal(
+    context.window.settingsSync.getSettings().sections.find((section) => section.key === 'certifications')?.visible,
+    true,
+    'clicked absent section should become visible even when resume yaml cannot be parsed'
+  );
+  assert.match(
+    context.window.settingsSync.getYaml(),
+    /- key: certifications\n\s+title: "CERTIFICATIONS"\n\s+visible: true/,
+    'settings.yaml text should still reflect the reveal action'
+  );
+});
+
+test('after revealing one hidden absent section in resume tab, revealing another in settings tab still flips visible to true', async () => {
+  const { context } = await boot({
+    loadSectionsUI: true,
+    initialYaml: [
+      'personal:',
+      '  name: Test User',
+      '',
+      'summary: >',
+      '  Short summary.',
+      '',
+    ].join('\n'),
+  });
+
+  context.window.sectionsUI.buildPanel();
+  let panel = context.document.getElementById('sections-panel');
+
+  const certificationsChip = panel.children.find((chip) => chip.dataset.key === 'certifications');
+  assert.ok(certificationsChip, 'expected certifications chip to exist');
+  certificationsChip.querySelector('.chip-dot').click();
+
+  context.document.getElementById('file-tab-settings').click();
+  assert.equal(context.window.settingsSync.activeTab, 'settings');
+
+  context.window.sectionsUI.buildPanel();
+  panel = context.document.getElementById('sections-panel');
+  const publicationsChip = panel.children.find((chip) => chip.dataset.key === 'publications');
+  assert.ok(publicationsChip, 'expected publications chip to exist');
+  assert.match(publicationsChip.className, /\babsent\b/);
+
+  publicationsChip.querySelector('.chip-dot').click();
+
+  assert.match(
+    context.app.state.yaml,
+    /^publications:/m,
+    'the second revealed section should be materialized into resume yaml state'
+  );
+  assert.ok(
+    context.window.sectionsState.getExpandedPresentKeys(context.app.state.yaml).includes('publications'),
+    'present-key detection should see the second revealed section in resume yaml'
+  );
+
+  const nextSections = context.window.settingsSync.getSettings().sections;
+  assert.equal(
+    nextSections.find((section) => section.key === 'certifications')?.visible,
+    true,
+    'the first revealed section should remain visible in settings'
+  );
+  assert.equal(
+    nextSections.find((section) => section.key === 'publications')?.visible,
+    true,
+    'the second revealed section should flip to visible true'
+  );
+  assert.match(
+    context.window.settingsSync.getYaml(),
+    /- key: publications\n\s+title: "PUBLICATIONS"\n\s+visible: true/,
+    'settings.yaml text should mark the second revealed section as visible'
+  );
+});
+
 test('reordering hidden chips updates the invisible-area order inside resume.yaml', async () => {
   const { context } = await boot({
     initialYaml: [

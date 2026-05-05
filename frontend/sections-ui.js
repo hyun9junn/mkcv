@@ -98,7 +98,7 @@ const sectionsUI = (() => {
             if (appendDefaultSection(key)) {
               const wasHidden = sectionsState.isHidden(key);
               if (wasHidden) {
-                sectionsState.toggleHidden(key);
+                sectionsState.toggleHidden(key, { skipResumeSync: true });
               }
               buildPanel();
               if (!wasHidden) {
@@ -328,10 +328,14 @@ const sectionsUI = (() => {
     const def = sectionsState.SECTION_DEFS[key];
     if (!def || !def.yaml) return false;
     const current = app.state.yaml || '';
-    const newYaml = sectionsState.appendToMainArea(current, def.yaml);
+    const order = typeof sectionsState.getOrder === "function" ? sectionsState.getOrder() : [];
+    const hidden = order.filter((candidate) => candidate !== key && sectionsState.isHidden(candidate));
+    const newYaml = typeof sectionsState.materializeSection === "function"
+      ? sectionsState.materializeSection(current, key, order, hidden)
+      : sectionsState.appendToMainArea(current, def.yaml);
     if (!window.settingsSync || window.settingsSync.activeTab === 'resume') {
       window.editorAdapter.suppressNextPreviewRefresh();
-      window.editorAdapter.setValue(newYaml);
+      window.editorAdapter.setValuePreserveScroll(newYaml);
     }
     app.setState({ yaml: newYaml });
     return true;

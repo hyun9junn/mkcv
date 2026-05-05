@@ -468,6 +468,42 @@ const sectionsState = (() => {
     return _joinParts(mainParts.join('\n\n'), invisibleParts.join('\n\n'));
   }
 
+  function materializeSection(rawYaml, key, desiredOrder, hidden = []) {
+    if (!SECTION_DEFS[key]?.yaml) return rawYaml;
+
+    const { mainKeys, invisibleKeys } = getYamlSectionLayout(rawYaml);
+    if (mainKeys.includes(key) || invisibleKeys.includes(key)) return rawYaml;
+
+    const currentOrder = _uniqKeys([...mainKeys, ...invisibleKeys]);
+    const preferredOrder = _uniqKeys(
+      Array.isArray(desiredOrder) && desiredOrder.length ? desiredOrder : DEFAULT_ORDER
+    );
+    const nextOrder = currentOrder.slice();
+    const desiredIndex = preferredOrder.indexOf(key);
+
+    const nextAnchor = desiredIndex === -1
+      ? null
+      : preferredOrder
+          .slice(desiredIndex + 1)
+          .find((candidate) => nextOrder.includes(candidate));
+
+    if (nextAnchor) {
+      nextOrder.splice(nextOrder.indexOf(nextAnchor), 0, key);
+    } else {
+      const previousAnchor = (desiredIndex === -1 ? preferredOrder : preferredOrder.slice(0, desiredIndex))
+        .slice()
+        .reverse()
+        .find((candidate) => nextOrder.includes(candidate));
+
+      if (previousAnchor) nextOrder.splice(nextOrder.indexOf(previousAnchor) + 1, 0, key);
+      else nextOrder.push(key);
+    }
+
+    return syncYamlToSectionState(rawYaml, _uniqKeys([...nextOrder, ...preferredOrder]), hidden, {
+      materialize: [key],
+    });
+  }
+
   function clearInvisibleArea(rawYaml) {
     const { main, invisible } = _splitAtMarker(rawYaml);
     if (!invisible.trim()) return rawYaml;
@@ -531,6 +567,7 @@ const sectionsState = (() => {
     getYamlSectionLayout,
     getYamlSectionState,
     syncYamlToSectionState,
+    materializeSection,
   };
 })();
 
