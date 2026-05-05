@@ -952,6 +952,9 @@
         <div class="export-option primary" data-export="pdf">↓ PDF <span class="kbd">⌘P</span></div>
         <div class="export-option" data-export="tex">↓ LaTeX source <span class="kbd">⌘L</span></div>
         <div class="export-option" data-export="md">↓ Markdown <span class="kbd">⌘M</span></div>
+        <hr>
+        <div class="export-option" id="btn-yaml-export">↓ YAML backup</div>
+        <div class="export-option" id="btn-yaml-import">↑ Import YAML…</div>
       </div>
     </div>
 
@@ -959,6 +962,7 @@
     <button id="btn-pdf"  style="display:none"></button>
     <button id="btn-tex"  style="display:none"></button>
     <button id="btn-md"   style="display:none"></button>
+    <input  id="import-yaml-input" type="file" accept=".zip" style="display:none">
   </div>
 </header>
 
@@ -1109,6 +1113,21 @@
   </div>
 </div>
 
+<!-- ═══ IMPORT MODAL ═══ -->
+<div class="modal-backdrop" id="import-modal">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="eyebrow">Import</div>
+      <h2>Restore from backup?</h2>
+    </div>
+    <div class="modal-body" id="import-modal-body"></div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost"  id="import-modal-cancel">Cancel</button>
+      <button class="btn btn-accent" id="import-modal-confirm">Import</button>
+    </div>
+  </div>
+</div>
+
 <!-- ═══ FILENAME MODAL ═══ -->
 <div class="modal-backdrop" id="filename-modal">
   <div class="modal">
@@ -1148,6 +1167,7 @@
 <script src="export.js"></script>
 <script src="layout-controls.js"></script>
 <script src="settings-sync.js"></script>
+<script src="yaml-backup.js"></script>
 
 <script>
 /* ── UI wiring: new elements not covered by existing modules ── */
