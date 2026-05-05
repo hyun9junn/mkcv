@@ -48,6 +48,10 @@ Both `trim_blocks` and `lstrip_blocks` are enabled. `trim_blocks` removes the ne
 | `custom_by_key` | `dict[str, CustomSection]` | Custom sections indexed by their `key` field |
 | `font_size` | `str` | LaTeX document class font size, e.g. `"11pt"` |
 | `layout_preamble` | `str` | LaTeX `\newcommand` block defining density spacing (see below) |
+| `section_titles` | `dict[str, str]` | Maps section keys to their display title strings; drawn from `meta.yaml` defaults and overridden by user settings. Use `section_titles.get(key, 'Fallback')` inside `render_section` instead of hard-coding strings. |
+| `link_text` | `function` | `link_text(url, label, style=None)` — renders the display text for a hyperlink respecting the active link-display setting. Returns the label, the URL, or `"label (url)"` depending on style. |
+| `contact_visible` | `function` | `contact_visible(key)` — returns `True` if the personal field with that key is enabled in user settings. Use this to suppress contact fields the user has hidden. |
+| `contact_link_style` | `function` | `contact_link_style(key)` — returns the effective link-display style (`"label"`, `"url"`, or `"both"`) for a personal link field, merging the per-field override with the global default. |
 
 Always place `<< layout_preamble >>` on its own line immediately after `\documentclass{...}`, before any `\usepackage` declarations. It emits the spacing commands that must be defined before the body uses them.
 
@@ -353,13 +357,39 @@ Every template directory must include `meta.yaml`. The app reads it at startup t
 ```yaml
 display_name: "Human-readable name shown in the UI"
 description: "One sentence describing the style and target audience"
-audience: general          # one of: general, academic, corporate, engineering
+audience: general                # one of: general, academic, corporate, engineering
+ui:
+  badge: ""                      # badge shown in the template picker UI
+                                 #   one of: "", "Default", "New", "Popular"
+render:
+  section_title_case: title      # one of: upper, lower, title  (default: title)
 defaults:
   layout:
-    density: balanced      # one of: comfortable, balanced, compact
-    font_scale: normal     # one of: small, normal, large
+    density: balanced            # one of: comfortable, balanced, compact
+    font_scale: normal           # one of: small, normal, large
   personal:
-    link_display: label    # one of: label, url, both
+    default_link_display: label  # one of: label, url, both
+    fields:
+      - key: name
+        visible: true
+      - key: email
+        visible: true
+      - key: phone
+        visible: true
+      - key: location
+        visible: true
+      - key: website
+        visible: true
+        link_display: default    # link fields only: one of default, label, url, both
+      - key: linkedin
+        visible: true
+        link_display: default
+      - key: github
+        visible: true
+        link_display: default
+      - key: huggingface
+        visible: true
+        link_display: default
   sections:
     - key: summary
       title: "SUMMARY"
@@ -367,9 +397,47 @@ defaults:
     - key: experience
       title: "EXPERIENCE"
       visible: true
+    - key: education
+      title: "EDUCATION"
+      visible: true
+    - key: skills
+      title: "SKILLS"
+      visible: true
+    - key: projects
+      title: "PROJECTS"
+      visible: true
+    - key: certifications
+      title: "CERTIFICATIONS"
+      visible: false
+    - key: publications
+      title: "PUBLICATIONS"
+      visible: false
+    - key: languages
+      title: "LANGUAGES"
+      visible: false
+    - key: awards
+      title: "AWARDS"
+      visible: false
+    - key: extracurricular
+      title: "EXTRACURRICULAR ACTIVITIES"
+      visible: false
 ```
 
-`defaults.sections` is the single source of truth for template reset order. Include every built-in section exactly once, in the order the template should restore. `template` is intentionally omitted here because reset must preserve the currently selected template.
+### Field notes
+
+**`defaults`** is the single source of truth for what "Reset to template defaults" restores. The entire block is validated strictly on startup — any missing required field or invalid value causes the whole `defaults` block to be silently replaced with `{}`. The template will still appear and render, but the reset button will have no effect. Always verify `defaults` is non-empty in `GET /api/templates`.
+
+**`defaults.personal.fields`** must contain exactly these 8 keys in this exact order: `name`, `email`, `phone`, `location`, `website`, `linkedin`, `github`, `huggingface`. Omitting a key, adding an extra key, or changing the order fails validation.
+
+Link fields (`website`, `linkedin`, `github`, `huggingface`) must include a `link_display` key. Non-link fields (`name`, `email`, `phone`, `location`) must not include `link_display` — its presence on a non-link field fails validation.
+
+**`defaults.sections`** must include all 10 built-in section keys, no more and no fewer. The set `{summary, experience, education, skills, projects, certifications, publications, languages, awards, extracurricular}` must match exactly. Order affects what the reset button restores; it does not have to be alphabetical.
+
+**`render.section_title_case`** controls how built-in section titles in `section_titles` are transformed at render time. `title` applies smart title casing; `upper` uppercases; `lower` lowercases. This applies only to the string values coming from `meta.yaml`'s `sections[].title`; custom section titles are passed through unchanged.
+
+**`template`** is intentionally absent — reset must preserve the currently selected template.
+
+**Extra fields** at the top level (e.g., `recommended_sections`) are silently ignored by the server but remain in the YAML file. Do not rely on them being passed to the template.
 
 ---
 
@@ -446,16 +514,20 @@ Each template defines its own color palette via `\definecolor`. Accent colors ar
 | Template | Accent | Hex |
 |---|---|---|
 | classic | none | — |
-| chancellor | Crimson | `#B22222` |
-| scholar-index | Deep indigo | `#1E3A8A` |
-| boardroom | Burgundy | `#7F1D1D` |
-| foundry | Ink only | `#0A0A0A` |
-| dealbook | Navy | `#1E3A5F` |
-| skillboard | none | — |
-| studio-pop | Dark teal sidebar | `#1B4F4F` |
 | ats-signal | Ink only | `#111111` |
+| boardroom | Burgundy | `#7F1D1D` |
+| chancellor | Crimson | `#B22222` |
+| dealbook | Navy | `#1E3A5F` |
+| foundry | Ink only | `#0A0A0A` |
+| letterpress | Dark plum | `#4A1E3F` |
+| masthead | Dark red | `#8C2A1C` |
+| mono-forge | Burnt orange | `#D94B0F` |
+| scholar-index | Deep indigo | `#1E3A8A` |
+| signature-split | Plum | `#5B2A56` |
+| skillboard | none | — |
 | slate-rail | Navy sidebar | `#1A1A2E` |
-| sidebar-portrait | varies | — |
+| studio-pop | Dark teal sidebar | `#1B4F4F` |
+| trackline | Forest green | `#116B4F` |
 
 New templates should introduce a distinct accent rather than reusing an existing one.
 
@@ -479,7 +551,7 @@ The two-column minipage header in `boardroom` displays the first sentence of `cv
    - Guard every optional field; use the two-form date fallback for `edu.year`.
    - Join all list fields before output.
    - Compile with pdflatex only — no `fontspec`, no XeLaTeX packages.
-3. Write `meta.yaml` with all required fields.
+3. Write `meta.yaml` with all required fields: `display_name`, `description`, `audience`, `ui.badge`, `render.section_title_case`, `defaults.layout` (density + font_scale), `defaults.personal` (default_link_display + all 8 fields in order), and `defaults.sections` (all 10 built-in keys).
 4. Restart the server and confirm `"valid": true` in `GET /api/templates`.
 5. Test with a real YAML file — verify custom sections render, section reordering works, and optional fields (no phone, no github, etc.) produce no LaTeX errors.
 6. Test with a very long name (> 30 chars) and a very long job title (> 48 chars) to confirm the filter output is correct and the PDF compiles without overfull hbox warnings.

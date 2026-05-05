@@ -2,9 +2,32 @@
 
 A web app for authoring and exporting your CV from a single YAML source of truth.
 
-Write your CV once in `mycv.yaml` — get a live PDF preview, export to Markdown, LaTeX, or PDF with one click.
+Write your CV once in YAML — get a live PDF preview, and export to Markdown, LaTeX, or PDF with one click.
 
 ![Preview](./preview.png)
+
+---
+
+## What is mkcv?
+
+mkcv is a browser-based CV editor. You write your resume in a simple YAML format on the left, and a polished PDF renders live on the right. When you're done, export to PDF, Markdown, or LaTeX — all from the same source.
+
+Everything is stored locally in your browser. No account needed, no data leaves your machine.
+
+---
+
+## Quick Start
+
+The easiest way to run mkcv is with Docker — no Python or LaTeX setup required.
+
+```bash
+docker pull ghcr.io/hyun9junn/mkcv:latest
+docker run --rm -p 8000:8000 ghcr.io/hyun9junn/mkcv:latest
+```
+
+Open **http://localhost:8000** in your browser and start editing.
+
+> **Note:** If you get a `pull access denied` error, the image may still be private. In that case, use the [local dev setup](#local-development) below.
 
 ---
 
@@ -12,126 +35,99 @@ Write your CV once in `mycv.yaml` — get a live PDF preview, export to Markdown
 
 | Feature | Details |
 |---------|---------|
-| **Live PDF preview** | Renders the compiled PDF in real time (1.5 s debounce) |
-| **Zoom controls** | Zoom in/out via buttons or `Ctrl`/`⌘` + scroll wheel (25%–400%) |
-| **Section panel** | Drag chips to reorder, toggle visibility without touching YAML, reset any section to its scaffold |
-| **10 LaTeX templates** | `classic`, `academic-research`, `banking`, `column-skills`, `executive-corporate`, `heritage`, `hipster`, `modern-startup`, `resume-tech`, `sidebar-minimal` |
+| **Live PDF preview** | PDF re-renders 1.5 s after you stop typing |
+| **15 LaTeX templates** | Classic, ATS-friendly, finance, creative, technical, and more |
+| **Zoom controls** | Zoom 25%–400% via buttons or `Ctrl`/`⌘` + scroll wheel |
+| **Section panel** | Drag chips to reorder sections, toggle visibility, reset to scaffold |
 | **Layout controls** | Density (comfortable / balanced / compact) and font scale (small / normal / large) |
-| **Three export formats** | Markdown (`.md`), LaTeX (`.tex`), PDF (`.pdf`) |
+| **Contact field toggles** | Show or hide individual contact fields (email, phone, LinkedIn, etc.) per template |
+| **Three export formats** | PDF (`.pdf`), Markdown (`.md`), LaTeX (`.tex`) |
+| **YAML backup & restore** | Export your YAML and settings as a compressed archive; import on any machine |
 | **Auto-save** | Resume and settings auto-save to browser localStorage as you type |
-| **Inline YAML validation** | Errors shown as you type with YAML autocomplete hints |
+| **Inline YAML validation** | Errors shown in real time with field autocomplete hints |
+| **Custom sections** | Add freeform sections beyond the built-in ones |
 | **Dark / light mode** | Theme toggle persisted across sessions |
-| **All sections optional** | Empty sections are skipped in every output format |
-
----
-
-## Quick Start
-
-The recommended way to run mkcv is with Docker — no dependencies to install.
-
-```bash
-docker pull ghcr.io/hyun9junn/mkcv:latest
-docker run --rm -p 8000:8000 ghcr.io/hyun9junn/mkcv:latest
-```
-
-Open **http://localhost:8000** in your browser.
-
-> **Note:** the GHCR package must be public for unauthenticated pulls. If you get a `pull access denied` error, the image may still be private — check the repo's Packages settings.
-
----
-
-## Your Data
-
-mkcv stores everything in your browser's localStorage — the server is stateless and writes nothing at runtime.
-
-| Key | Content |
-|---|---|
-| `mkcv:default:resume.yaml` | Your CV content |
-| `mkcv:default:settings.yaml` | Layout, section order, template preferences |
-
-Data persists across sessions on the same machine and browser. It is private to your browser.
-
-**Backup & portability:** use the Export buttons in the toolbar to download your CV and settings as files. To restore on another machine, paste the file contents into the editor (switch tabs to load settings). There is no cloud sync — if you clear your browser's site data, your resume is lost unless you exported it first.
-
----
-
-## Cloud Deployment
-
-mkcv is a stateless container — deploy it anywhere Docker is supported. No platform config files are needed; both platforms auto-detect the `Dockerfile`.
-
-### Railway
-
-1. Fork this repo and connect it to a new Railway project via **Deploy from GitHub repo**
-2. Railway sets `PORT` automatically
-3. Optionally set `WEB_CONCURRENCY=4` in Railway environment variables for higher PDF throughput
-
-### Render
-
-1. Create a new **Web Service** in Render → connect your GitHub repo
-2. Set environment to **Docker**
-3. Render sets `PORT` automatically — no additional config needed
-
----
-
-## Dev / Contributor Setup
-
-For local development without Docker:
-
-**Requirements:** Python 3.11+, and `pdflatex` on your `PATH` (see [Installing LaTeX](#installing-latex) below).
-
-```bash
-git clone https://github.com/hyun9junn/mkcv.git
-cd mkcv
-python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
-uvicorn backend.main:app --reload
-```
-
-> pdflatex is required for PDF preview and export. The Docker image ships with TeX Live pre-installed — use Docker if you want to skip the LaTeX setup.
 
 ---
 
 ## Using the App
 
-### Editor
+### Writing your CV
 
-- Type your CV in YAML on the left pane. Changes auto-save to browser localStorage as you type.
-- Validation errors appear inline as you type.
-- Autocomplete hints activate while editing field names.
-- The cursor position (line : column) is shown in the status bar.
+Type your CV in YAML in the left pane. The structure is straightforward — see [CV Format](#cv-format) for the full schema and an example.
+
+- Changes auto-save as you type (no Save button needed)
+- Validation errors appear inline — fix them and the preview updates
+- Start typing a field name and autocomplete suggestions appear
 
 ### PDF Preview
 
-- The right pane renders a live PDF preview, updated 1.5 s after you stop typing.
-- **Zoom:** use the `+` / `−` buttons, click the percentage label to reset to 100%, or hold `Ctrl` / `⌘` and scroll.
+The right pane shows a live PDF compiled from your YAML.
 
-### Section Panel (the chip rail below the toolbar)
+- **Zoom:** `+` / `−` buttons, click the percentage to reset to 100%, or `Ctrl`/`⌘` + scroll
+- The preview refreshes 1.5 s after you stop typing
 
-Each section in your YAML appears as a draggable chip:
+### Section Panel
+
+The chip rail below the toolbar lists every section in your CV.
 
 | Action | How |
 |--------|-----|
-| Toggle visibility | Click the chip — hides/shows the section in PDF output without changing `mycv.yaml` |
-| Reorder | Drag a chip left or right; the panel auto-scrolls near the edges |
-| Reset to scaffold | Click the ↺ icon → confirm → undo within 5 s if you change your mind |
-| Grey chips | Sections not yet in your YAML; drag them to set their position before adding |
-
-### Layout Controls
-
-The toolbar exposes two layout knobs that affect PDF output:
-
-- **Density** — `comfortable`, `balanced` (default), `compact`  
-- **Font scale** — `small`, `normal` (default), `large`
+| Show / hide a section | Click the chip — hides it in the PDF without touching your YAML |
+| Reorder sections | Drag a chip left or right |
+| Reset to scaffold | Click ↺ on the chip → confirm → you have 5 s to undo |
+| Grey chips | Sections not yet in your YAML — drag them to reserve their position |
 
 ### Templates
 
-Select a template from the dropdown. Click **✓ Validate Template** to run a two-stage check (Jinja2 render + pdflatex compile) and surface any errors. Invalid templates are marked ⚠.
+Pick a template from the dropdown in the toolbar. Each template has its own defaults for layout, fonts, and section title styling.
+
+Click **✓ Validate Template** to run a two-stage check (Jinja2 render + pdflatex compile). Invalid templates show a ⚠ badge.
+
+**Available templates:**
+
+| Template | Style |
+|----------|-------|
+| `classic` | General-purpose default — clean serif, no color, low visual risk |
+| `ats-signal` | ATS-first tech resume — single-column, bold section rules, clean parsing |
+| `boardroom` | Consulting and finance — burgundy serif authority, compressed executive impact |
+| `chancellor` | Conservative formal — red section rules, classic serif for traditional industries |
+| `dealbook` | Finance-sector deals — structured for high-stakes corporate roles |
+| `foundry` | Industrial modern — strong grid, high contrast |
+| `letterpress` | Print-inspired — typographic craft, editorial feel |
+| `masthead` | Newspaper-style header — bold byline layout |
+| `mono-forge` | Monospaced technical — built for developers and engineers |
+| `scholar-index` | Academic index — structured for research and publications |
+| `signature-split` | Split-column signature — name and contact in a distinct header block |
+| `skillboard` | Skills-forward — prominent skill display for technical roles |
+| `slate-rail` | Dark accent rail — sidebar stripe with clean content area |
+| `studio-pop` | Creative and bold — designed for design and creative industries |
+| `trackline` | Timeline-style — experience laid out along a visual track |
+
+### Layout Controls
+
+Two knobs in the toolbar affect the PDF output:
+
+- **Density** — `comfortable` (more whitespace), `balanced` (default), `compact` (more content per page)
+- **Font scale** — `small`, `normal` (default), `large`
+
+### Contact Field Toggles
+
+Control which personal fields appear in the PDF header — useful when a specific template or job application doesn't need every contact detail. Toggle individual fields (email, phone, LinkedIn, GitHub, website, etc.) without editing your YAML.
+
+### Settings Tab
+
+Switch to the **Settings** tab to edit layout preferences and section order as YAML directly. Settings auto-save alongside your resume content.
+
+### Backup & Restore
+
+Use the **Export** menu to download your YAML and settings as a compressed archive. To restore on another machine, import the archive — your resume and all preferences reload exactly as you left them.
 
 ---
 
 ## CV Format
 
-All sections except `personal` are optional. Empty sections are skipped automatically.
+All sections except `personal` are optional. Empty sections are automatically skipped in every output format.
 
 ```yaml
 personal:
@@ -141,35 +137,44 @@ personal:
   location: City, Country
   linkedin: linkedin.com/in/yourhandle
   github: github.com/yourusername
-  huggingface: huggingface.co/yourusername
   website: yoursite.com
+  huggingface: huggingface.co/yourusername
+  twitter: twitter.com/yourhandle
+  photo: path/to/photo.jpg   # some templates support a photo
 
 summary: >
-  A short professional summary.
+  A short professional summary about yourself.
 
 experience:
   - title: Software Engineer
     company: Acme Corp
     start_date: "2021"
-    end_date: null          # null = Present
-    location: Seoul, Korea  # optional
+    end_date: null            # null = Present
+    location: Seoul, Korea    # optional
     highlights:
       - Built X, reducing latency by 40%
+      - Led a team of 5 engineers
 
 education:
   - degree: B.S. Computer Science
     institution: University Name
-    year: "2020"            # or use start_date / end_date
-    gpa: "3.9"              # optional
+    year: "2020"              # or use start_date / end_date
+    gpa: "3.9"                # optional
+    courses: [Algorithms, Systems]  # optional
+    thesis: "My thesis title"       # optional
 
 skills:
   - category: Languages
     items: [Python, Go, TypeScript]
+  - category: Tools
+    items: [Docker, Kubernetes, PostgreSQL]
 
 projects:
   - name: my-project
     description: What it does
     url: github.com/you/my-project
+    date: "2023"
+    tech_stack: [Python, FastAPI]
     highlights:
       - 500+ GitHub stars
 
@@ -180,59 +185,129 @@ certifications:
 
 publications:
   - title: "My Paper Title"
-    venue: Conference / Blog
+    venue: Conference Name / Journal
     date: "2023"
     url: link.to/paper
+    authors: [Author One, Author Two]
+    doi: "10.1234/example"
 
 languages:
   - language: English
     proficiency: Native
+  - language: Korean
+    proficiency: Fluent
 
 awards:
   - name: 1st Place, Some Competition
     issuer: Organizing Body
     date: "2024"
-    description: Optional description
+    description: Optional context
 
 extracurricular:
-  - title: Chess Club
+  - title: Chess Club President
     organization: University Name
     date: "2023"
     highlights:
       - Won regional championship
+
+custom_sections:
+  - title: Volunteering
+    entries:
+      - heading: Mentor
+        subheading: Code for Good
+        date: "2024"
+        highlights:
+          - Mentored 10 junior developers
 ```
 
 ### Supported Sections
 
-| Key | Section |
+| Key | What it contains |
+|-----|-----------------|
+| `personal` | Name, contact info, links, photo |
+| `summary` | Professional summary (free text) |
+| `experience` | Work history |
+| `education` | Degrees and institutions |
+| `skills` | Grouped skill lists |
+| `projects` | Personal or professional projects |
+| `certifications` | Professional certifications |
+| `publications` | Papers, articles, blog posts |
+| `languages` | Spoken languages |
+| `awards` | Prizes and recognitions |
+| `extracurricular` | Activities outside work |
+| `custom_sections` | Any freeform sections you define |
+
+---
+
+## Your Data
+
+mkcv stores everything in your browser's localStorage. The server is stateless — it processes requests and returns files, but stores nothing.
+
+| Key | Content |
 |-----|---------|
-| `personal` | Personal info |
-| `summary` | Professional summary |
-| `experience` | Work experience |
-| `education` | Education |
-| `skills` | Skills |
-| `projects` | Projects |
-| `certifications` | Certifications |
-| `publications` | Publications |
-| `languages` | Languages |
-| `awards` | Awards |
-| `extracurricular` | Extracurricular activities |
+| `mkcv:default:resume.yaml` | Your CV content |
+| `mkcv:default:settings.yaml` | Layout, section order, template preferences |
+
+Data persists across sessions on the same machine and browser. **If you clear your browser's site data, your resume is gone unless you exported a backup first.**
+
+---
+
+## Local Development
+
+For development without Docker. Requires Python 3.11+ and `pdflatex` on your `PATH`.
+
+```bash
+git clone https://github.com/hyun9junn/mkcv.git
+cd mkcv
+python -m venv .venv
+source .venv/bin/activate      # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+uvicorn backend.main:app --reload
+```
+
+Open **http://localhost:8000**.
+
+> The Docker image bundles TeX Live, so PDF generation works out of the box. For local dev, install LaTeX separately — see [Installing LaTeX](#installing-latex).
+
+### Running Tests
+
+```bash
+pytest -v
+```
+
+---
+
+## Cloud Deployment
+
+mkcv is a stateless container — deploy anywhere Docker runs. No platform-specific config files needed; both platforms below auto-detect the `Dockerfile`.
+
+### Railway
+
+1. Fork this repo and connect it to a new Railway project via **Deploy from GitHub repo**
+2. Railway sets `PORT` automatically
+3. Optionally set `WEB_CONCURRENCY=4` for higher PDF throughput under load
+
+### Render
+
+1. Create a new **Web Service** → connect your GitHub repo
+2. Set environment to **Docker**
+3. Render sets `PORT` automatically — no additional config needed
 
 ---
 
 ## Installing LaTeX
 
-PDF preview and export require `pdflatex` on your `PATH`.
+Required for local dev only. Docker users can skip this.
 
 ### macOS
 
-**Option A — MacTeX (full, ~4 GB):**
+**MacTeX (full, ~4 GB):**
 ```bash
 brew install --cask mactex
 ```
-Open a new terminal after installation so `/Library/TeX/texbin` is on your `PATH`.
+Open a new terminal after installation.
 
-**Option B — BasicTeX (minimal, ~100 MB) + required packages:**
+**BasicTeX (minimal, ~100 MB) + required packages:**
 ```bash
 brew install --cask basictex
 # open a new terminal, then:
@@ -242,34 +317,30 @@ sudo tlmgr install collection-fontsrecommended enumitem geometry hyperref xcolor
 
 ### Windows
 
-**Option A — MiKTeX (recommended, auto-installs missing packages):**
-1. Download the installer from <https://miktex.org/download>
+**MiKTeX (recommended — auto-installs missing packages):**
+1. Download the installer from https://miktex.org/download
 2. Run the installer (install for all users recommended)
-3. Open a new Command Prompt — `pdflatex` should be on `PATH` automatically
+3. Open a new Command Prompt — `pdflatex` is on `PATH` automatically
 
-**Option B — TeX Live:**
-1. Download `install-tl-windows.exe` from <https://tug.org/texlive/acquire-netinstall.html>
-2. Run the installer (full install is ~7 GB; choose a smaller scheme if disk space is limited)
+**TeX Live:**
+1. Download `install-tl-windows.exe` from https://tug.org/texlive/acquire-netinstall.html
+2. Run the installer
 
 ### Linux
 
-**Debian / Ubuntu:**
 ```bash
+# Debian / Ubuntu
 sudo apt-get install texlive-latex-recommended texlive-fonts-recommended \
      texlive-latex-extra texlive-fonts-extra
-```
 
-**Fedora / RHEL / CentOS:**
-```bash
+# Fedora / RHEL
 sudo dnf install texlive-scheme-medium
-```
 
-**Arch Linux:**
-```bash
+# Arch Linux
 sudo pacman -S texlive-most
 ```
 
-**Verify the install:**
+**Verify:**
 ```bash
 pdflatex --version
 ```
@@ -279,12 +350,14 @@ pdflatex --version
 ## Adding a Custom Template
 
 1. Create `backend/templates/<your-name>/cv.tex.j2`
-2. Use the same Jinja2 delimiters as the existing templates:
+2. Optionally create `backend/templates/<your-name>/meta.yaml` to set display name, default layout, and section title casing
+3. Use these Jinja2 delimiters (chosen to avoid conflicts with LaTeX `{}`):
    - Variables: `<< variable >>`
    - Blocks: `<% if condition %>` / `<% endif %>`
-   - CV data is available as `cv` (a `CVData` object — see `backend/models.py`)
-3. Restart the server — your template appears in the dropdown automatically
-4. Click **✓ Validate Template** to verify it compiles correctly
+   - Comments: `<# comment #>`
+4. CV data is available as `cv` — see `backend/models.py` for the full schema
+5. Restart the server — the template appears in the dropdown automatically
+6. Click **✓ Validate Template** to confirm it compiles
 
 See `backend/templates/classic/cv.tex.j2` for a reference implementation.
 
@@ -302,11 +375,12 @@ See `backend/templates/classic/cv.tex.j2` for a reference implementation.
 | `/api/export/pdf` | POST | `{yaml, template}` | `.pdf` file |
 | `/api/templates` | GET | — | `{templates[], validation{}}` |
 | `/api/templates/{name}/validate` | POST | — | `{valid, errors[]}` |
+| `/api/schema` | GET | — | CV JSON schema |
 
-All failure responses share a common shape:
+All error responses share a common shape:
 ```json
 {
-  "error": "invalid_yaml | validation_error | unknown_template | pdf_generation_failed | file_write_failed",
+  "error": "invalid_yaml | validation_error | unknown_template | pdf_generation_failed",
   "message": "Human-readable description",
   "details": ["..."]
 }
@@ -314,18 +388,9 @@ All failure responses share a common shape:
 
 ---
 
-## Running Tests
-
-```bash
-source .venv/bin/activate
-pytest -v
-```
-
----
-
 ## Tech Stack
 
 - **Backend:** FastAPI, Pydantic v2, PyYAML, Jinja2
-- **Frontend:** Vanilla JS, CodeMirror 5, js-yaml, PDF.js
+- **Frontend:** Vanilla JS, CodeMirror 5, js-yaml, PDF.js, JSZip
 - **PDF:** pdflatex (TeX Live / MiKTeX)
 - **Tests:** pytest, pytest-asyncio, httpx
