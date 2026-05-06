@@ -5,6 +5,10 @@ ui:
   badge: "New"
 render:
   section_title_case: upper
+  xelatex:
+    hangul_main_fonts: ["Nanum Myeongjo", "UnBatang"]
+    hangul_sans_fonts: ["Nanum Gothic", "UnDotum"]
+    hangul_mono_fonts: ["UnDotum", "Nanum Gothic"]
 defaults:
   layout:
     density: balanced

@@ -1,6 +1,6 @@
 import pytest
 from httpx import AsyncClient, ASGITransport
-from tests.conftest import pdflatex_available
+from tests.conftest import xelatex_available
 
 VALID_YAML = """
 personal:
@@ -123,6 +123,7 @@ async def test_validate_template_classic(app):
         resp = await client.post("/api/templates/classic/validate")
     assert resp.status_code == 200
     data = resp.json()
+    assert data["valid"] is True
     assert "valid" in data
     assert "errors" in data
     assert isinstance(data["errors"], list)
@@ -145,6 +146,7 @@ async def test_get_templates_includes_validation(app):
     assert "validation" in data
     assert "classic" in data["validation"]
     assert "valid" in data["validation"]["classic"]
+    assert data["validation"]["classic"]["valid"] is True
 
 
 VALID_YAML_FULL = """
@@ -282,7 +284,7 @@ async def test_export_latex_invalid_density_returns_422(app):
     assert resp.status_code == 422
 
 
-@pdflatex_available
+@xelatex_available
 async def test_preview_pdf_accepts_personal_fields(app):
     """personal_fields is accepted by the API without error; a valid PDF is returned."""
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
@@ -299,7 +301,7 @@ async def test_preview_pdf_accepts_personal_fields(app):
     assert resp.headers["content-type"] == "application/pdf"
 
 
-@pdflatex_available
+@xelatex_available
 async def test_preview_pdf_personal_fields_defaults_to_empty(app):
     """Omitting personal_fields does not cause an error."""
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
@@ -310,7 +312,7 @@ async def test_preview_pdf_personal_fields_defaults_to_empty(app):
     assert resp.status_code == 200
 
 
-@pdflatex_available
+@xelatex_available
 async def test_preview_pdf_accepts_korean_resume_content(app):
     yaml = """
 personal:
@@ -349,7 +351,7 @@ async def test_export_pdf_no_disk_write(app, tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         await client.post("/api/export/pdf", json={"yaml": VALID_YAML, "template": "classic"})
-    # PDF generation may fail if pdflatex is absent — no output/ dir must exist regardless
+    # PDF generation may fail if the TeX engine is absent — no output/ dir must exist regardless
     assert not (tmp_path / "output").exists()
 
 

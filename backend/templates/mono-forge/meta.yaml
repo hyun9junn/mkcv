@@ -3,6 +3,10 @@ description: "Indie devs, hackers, toolmakers — monospace brutalism, boxed hea
 audience: engineering
 render:
   section_title_case: upper
+  xelatex:
+    hangul_main_fonts: ["UnDotum", "Nanum Gothic"]
+    hangul_sans_fonts: ["UnDotum", "Nanum Gothic"]
+    hangul_mono_fonts: ["UnDotum", "Nanum Gothic"]
 recommended_sections:
   - experience
   - projects

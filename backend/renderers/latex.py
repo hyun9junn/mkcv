@@ -46,6 +46,11 @@ _TITLE_CASE_SMALL_WORDS = {
 }
 _VALID_SECTION_TITLE_CASES = {"upper", "lower", "title"}
 _TITLE_WORD_RE = re.compile(r"[A-Za-z0-9]+(?:'[A-Za-z0-9]+)?")
+_DEFAULT_XELATEX_FONTS = {
+    "hangul_main_fonts": ["Nanum Myeongjo", "UnBatang"],
+    "hangul_sans_fonts": ["Nanum Gothic", "UnDotum"],
+    "hangul_mono_fonts": ["Nanum Gothic", "UnDotum"],
+}
 
 _FONT_SIZE = {
     "small":  "10pt",
@@ -181,6 +186,64 @@ def _load_template_render_config(templates_dir: str, template: str) -> dict[str,
     return {"section_title_case": section_title_case}
 
 
+def _normalize_font_list(value, default: list[str]) -> list[str]:
+    if not isinstance(value, list):
+        return list(default)
+
+    normalized = []
+    for item in value:
+        if isinstance(item, str) and item.strip():
+            normalized.append(item.strip())
+
+    return normalized or list(default)
+
+
+@lru_cache(maxsize=None)
+def _load_template_xelatex_font_config(templates_dir: str, template: str) -> dict[str, list[str]]:
+    data = _load_template_meta_data(templates_dir, template)
+    render = data.get("render")
+    if not isinstance(render, dict):
+        render = {}
+
+    xelatex = render.get("xelatex")
+    if not isinstance(xelatex, dict):
+        xelatex = {}
+
+    return {
+        key: _normalize_font_list(xelatex.get(key), default)
+        for key, default in _DEFAULT_XELATEX_FONTS.items()
+    }
+
+
+def _build_font_fallback_chain(command: str, fonts: list[str], options: str = "") -> str:
+    option_suffix = f"[{options}]" if options else ""
+    lines: list[str] = []
+
+    for index, font_name in enumerate(fonts):
+        command_line = rf"\{command}{{{font_name}}}{option_suffix}"
+        if index < len(fonts) - 1:
+            lines.append(rf"\IfFontExistsTF{{{font_name}}}{{{command_line}}}{{%")
+        else:
+            lines.append(command_line)
+
+    lines.extend("}" for _ in range(max(len(fonts) - 1, 0)))
+    return "\n".join(lines)
+
+
+def _build_xelatex_preamble(templates_dir: Path, template: str) -> str:
+    config = _load_template_xelatex_font_config(str(templates_dir), template)
+    font_options = "AutoFakeSlant=0.2"
+
+    return "\n".join([
+        r"\usepackage{fontspec}",
+        r"\usepackage{kotex}",
+        r"\defaultfontfeatures{Ligatures=TeX}",
+        _build_font_fallback_chain("setmainhangulfont", config["hangul_main_fonts"], font_options),
+        _build_font_fallback_chain("setsanshangulfont", config["hangul_sans_fonts"], font_options),
+        _build_font_fallback_chain("setmonohangulfont", config["hangul_mono_fonts"], font_options),
+    ])
+
+
 def _smart_title_case(text: str) -> str:
     matches = list(_TITLE_WORD_RE.finditer(text))
     if not matches:
@@ -277,6 +340,7 @@ class LaTeXRenderer(BaseRenderer):
         font_size = _FONT_SIZE.get(self.font_scale, _FONT_SIZE["normal"])
         layout_preamble = _build_layout_preamble(self.density)
         titles = _prepare_section_titles(self.templates_dir, self.template, section_titles)
+        xelatex_preamble = _build_xelatex_preamble(self.templates_dir, self.template)
         return env.get_template("cv.tex.j2").render(
             cv=cv,
             section_order=order,
@@ -284,4 +348,5 @@ class LaTeXRenderer(BaseRenderer):
             font_size=font_size,
             layout_preamble=layout_preamble,
             section_titles=titles,
+            xelatex_preamble=xelatex_preamble,
         )

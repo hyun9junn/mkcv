@@ -3,6 +3,10 @@ description: "Conservative formal resume — red section rules, classic serif rh
 audience: general
 render:
   section_title_case: title
+  xelatex:
+    hangul_main_fonts: ["UnBatang", "Nanum Myeongjo"]
+    hangul_sans_fonts: ["UnDotum", "Nanum Gothic"]
+    hangul_mono_fonts: ["UnDotum", "Nanum Gothic"]
 defaults:
   layout:
     density: balanced

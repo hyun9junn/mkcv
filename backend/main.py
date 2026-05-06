@@ -17,7 +17,15 @@ from pydantic import BaseModel
 
 from backend.parsers.yaml_parser import parse_yaml, YAMLParseError, CVValidationError
 from backend.renderers.markdown import MarkdownRenderer
-from backend.renderers.latex import LaTeXRenderer, _build_layout_preamble, _FONT_SIZE, _make_jinja_filters, _make_link_text_fn, _make_contact_helpers
+from backend.renderers.latex import (
+    LaTeXRenderer,
+    _build_layout_preamble,
+    _build_xelatex_preamble,
+    _FONT_SIZE,
+    _make_jinja_filters,
+    _make_link_text_fn,
+    _make_contact_helpers,
+)
 from backend.models import (
     CVData, PersonalInfo, ExperienceItem, EducationItem, SkillGroup,
     ProjectItem, CertificationItem, PublicationItem, LanguageItem,
@@ -228,6 +236,7 @@ def _validate_template(name: str) -> dict:
             font_size=_FONT_SIZE["normal"],
             layout_preamble=_build_layout_preamble("balanced"),
             section_titles={},
+            xelatex_preamble=_build_xelatex_preamble(TEMPLATES_DIR, name),
         )
     except jinja2.TemplateSyntaxError as e:
         return {"valid": False, "errors": [f"Jinja2 syntax error: {e}"]}
@@ -236,22 +245,22 @@ def _validate_template(name: str) -> dict:
     except Exception as e:
         return {"valid": False, "errors": [f"Jinja2 render error: {e}"]}
 
-    # Stage 2: pdflatex compilation
+    # Stage 2: xelatex compilation
     with tempfile.TemporaryDirectory() as tmpdir:
         tex_path = Path(tmpdir) / "cv.tex"
         tex_path.write_text(rendered)
         try:
             result = subprocess.run(
-                ["pdflatex", "-interaction=nonstopmode", "cv.tex"],
+                ["xelatex", "-interaction=nonstopmode", "cv.tex"],
                 cwd=tmpdir,
                 capture_output=True,
                 timeout=30,
                 text=True,
             )
         except subprocess.TimeoutExpired:
-            return {"valid": False, "errors": ["pdflatex timed out after 30 seconds"]}
+            return {"valid": False, "errors": ["xelatex timed out after 30 seconds"]}
         except FileNotFoundError:
-            return {"valid": False, "errors": ["pdflatex not found — install TeX Live or MiKTeX"]}
+            return {"valid": False, "errors": ["xelatex not found — install TeX Live or MiKTeX"]}
 
         if result.returncode != 0:
             error_lines = [line for line in result.stdout.splitlines() if line.startswith("!")]
@@ -465,21 +474,21 @@ async def export_pdf(req: CVRequest):
         try:
             result = await asyncio.to_thread(
                 subprocess.run,
-                ["pdflatex", "-interaction=nonstopmode", "cv.tex"],
+                ["xelatex", "-interaction=nonstopmode", "cv.tex"],
                 cwd=tmpdir,
                 capture_output=True,
                 timeout=30,
                 text=True,
             )
         except subprocess.TimeoutExpired:
-            return _error("pdf_generation_failed", "pdflatex timed out after 30 seconds")
+            return _error("pdf_generation_failed", "xelatex timed out after 30 seconds")
         except FileNotFoundError:
-            return _error("pdf_generation_failed", "pdflatex not found — install TeX Live or MiKTeX")
+            return _error("pdf_generation_failed", "xelatex not found — install TeX Live or MiKTeX")
 
         if result.returncode != 0:
             error_lines = [line for line in result.stdout.splitlines() if line.startswith("!")]
             details = error_lines or [line for line in result.stderr.splitlines() if line.strip()]
-            return _error("pdf_generation_failed", "pdflatex exited with errors", details)
+            return _error("pdf_generation_failed", "xelatex exited with errors", details)
 
         pdf_bytes = (Path(tmpdir) / "cv.pdf").read_bytes()
 
@@ -518,21 +527,21 @@ async def preview_pdf(req: CVRequest):
         try:
             result = await asyncio.to_thread(
                 subprocess.run,
-                ["pdflatex", "-interaction=nonstopmode", "cv.tex"],
+                ["xelatex", "-interaction=nonstopmode", "cv.tex"],
                 cwd=tmpdir,
                 capture_output=True,
                 timeout=30,
                 text=True,
             )
         except subprocess.TimeoutExpired:
-            return _error("pdf_generation_failed", "pdflatex timed out after 30 seconds")
+            return _error("pdf_generation_failed", "xelatex timed out after 30 seconds")
         except FileNotFoundError:
-            return _error("pdf_generation_failed", "pdflatex not found — install TeX Live or MiKTeX")
+            return _error("pdf_generation_failed", "xelatex not found — install TeX Live or MiKTeX")
 
         if result.returncode != 0:
             error_lines = [line for line in result.stdout.splitlines() if line.startswith("!")]
             details = error_lines or [line for line in result.stderr.splitlines() if line.strip()]
-            return _error("pdf_generation_failed", "pdflatex exited with errors", details)
+            return _error("pdf_generation_failed", "xelatex exited with errors", details)
 
         pdf_bytes = (Path(tmpdir) / "cv.pdf").read_bytes()
 

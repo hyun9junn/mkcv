@@ -3,6 +3,10 @@ description: "Product, design, data, research — left-rail chronology, strong c
 audience: general
 render:
   section_title_case: lower
+  xelatex:
+    hangul_main_fonts: ["Nanum Gothic", "UnDotum"]
+    hangul_sans_fonts: ["UnDotum", "Nanum Gothic"]
+    hangul_mono_fonts: ["UnDotum", "Nanum Gothic"]
 recommended_sections:
   - experience
   - projects

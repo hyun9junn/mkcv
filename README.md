@@ -2,7 +2,7 @@
 
 A web app for authoring and exporting your CV from a single YAML source of truth.
 
-Write your CV once in YAML — get a live PDF preview, and export to Markdown, LaTeX, or PDF with one click.
+Write your CV once in YAML — get a live PDF preview, and export to Markdown, LaTeX, or PDF with one click, including mixed English/Korean resume content.
 
 ![Preview](./preview.png)
 
@@ -10,7 +10,7 @@ Write your CV once in YAML — get a live PDF preview, and export to Markdown, L
 
 ## What is mkcv?
 
-mkcv is a browser-based CV editor. You write your resume in a simple YAML format on the left, and a polished PDF renders live on the right. When you're done, export to PDF, Markdown, or LaTeX — all from the same source.
+mkcv is a browser-based CV editor. You write your resume in a simple YAML format on the left, and a polished PDF renders live on the right. When you're done, export to PDF, Markdown, or LaTeX — all from the same source. PDF rendering supports mixed English/Korean text, and each template can use its own Hangul font stack.
 
 Everything is stored locally in your browser. No account needed, no data leaves your machine.
 
@@ -45,6 +45,7 @@ Open **http://localhost:8000** in your browser and start editing.
 |---------|---------|
 | **Live PDF preview** | PDF re-renders 1.5 s after you stop typing |
 | **15 LaTeX templates** | Classic, ATS-friendly, finance, creative, technical, and more |
+| **English + Korean PDF support** | Mixed English/Korean resume text renders through XeLaTeX with template-specific Hangul fonts |
 | **Zoom controls** | Zoom 25%–400% via buttons or `Ctrl`/`⌘` + scroll wheel |
 | **Section panel** | Drag chips to reorder sections, toggle visibility, reset to scaffold |
 | **Layout controls** | Density (comfortable / balanced / compact) and font scale (small / normal / large) |
@@ -90,7 +91,7 @@ The chip rail below the toolbar lists every section in your CV.
 
 Pick a template from the dropdown in the toolbar. Each template has its own defaults for layout, fonts, and section title styling.
 
-Click **✓ Validate Template** to run a two-stage check (Jinja2 render + pdflatex compile). Invalid templates show a ⚠ badge.
+Click **✓ Validate Template** to run a two-stage check (Jinja2 render + `xelatex` compile). Invalid templates show a ⚠ badge.
 
 **Available templates:**
 
@@ -262,7 +263,7 @@ Data persists across sessions on the same machine and browser. **If you clear yo
 
 ## Local Development
 
-For development without Docker. Requires Python 3.11+ and `pdflatex` on your `PATH`.
+For development without Docker. Requires Python 3.11+ and `xelatex` on your `PATH`.
 
 ```bash
 git clone https://github.com/hyun9junn/mkcv.git
@@ -275,7 +276,7 @@ uvicorn backend.main:app --reload
 
 Open **http://localhost:8000**.
 
-> The Docker image bundles TeX Live, so PDF generation works out of the box. For local dev, install LaTeX separately — see [Installing LaTeX](#installing-latex).
+> The Docker image bundles TeX Live, XeLaTeX, and Korean fonts, so PDF generation works out of the box. For local dev, install LaTeX separately — see [Installing LaTeX](#installing-latex).
 
 ### Running Tests
 
@@ -307,6 +308,8 @@ mkcv is a stateless container — deploy anywhere Docker runs. No platform-speci
 
 Required for local dev only. Docker users can skip this.
 
+mkcv uses `xelatex` for PDF generation. For Korean text support, make sure your local setup includes both XeLaTeX and Korean fonts such as Nanum or Noto CJK.
+
 ### macOS
 
 **MacTeX (full, ~4 GB):**
@@ -320,37 +323,42 @@ Open a new terminal after installation.
 brew install --cask basictex
 # open a new terminal, then:
 sudo tlmgr update --self
-sudo tlmgr install collection-fontsrecommended enumitem geometry hyperref xcolor fontawesome5
+sudo tlmgr install xetex collection-langkorean collection-fontsrecommended enumitem geometry hyperref xcolor fontawesome5
 ```
+
+If Korean text still falls back to generic fonts, install Nanum or Noto CJK fonts at the OS level.
 
 ### Windows
 
 **MiKTeX (recommended — auto-installs missing packages):**
 1. Download the installer from https://miktex.org/download
 2. Run the installer (install for all users recommended)
-3. Open a new Command Prompt — `pdflatex` is on `PATH` automatically
+3. Open a new Command Prompt — `xelatex` is on `PATH` automatically
+4. Keep on-the-fly package installation enabled, and install Nanum or Noto CJK fonts in Windows if Korean font lookup fails
 
 **TeX Live:**
 1. Download `install-tl-windows.exe` from https://tug.org/texlive/acquire-netinstall.html
 2. Run the installer
+3. Ensure XeTeX and Korean language/font support are included
 
 ### Linux
 
 ```bash
 # Debian / Ubuntu
 sudo apt-get install texlive-latex-recommended texlive-fonts-recommended \
-     texlive-latex-extra texlive-fonts-extra
+     texlive-latex-extra texlive-fonts-extra texlive-lang-korean \
+     texlive-xetex fonts-nanum fonts-noto-cjk
 
 # Fedora / RHEL
-sudo dnf install texlive-scheme-medium
+sudo dnf install texlive-scheme-medium texlive-xetex google-noto-cjk-fonts
 
 # Arch Linux
-sudo pacman -S texlive-most
+sudo pacman -S texlive-most noto-fonts-cjk
 ```
 
 **Verify:**
 ```bash
-pdflatex --version
+xelatex --version
 ```
 
 ---
@@ -358,14 +366,15 @@ pdflatex --version
 ## Adding a Custom Template
 
 1. Create `backend/templates/<your-name>/cv.tex.j2`
-2. Optionally create `backend/templates/<your-name>/meta.yaml` to set display name, default layout, and section title casing
+2. Optionally create `backend/templates/<your-name>/meta.yaml` to set display name, default layout, section title casing, and template-specific Hangul font stacks
 3. Use these Jinja2 delimiters (chosen to avoid conflicts with LaTeX `{}`):
    - Variables: `<< variable >>`
    - Blocks: `<% if condition %>` / `<% endif %>`
    - Comments: `<# comment #>`
-4. CV data is available as `cv` — see `backend/models.py` for the full schema
-5. Restart the server — the template appears in the dropdown automatically
-6. Click **✓ Validate Template** to confirm it compiles
+4. Include `<< xelatex_preamble >>` somewhere in the LaTeX preamble so shared XeLaTeX and Korean font support is enabled
+5. CV data is available as `cv` — see `backend/models.py` for the full schema
+6. Restart the server — the template appears in the dropdown automatically
+7. Click **✓ Validate Template** to confirm it compiles
 
 See `backend/templates/classic/cv.tex.j2` for a reference implementation.
 
@@ -400,5 +409,5 @@ All error responses share a common shape:
 
 - **Backend:** FastAPI, Pydantic v2, PyYAML, Jinja2
 - **Frontend:** Vanilla JS, CodeMirror 5, js-yaml, PDF.js, JSZip
-- **PDF:** pdflatex (TeX Live / MiKTeX)
+- **PDF:** xelatex (TeX Live / MiKTeX) with template-specific Hangul font stacks
 - **Tests:** pytest, pytest-asyncio, httpx

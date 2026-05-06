@@ -3,6 +3,10 @@ description: "Engineering, corporate, generalist roles — dark sidebar, quiet s
 audience: general
 render:
   section_title_case: upper
+  xelatex:
+    hangul_main_fonts: ["Nanum Gothic", "UnDotum"]
+    hangul_sans_fonts: ["UnDotum", "Nanum Gothic"]
+    hangul_mono_fonts: ["UnDotum", "Nanum Gothic"]
 defaults:
   layout:
     density: balanced

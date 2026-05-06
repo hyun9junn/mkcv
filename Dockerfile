@@ -6,7 +6,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     texlive-latex-extra \
     texlive-fonts-extra \
     texlive-lang-korean \
+    texlive-xetex \
     texlive-pictures \
+    fonts-nanum \
+    fonts-noto-cjk \
     lmodern \
     tex-gyre \
     && rm -rf /var/lib/apt/lists/*

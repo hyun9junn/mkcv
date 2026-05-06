@@ -3,6 +3,10 @@ description: "Consulting, finance, senior IC — dense two-column header, burgun
 audience: corporate
 render:
   section_title_case: upper
+  xelatex:
+    hangul_main_fonts: ["UnBatang", "Nanum Myeongjo"]
+    hangul_sans_fonts: ["Nanum Gothic", "UnDotum"]
+    hangul_mono_fonts: ["UnDotum", "Nanum Gothic"]
 defaults:
   layout:
     density: compact

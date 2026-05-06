@@ -3,6 +3,10 @@ description: "Law, classics, senior academia — newspaper nameplate, formal lon
 audience: academic
 render:
   section_title_case: lower
+  xelatex:
+    hangul_main_fonts: ["UnBatang", "Nanum Myeongjo"]
+    hangul_sans_fonts: ["UnDotum", "Nanum Gothic"]
+    hangul_mono_fonts: ["UnDotum", "Nanum Gothic"]
 recommended_sections:
   - publications
   - experience

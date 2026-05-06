@@ -3,6 +3,10 @@ description: "Writers, editors, brand leads — oversized serif masthead, drop-c
 audience: general
 render:
   section_title_case: title
+  xelatex:
+    hangul_main_fonts: ["Nanum Myeongjo", "UnBatang"]
+    hangul_sans_fonts: ["Nanum Gothic", "UnDotum"]
+    hangul_mono_fonts: ["UnDotum", "Nanum Gothic"]
 recommended_sections:
   - summary
   - experience

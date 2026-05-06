@@ -7,9 +7,9 @@ from backend.models import (
     AwardItem, ExtracurricularItem, CustomSection, CustomBlock,
 )
 
-pdflatex_available = pytest.mark.skipif(
-    shutil.which("pdflatex") is None,
-    reason="pdflatex not installed",
+xelatex_available = pytest.mark.skipif(
+    shutil.which("xelatex") is None,
+    reason="xelatex not installed",
 )
 
 

@@ -3,7 +3,7 @@ import subprocess
 from pathlib import Path
 from backend.models import CVData, PersonalInfo
 from backend.renderers.latex import LaTeXRenderer, _build_layout_preamble, _FONT_SIZE, _make_jinja_filters, _make_contact_helpers, _make_link_text_fn
-from tests.conftest import pdflatex_available
+from tests.conftest import xelatex_available
 
 TEMPLATES_DIR = Path("backend/templates")
 TEMPLATES_WITH_GITHUB_LINK = [
@@ -263,20 +263,49 @@ def test_renderer_passes_layout_vars_to_template(tmp_path, minimal_cv):
     assert "\\newcommand{\\cvvgap}{2pt}" in result
 
 
-def test_all_templates_include_kotex_package():
+def test_all_templates_include_shared_xelatex_preamble():
     for template_path in TEMPLATES_DIR.glob("*/cv.tex.j2"):
         source = template_path.read_text()
-        assert "\\usepackage{kotex}" in source, f"{template_path} should opt into Korean text support"
+        assert "<< xelatex_preamble >>" in source, f"{template_path} should use the shared xelatex preamble"
 
 
-@pdflatex_available
-def test_classic_template_compiles_korean_content(tmp_path):
+def test_renderer_includes_xelatex_hangul_font_config_from_meta(tmp_path, minimal_cv):
+    tmpl_dir = tmp_path / "xelatex-meta"
+    tmpl_dir.mkdir()
+    (tmpl_dir / "cv.tex.j2").write_text("<< xelatex_preamble >>\n\\begin{document}ok\\end{document}")
+    (tmpl_dir / "meta.yaml").write_text(
+        "render:\n"
+        "  xelatex:\n"
+        "    hangul_main_fonts:\n"
+        "      - Body Serif A\n"
+        "      - Body Serif B\n"
+        "    hangul_sans_fonts:\n"
+        "      - Sans A\n"
+        "    hangul_mono_fonts:\n"
+        "      - Mono A\n"
+        "      - Mono B\n"
+    )
+
+    rendered = LaTeXRenderer(tmp_path, template="xelatex-meta").render(minimal_cv)
+
+    assert "\\usepackage{fontspec}" in rendered
+    assert "\\usepackage{kotex}" in rendered
+    assert "\\IfFontExistsTF{Body Serif A}" in rendered
+    assert "\\setmainhangulfont{Body Serif A}" in rendered
+    assert "\\setsanshangulfont{Sans A}" in rendered
+    assert "\\setmonohangulfont{Mono A}" in rendered
+    assert "\\setmonohangulfont{Mono B}" in rendered
+
+
+@xelatex_available
+@pytest.mark.parametrize("template", ["classic", "boardroom"])
+def test_templates_compile_korean_content_with_xelatex(tmp_path, template):
     cv = CVData(
         personal=PersonalInfo(name="홍길동", email="hong@example.com"),
         summary="한글 요약 테스트입니다. English mixed.",
     )
 
-    rendered = LaTeXRenderer(TEMPLATES_DIR, template="classic").render(
+    rendered = LaTeXRenderer(TEMPLATES_DIR, template=template).render(
         cv,
         section_order=["summary"],
     )
@@ -284,7 +313,7 @@ def test_classic_template_compiles_korean_content(tmp_path):
     tex_path.write_text(rendered)
 
     result = subprocess.run(
-        ["pdflatex", "-interaction=nonstopmode", "cv.tex"],
+        ["xelatex", "-interaction=nonstopmode", "cv.tex"],
         cwd=tmp_path,
         capture_output=True,
         text=True,
