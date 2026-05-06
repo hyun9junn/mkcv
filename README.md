@@ -169,7 +169,8 @@ experience:
 education:
   - degree: B.S. Computer Science
     institution: University Name
-    year: "2020"              # or use start_date / end_date
+    start_date: "2016"
+    end_date: "2020"
     gpa: "3.9"                # optional
     courses: [Algorithms, Systems]  # optional
     thesis: "My thesis title"       # optional

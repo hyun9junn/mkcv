@@ -225,7 +225,8 @@ experience:
 education:
   - degree: B.S. in Computer Science
     institution: Korea University
-    year: "2018"
+    start_date: "2014-03"
+    end_date: "2018-02"
 
 skills:
   - category: Languages

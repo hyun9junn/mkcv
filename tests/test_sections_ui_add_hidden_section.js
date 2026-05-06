@@ -263,6 +263,16 @@ function loadScript(filename, context) {
   vm.runInNewContext(source, context, { filename });
 }
 
+test('education default section scaffold uses start and end dates', () => {
+  const { context } = createContext();
+
+  loadScript('frontend/sections-state.js', context);
+
+  assert.match(context.window.sectionsState.SECTION_DEFS.education.yaml, /start_date: "2020"/);
+  assert.match(context.window.sectionsState.SECTION_DEFS.education.yaml, /end_date: "2024"/);
+  assert.doesNotMatch(context.window.sectionsState.SECTION_DEFS.education.yaml, /\byear:/);
+});
+
 test('clicking an absent hidden built-in section adds it as visible content', () => {
   const { context, elements } = createContext({
     initialYaml: [

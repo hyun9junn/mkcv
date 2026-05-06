@@ -91,6 +91,9 @@ test('editor adapter boots with a realistic software engineer resume sample', ()
   assert.equal(parsed.personal.name, 'Gildong Hong');
   assert.equal(parsed.personal.github, 'github.com/gildonghong');
   assert.equal(parsed.experience.length, 2);
+  assert.equal(parsed.education[0].start_date, '2014-03');
+  assert.equal(parsed.education[0].end_date, '2018-02');
+  assert.equal(parsed.education[0].year, undefined);
   assert.equal(parsed.skills.length, 3);
   assert.equal(parsed.projects[0].name, 'Incident Review Assistant');
 });
