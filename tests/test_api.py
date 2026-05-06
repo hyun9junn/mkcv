@@ -118,6 +118,7 @@ async def test_get_templates(app):
     assert "validation" in data
 
 
+@xelatex_available
 async def test_validate_template_classic(app):
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         resp = await client.post("/api/templates/classic/validate")
@@ -135,6 +136,7 @@ async def test_validate_template_not_found(app):
     assert resp.status_code == 404
 
 
+@xelatex_available
 async def test_get_templates_includes_validation(app):
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         resp = await client.get("/api/templates")

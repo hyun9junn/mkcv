@@ -1,5 +1,7 @@
 # mkcv
 
+Korean guide: [README.ko.md](./README.ko.md)
+
 A web app for authoring and exporting your CV from a single YAML source of truth.
 
 Write your CV once in YAML — get a live PDF preview, and export to Markdown, LaTeX, or PDF with one click, including mixed English/Korean resume content.
