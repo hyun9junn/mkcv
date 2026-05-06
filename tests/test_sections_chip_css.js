@@ -27,3 +27,22 @@ test('visible section chip labels stay upright by default', () => {
   assert.ok(match, 'expected a base .chip-name rule');
   assert.doesNotMatch(match[1], /font-style:/);
 });
+
+test('section chip labels use a dedicated Korean-friendly font stack', () => {
+  const html = fs.readFileSync('frontend/index.html', 'utf8');
+
+  assert.match(
+    html,
+    /--font-chip-label:\s*'Pretendard',\s*'Noto Sans KR',\s*'Apple SD Gothic Neo',\s*'Malgun Gothic',\s*var\(--font-sans\);/
+  );
+
+  assert.match(
+    html,
+    /\.chip-name\s*\{[^}]*font-family:\s*var\(--font-chip-label\);[^}]*\}/
+  );
+
+  assert.match(
+    html,
+    /\.chip-name-input\s*\{[^}]*font-family:\s*var\(--font-chip-label\);[^}]*\}/
+  );
+});

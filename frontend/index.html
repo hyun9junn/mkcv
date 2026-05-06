@@ -23,6 +23,7 @@
       --font-serif: 'Newsreader', 'Times New Roman', serif;
       --font-sans: 'Inter Tight', ui-sans-serif, system-ui, sans-serif;
       --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', monospace;
+      --font-chip-label: 'Pretendard', 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', var(--font-sans);
 
       --paper:   oklch(98.5% 0.006 85);
       --paper-2: oklch(96%   0.008 85);
@@ -387,7 +388,7 @@
     }
     .chip.on .chip-dot { background: var(--accent); border-color: var(--accent); }
     .chip-name {
-      font-family: var(--font-serif);
+      font-family: var(--font-chip-label);
       font-size: 11px;
       color: var(--ink-3);
       letter-spacing: -0.005em;
@@ -396,7 +397,7 @@
     .chip.on .chip-name { color: var(--ink); }
     .chip.hidden .chip-name { font-style: italic; }
     .chip-name-input {
-      font-family: var(--font-serif);
+      font-family: var(--font-chip-label);
       font-size: 11px;
       color: var(--ink);
       background: transparent;
