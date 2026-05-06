@@ -310,6 +310,25 @@ async def test_preview_pdf_personal_fields_defaults_to_empty(app):
     assert resp.status_code == 200
 
 
+@pdflatex_available
+async def test_preview_pdf_accepts_korean_resume_content(app):
+    yaml = """
+personal:
+  name: 홍길동
+  email: hong@example.com
+summary: 한글 요약 테스트입니다. English mixed.
+"""
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        resp = await client.post("/api/preview/pdf", json={
+            "yaml": yaml,
+            "template": "classic",
+        })
+
+    assert resp.status_code == 200
+    assert resp.headers["content-type"] == "application/pdf"
+
+
 async def test_export_markdown_no_disk_write(app, tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:

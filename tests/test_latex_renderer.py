@@ -1,7 +1,9 @@
 import pytest
+import subprocess
 from pathlib import Path
 from backend.models import CVData, PersonalInfo
 from backend.renderers.latex import LaTeXRenderer, _build_layout_preamble, _FONT_SIZE, _make_jinja_filters, _make_contact_helpers, _make_link_text_fn
+from tests.conftest import pdflatex_available
 
 TEMPLATES_DIR = Path("backend/templates")
 TEMPLATES_WITH_GITHUB_LINK = [
@@ -259,6 +261,36 @@ def test_renderer_passes_layout_vars_to_template(tmp_path, minimal_cv):
     result = renderer.render(minimal_cv)
     assert "\\documentclass[10pt]{article}" in result
     assert "\\newcommand{\\cvvgap}{2pt}" in result
+
+
+def test_all_templates_include_kotex_package():
+    for template_path in TEMPLATES_DIR.glob("*/cv.tex.j2"):
+        source = template_path.read_text()
+        assert "\\usepackage{kotex}" in source, f"{template_path} should opt into Korean text support"
+
+
+@pdflatex_available
+def test_classic_template_compiles_korean_content(tmp_path):
+    cv = CVData(
+        personal=PersonalInfo(name="홍길동", email="hong@example.com"),
+        summary="한글 요약 테스트입니다. English mixed.",
+    )
+
+    rendered = LaTeXRenderer(TEMPLATES_DIR, template="classic").render(
+        cv,
+        section_order=["summary"],
+    )
+    tex_path = tmp_path / "cv.tex"
+    tex_path.write_text(rendered)
+
+    result = subprocess.run(
+        ["pdflatex", "-interaction=nonstopmode", "cv.tex"],
+        cwd=tmp_path,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stdout
 
 
 def test_renderer_unknown_font_scale_falls_back(tmp_path, minimal_cv):
