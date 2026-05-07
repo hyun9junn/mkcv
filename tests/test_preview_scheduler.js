@@ -275,6 +275,7 @@ test('latest-only scheduling serializes in-flight work and applies only the newe
 
   assert.equal(harness.fetchCalls.length, 2);
   assert.equal(JSON.parse(harness.fetchCalls[1].options.body).yaml, 'ordered:yaml-c');
+  assert.equal(harness.renderBuffers.length, 0);
 
   await settleRequest(
     harness.fetchCalls[1],
@@ -283,10 +284,10 @@ test('latest-only scheduling serializes in-flight work and applies only the newe
   await flushMicrotasks();
 
   assert.equal(harness.fetchCalls.length, 2);
-  assert.equal(harness.renderBuffers.length, 2);
+  assert.equal(harness.renderBuffers.length, 1);
   assert.deepEqual(
     harness.renderBuffers.map((buffer) => new TextDecoder().decode(buffer)),
-    ['initial', 'latest']
+    ['latest']
   );
 });
 
@@ -313,6 +314,27 @@ test('preview requests include preview_session_id and preview_request_seq', asyn
   assert.equal(body.preview_request_seq, 2);
 });
 
+test('editor changes wait for the longer debounce window before scheduling preview work', async () => {
+  const harness = createHarness();
+  harness.boot();
+
+  harness.timers.advanceBy(200);
+  await flushMicrotasks();
+  await settleRequest(harness.fetchCalls[0], createFetchResponse({ arrayBufferData: new ArrayBuffer(4) }));
+
+  harness.context.app.state.yaml = 'yaml-delayed';
+  harness.editorCallbacks[0]();
+  harness.timers.advanceBy(799);
+  await flushMicrotasks();
+
+  assert.equal(harness.fetchCalls.length, 1);
+
+  harness.timers.advanceBy(101);
+  await flushMicrotasks();
+
+  assert.equal(harness.fetchCalls.length, 2);
+});
+
 test('stale_preview responses are ignored without showing an error banner', async () => {
   const harness = createHarness();
   harness.boot();
@@ -324,12 +346,34 @@ test('stale_preview responses are ignored without showing an error banner', asyn
     harness.fetchCalls[0],
     createFetchResponse({
       ok: false,
-      jsonData: { code: 'stale_preview', message: 'Stale preview request', details: ['ignored'] },
+      jsonData: { error: 'stale_preview', message: 'Stale preview request', details: ['ignored'] },
     })
   );
   await flushMicrotasks();
 
   assert.equal(harness.elements.get('preview-error').style.display, 'none');
   assert.equal(harness.elements.get('preview-error').innerHTML, '');
+  assert.equal(harness.renderBuffers.length, 0);
+});
+
+test('non-stale preview errors still show the error banner', async () => {
+  const harness = createHarness();
+  harness.boot();
+
+  harness.timers.advanceBy(200);
+  await flushMicrotasks();
+
+  await settleRequest(
+    harness.fetchCalls[0],
+    createFetchResponse({
+      ok: false,
+      jsonData: { error: 'render_failed', message: 'Render failed', details: ['missing font'] },
+    })
+  );
+  await flushMicrotasks();
+
+  assert.equal(harness.elements.get('preview-error').style.display, 'block');
+  assert.match(harness.elements.get('preview-error').innerHTML, /Render failed/);
+  assert.match(harness.elements.get('preview-error').innerHTML, /missing font/);
   assert.equal(harness.renderBuffers.length, 0);
 });

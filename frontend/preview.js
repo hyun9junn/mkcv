@@ -2,7 +2,7 @@ const preview = (() => {
   const container = document.getElementById("preview-frame");
   const loading = document.getElementById("preview-loading");
   const errorEl = document.getElementById("preview-error");
-  const PREVIEW_DEBOUNCE_MS = 300;
+  const PREVIEW_DEBOUNCE_MS = 900;
   let timer = null;
   let activePdf = null;
   let zoomLevel = 1.0;
@@ -39,8 +39,8 @@ const preview = (() => {
     return `preview-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
   }
 
-  async function renderPages() {
-    if (!activePdf) return;
+  async function renderPages(pdf, shouldSkipApply) {
+    if (!pdf) return false;
     const savedScrollTop  = container.scrollTop;
     const savedScrollLeft = container.scrollLeft;
 
@@ -51,17 +51,31 @@ const preview = (() => {
     const wrapper = document.createElement("div");
     wrapper.style.cssText = "display:flex;flex-direction:column;align-items:center;padding:16px;gap:16px;min-width:fit-content;";
 
-    for (let i = 1; i <= activePdf.numPages; i++) {
-      const page = await activePdf.getPage(i);
+    for (let i = 1; i <= pdf.numPages; i++) {
+      if (shouldSkipApply && shouldSkipApply()) {
+        if (pdf.destroy) pdf.destroy();
+        return false;
+      }
+      const page = await pdf.getPage(i);
       const viewport = page.getViewport({ scale });
       const canvas = document.createElement("canvas");
       canvas.width = viewport.width;
       canvas.height = viewport.height;
       canvas.style.cssText = `width:${viewport.width / dpr}px;height:${viewport.height / dpr}px;display:block;box-shadow:0 2px 8px rgba(0,0,0,0.5);`;
       await page.render({ canvasContext: canvas.getContext("2d"), viewport }).promise;
+      if (shouldSkipApply && shouldSkipApply()) {
+        if (pdf.destroy) pdf.destroy();
+        return false;
+      }
       wrapper.appendChild(canvas);
     }
 
+    if (shouldSkipApply && shouldSkipApply()) {
+      if (pdf.destroy) pdf.destroy();
+      return false;
+    }
+    if (activePdf) { activePdf.destroy(); }
+    activePdf = pdf;
     container.innerHTML = "";
     container.appendChild(wrapper);
     container.scrollTop = savedScrollTop;
@@ -70,13 +84,16 @@ const preview = (() => {
     loading.style.display = "none";
     errorEl.style.display = "none";
     updateZoomDisplay();
+    return true;
   }
 
-  async function renderPdf(arrayBuffer) {
-    if (activePdf) { activePdf.destroy(); activePdf = null; }
+  async function renderPdf(arrayBuffer, shouldSkipApply) {
     const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-    activePdf = pdf;
-    await renderPages();
+    if (shouldSkipApply && shouldSkipApply()) {
+      if (pdf.destroy) pdf.destroy();
+      return false;
+    }
+    return renderPages(pdf, shouldSkipApply);
   }
 
   function setZoom(level) {
@@ -120,11 +137,13 @@ const preview = (() => {
       if (signal.aborted) return;
       if (!resp.ok) {
         const err = await resp.json();
-        if (err && err.code === "stale_preview") return;
+        if (err && err.error === "stale_preview") return;
         showError(err.message, err.details);
         return;
       }
-      await renderPdf(await resp.arrayBuffer());
+      const arrayBuffer = await resp.arrayBuffer();
+      if (pendingPayload) return;
+      await renderPdf(arrayBuffer, () => pendingPayload !== null);
     } catch (e) {
       if (e.name === 'AbortError') return;
       showError("Preview unavailable — " + (e.message || "network error"), []);
@@ -181,7 +200,7 @@ const preview = (() => {
     }, 200);
   });
 
-  function refit() { renderPages(); }
+  function refit() { renderPages(activePdf); }
 
   return { refresh, zoomIn, zoomOut, resetZoom, setZoom, refit };
 })();
