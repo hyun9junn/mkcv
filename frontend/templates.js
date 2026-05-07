@@ -199,11 +199,13 @@ document.addEventListener("DOMContentLoaded", async () => {
 
             // Fields below are from server-side meta.yaml (developer-controlled, not user input).
             card.innerHTML = `
-              <img class="tpl-thumb"
-                   src="/assets/template-previews/${name}.png"
-                   alt="${displayName}"
-                   onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
-              <div class="tpl-thumb tpl-thumb-${name}" style="display:none"></div>
+              <div class="tpl-thumb-wrap">
+                <img class="tpl-thumb"
+                     src="/assets/template-previews/${name}.png"
+                     alt="${displayName}"
+                     onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+                <div class="tpl-thumb tpl-thumb-${name}" style="display:none"></div>
+              </div>
               <div class="tpl-label">${displayName}</div>
               <div class="tpl-popover">
                 <div class="popover-name">${displayName}</div>

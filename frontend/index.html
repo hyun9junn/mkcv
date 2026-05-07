@@ -188,11 +188,16 @@
     .tpl-card:hover { border-color: var(--rule-2); }
     .tpl-card.selected { border-color: var(--accent); border-width: 2px; }
 
+    .tpl-thumb-wrap {
+      overflow: hidden;
+      border-radius: 6px 6px 0 0;
+      aspect-ratio: 1 / 1.414;
+      width: 100%;
+    }
     .tpl-thumb {
       width: 100%;
-      aspect-ratio: 1 / 1.414;
+      height: 100%;
       display: block;
-      border-radius: 6px 6px 0 0;
       object-fit: cover;
       object-position: top;
     }
