@@ -2,10 +2,15 @@ const preview = (() => {
   const container = document.getElementById("preview-frame");
   const loading = document.getElementById("preview-loading");
   const errorEl = document.getElementById("preview-error");
+  const PREVIEW_DEBOUNCE_MS = 300;
   let timer = null;
   let activePdf = null;
   let zoomLevel = 1.0;
   let _abortController = null;
+  let inFlight = false;
+  let pendingPayload = null;
+  let previewRequestSeq = 0;
+  const previewSessionId = createPreviewSessionId();
 
   pdfjsLib.GlobalWorkerOptions.workerSrc =
     "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
@@ -28,6 +33,10 @@ const preview = (() => {
   function updateZoomDisplay() {
     const el = document.getElementById("preview-zoom-label");
     if (el) el.textContent = Math.round(zoomLevel * 100) + "%";
+  }
+
+  function createPreviewSessionId() {
+    return `preview-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
   }
 
   async function renderPages() {
@@ -79,14 +88,14 @@ const preview = (() => {
   function zoomOut()   { setZoom(zoomLevel / 1.1); }
   function resetZoom() { setZoom(1.0); }
 
-  async function refresh(yaml, template) {
-    if (_abortController) _abortController.abort();
+  async function sendPreview(payload) {
     _abortController = new AbortController();
     const { signal } = _abortController;
+    const requestSeq = ++previewRequestSeq;
 
+    inFlight = true;
     showLoading();
     try {
-      const section_order = sectionsState.getVisibleOrder(app.state.yaml);
       const _settings = window.settingsSync ? settingsSync.getSettings() : null;
       const section_titles = _settings
         ? Object.fromEntries(_settings.sections.map(s => [s.key, s.title]))
@@ -94,12 +103,24 @@ const preview = (() => {
       const resp = await fetch("/api/preview/pdf", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ yaml, template, section_order, section_titles, density: app.state.density, font_scale: app.state.font_scale, link_display: app.state.link_display, personal_fields: app.state.personal_fields ?? [] }),
+        body: JSON.stringify({
+          yaml: payload.yaml,
+          template: payload.template,
+          section_order: payload.section_order,
+          section_titles,
+          density: app.state.density,
+          font_scale: app.state.font_scale,
+          link_display: app.state.link_display,
+          personal_fields: app.state.personal_fields ?? [],
+          preview_session_id: previewSessionId,
+          preview_request_seq: requestSeq,
+        }),
         signal,
       });
       if (signal.aborted) return;
       if (!resp.ok) {
         const err = await resp.json();
+        if (err && err.code === "stale_preview") return;
         showError(err.message, err.details);
         return;
       }
@@ -107,7 +128,31 @@ const preview = (() => {
     } catch (e) {
       if (e.name === 'AbortError') return;
       showError("Preview unavailable — " + (e.message || "network error"), []);
+    } finally {
+      inFlight = false;
+      _abortController = null;
+      if (pendingPayload) {
+        const nextPayload = pendingPayload;
+        pendingPayload = null;
+        sendPreview(nextPayload);
+      }
     }
+  }
+
+  function refresh(yaml, template) {
+    const payload = {
+      yaml,
+      template,
+      section_order: sectionsState.getVisibleOrder(app.state.yaml),
+    };
+
+    if (inFlight) {
+      pendingPayload = payload;
+      return;
+    }
+
+    pendingPayload = null;
+    sendPreview(payload);
   }
 
   document.addEventListener("DOMContentLoaded", () => {
@@ -127,7 +172,7 @@ const preview = (() => {
         if (app.state.yaml.trim()) {
           refresh(sectionsState.getOrderedFilteredYaml(app.state.yaml), app.state.template);
         }
-      }, 1500);
+      }, PREVIEW_DEBOUNCE_MS);
     });
     setTimeout(() => {
       if (app.state.yaml.trim()) {
