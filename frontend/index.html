@@ -1507,6 +1507,31 @@ document.addEventListener('DOMContentLoaded', () => {
     window.clearMkcvStorage();
     location.reload();
   });
+
+  // ── Lang toggle ──────────────────────────────────────────────────────────
+  const langToggleEl = document.getElementById('lang-toggle');
+  if (langToggleEl) {
+    langToggleEl.addEventListener('click', (e) => {
+      const btn = e.target.closest('.lang-btn');
+      if (!btn) return;
+      const lang = btn.dataset.lang;
+      app.setLang(lang);
+      langToggleEl.querySelectorAll('.lang-btn').forEach(b =>
+        b.classList.toggle('active', b.dataset.lang === lang)
+      );
+    });
+    // Sync button state to current lang on load
+    langToggleEl.querySelectorAll('.lang-btn').forEach(b =>
+      b.classList.toggle('active', b.dataset.lang === app.state.lang)
+    );
+  }
+
+  // ── Onboarding help button ────────────────────────────────────────────────
+  const helpBtn = document.getElementById('onboarding-help-btn');
+  if (helpBtn) helpBtn.addEventListener('click', () => onboarding.show());
+
+  // ── Init onboarding ───────────────────────────────────────────────────────
+  onboarding.init();
 });
 </script>
 
