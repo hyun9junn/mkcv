@@ -121,6 +121,7 @@ function createHarness() {
   const fetchCalls = [];
   const renderBuffers = [];
   const fetchQueue = [];
+  const counters = { pageRenderCalls: 0 };
 
   elements.get('preview-loading').style.display = 'none';
   elements.get('preview-error').style.display = 'none';
@@ -167,6 +168,7 @@ function createHarness() {
                   return { width: 612 * scale, height: 792 * scale };
                 },
                 render() {
+                  counters.pageRenderCalls += 1;
                   return { promise: Promise.resolve() };
                 },
               };
@@ -237,6 +239,7 @@ function createHarness() {
     fetchCalls,
     fetchQueue,
     renderBuffers,
+    counters,
     elements,
     boot,
   };
@@ -376,4 +379,45 @@ test('non-stale preview errors still show the error banner', async () => {
   assert.match(harness.elements.get('preview-error').innerHTML, /Render failed/);
   assert.match(harness.elements.get('preview-error').innerHTML, /missing font/);
   assert.equal(harness.renderBuffers.length, 0);
+});
+
+test('zoom and refit rerender the current active pdf', async () => {
+  const harness = createHarness();
+  harness.boot();
+
+  harness.timers.advanceBy(200);
+  await flushMicrotasks();
+  await settleRequest(
+    harness.fetchCalls[0],
+    createFetchResponse({ arrayBufferData: new TextEncoder().encode('latest').buffer })
+  );
+  await flushMicrotasks();
+
+  assert.equal(harness.counters.pageRenderCalls, 1);
+  assert.equal(harness.elements.get('preview-zoom-label').textContent, '100%');
+
+  harness.context.preview.zoomIn();
+  await flushMicrotasks();
+  assert.equal(harness.counters.pageRenderCalls, 2);
+  assert.equal(harness.elements.get('preview-zoom-label').textContent, '110%');
+
+  harness.context.preview.zoomOut();
+  await flushMicrotasks();
+  assert.equal(harness.counters.pageRenderCalls, 3);
+  assert.equal(harness.elements.get('preview-zoom-label').textContent, '100%');
+
+  harness.context.preview.zoomIn();
+  await flushMicrotasks();
+  assert.equal(harness.counters.pageRenderCalls, 4);
+  assert.equal(harness.elements.get('preview-zoom-label').textContent, '110%');
+
+  harness.context.preview.resetZoom();
+  await flushMicrotasks();
+  assert.equal(harness.counters.pageRenderCalls, 5);
+  assert.equal(harness.elements.get('preview-zoom-label').textContent, '100%');
+
+  harness.context.preview.refit();
+  await flushMicrotasks();
+  assert.equal(harness.counters.pageRenderCalls, 6);
+  assert.equal(harness.elements.get('preview-zoom-label').textContent, '100%');
 });

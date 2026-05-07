@@ -74,7 +74,7 @@ const preview = (() => {
       if (pdf.destroy) pdf.destroy();
       return false;
     }
-    if (activePdf) { activePdf.destroy(); }
+    if (activePdf && activePdf !== pdf) { activePdf.destroy(); }
     activePdf = pdf;
     container.innerHTML = "";
     container.appendChild(wrapper);
@@ -98,7 +98,7 @@ const preview = (() => {
 
   function setZoom(level) {
     zoomLevel = Math.max(0.25, Math.min(4.0, level));
-    renderPages();
+    renderPages(activePdf);
   }
 
   function zoomIn()    { setZoom(zoomLevel * 1.1); }
