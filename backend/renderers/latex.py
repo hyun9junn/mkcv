@@ -1,4 +1,5 @@
 from pathlib import Path
+from dataclasses import dataclass
 from functools import lru_cache
 from typing import Optional, List
 import re
@@ -78,6 +79,12 @@ _LATEX_ESCAPES = {
 }
 
 
+@dataclass(frozen=True)
+class _TemplateRenderBundle:
+    env: jinja2.Environment
+    template: jinja2.Template
+
+
 def _build_layout_preamble(density: str) -> str:
     d = _DENSITY.get(density, _DENSITY["balanced"])
     return (
@@ -148,6 +155,26 @@ def _make_jinja_filters() -> dict:
         'name_fontsize': name_fontsize,
         'shrink_if_long': shrink_if_long,
     }
+
+
+@lru_cache(maxsize=None)
+def _get_template_render_bundle(templates_dir: str, template: str) -> _TemplateRenderBundle:
+    env = jinja2.Environment(
+        loader=jinja2.FileSystemLoader(str(Path(templates_dir) / template)),
+        block_start_string="<%",
+        block_end_string="%>",
+        variable_start_string="<<",
+        variable_end_string=">>",
+        comment_start_string="<#",
+        comment_end_string="#>",
+        trim_blocks=True,
+        lstrip_blocks=True,
+    )
+    env.filters.update(_make_jinja_filters())
+    return _TemplateRenderBundle(
+        env=env,
+        template=env.get_template("cv.tex.j2"),
+    )
 
 
 @lru_cache(maxsize=None)
@@ -398,24 +425,11 @@ class LaTeXRenderer(BaseRenderer):
         if not template_path.exists():
             raise ValueError(f"unknown_template: '{self.template}' not found")
 
-        env = jinja2.Environment(
-            loader=jinja2.FileSystemLoader(str(self.templates_dir / self.template)),
-            block_start_string="<%",
-            block_end_string="%>",
-            variable_start_string="<<",
-            variable_end_string=">>",
-            comment_start_string="<#",
-            comment_end_string="#>",
-            trim_blocks=True,
-            lstrip_blocks=True,
-        )
-        env.filters.update(_make_jinja_filters())
-        env.globals['link_text'] = _make_link_text_fn(self.link_display)
+        bundle = _get_template_render_bundle(str(self.templates_dir), self.template)
+        link_text = _make_link_text_fn(self.link_display)
         contact_visible, contact_link_style = _make_contact_helpers(
             self.personal_fields, self.link_display
         )
-        env.globals['contact_visible'] = contact_visible
-        env.globals['contact_link_style'] = contact_link_style
         order = section_order if section_order else DEFAULT_SECTION_ORDER
         safe_cv = _sanitize_for_latex(cv)
         custom_by_key = {cs.key: cs for cs in safe_cv.custom_sections}
@@ -423,7 +437,7 @@ class LaTeXRenderer(BaseRenderer):
         layout_preamble = _build_layout_preamble(self.density)
         titles = _prepare_section_titles(self.templates_dir, self.template, section_titles)
         xelatex_preamble = _build_xelatex_preamble(self.templates_dir, self.template)
-        return env.get_template("cv.tex.j2").render(
+        return bundle.template.render(
             cv=safe_cv,
             section_order=order,
             custom_by_key=custom_by_key,
@@ -431,4 +445,7 @@ class LaTeXRenderer(BaseRenderer):
             layout_preamble=layout_preamble,
             section_titles=titles,
             xelatex_preamble=xelatex_preamble,
+            link_text=link_text,
+            contact_visible=contact_visible,
+            contact_link_style=contact_link_style,
         )

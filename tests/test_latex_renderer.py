@@ -414,6 +414,91 @@ def test_renderer_unknown_font_scale_falls_back(tmp_path, minimal_cv):
     assert "\\documentclass[11pt]{article}" in result
 
 
+def test_renderer_caches_environment_per_template(tmp_path, minimal_cv, monkeypatch):
+    tmpl_dir = tmp_path / "cached"
+    tmpl_dir.mkdir()
+    (tmpl_dir / "cv.tex.j2").write_text("<< cv.personal.name >>")
+
+    real_environment = __import__("backend.renderers.latex", fromlist=["jinja2"]).jinja2.Environment
+    environment_calls = 0
+
+    def counting_environment(*args, **kwargs):
+        nonlocal environment_calls
+        environment_calls += 1
+        return real_environment(*args, **kwargs)
+
+    monkeypatch.setattr("backend.renderers.latex.jinja2.Environment", counting_environment)
+
+    LaTeXRenderer(tmp_path, template="cached").render(minimal_cv)
+    LaTeXRenderer(tmp_path, template="cached").render(minimal_cv)
+
+    assert environment_calls == 1
+
+
+def test_renderer_cached_environment_does_not_leak_per_request_helpers(
+    tmp_path, minimal_cv, monkeypatch
+):
+    tmpl_dir = tmp_path / "helpers"
+    tmpl_dir.mkdir()
+    (tmpl_dir / "cv.tex.j2").write_text("ignored")
+
+    render_calls = []
+
+    class FakeTemplate:
+        def __init__(self, env):
+            self.env = env
+
+        def render(self, **context):
+            render_calls.append(
+                {
+                    "globals": dict(self.env.globals),
+                    "context": context,
+                    "link_value": context["link_text"](
+                        "https://github.com/janesmith", "GitHub", context["contact_link_style"]("github")
+                    ),
+                    "visible_value": context["contact_visible"]("github"),
+                    "style_value": context["contact_link_style"]("github"),
+                }
+            )
+            return "ok"
+
+    class FakeEnvironment:
+        def __init__(self, *args, **kwargs):
+            self.filters = {}
+            self.globals = {}
+
+        def get_template(self, name):
+            return FakeTemplate(self)
+
+    monkeypatch.setattr("backend.renderers.latex.jinja2.Environment", FakeEnvironment)
+
+    hidden_renderer = LaTeXRenderer(
+        tmp_path,
+        template="helpers",
+        link_display="url",
+        personal_fields=[{"key": "github", "visible": False, "link_display": "both"}],
+    )
+    shown_renderer = LaTeXRenderer(
+        tmp_path,
+        template="helpers",
+        link_display="label",
+        personal_fields=[{"key": "github", "visible": True, "link_display": "label"}],
+    )
+
+    hidden_renderer.render(minimal_cv)
+    shown_renderer.render(minimal_cv)
+
+    assert "link_text" not in render_calls[0]["globals"]
+    assert "contact_visible" not in render_calls[0]["globals"]
+    assert "contact_link_style" not in render_calls[0]["globals"]
+    assert render_calls[0]["link_value"] == "GitHub (https://github.com/janesmith)"
+    assert render_calls[0]["visible_value"] is False
+    assert render_calls[0]["style_value"] == "both"
+    assert render_calls[1]["link_value"] == "GitHub"
+    assert render_calls[1]["visible_value"] is True
+    assert render_calls[1]["style_value"] == "label"
+
+
 @pytest.mark.parametrize("template", TEMPLATES_WITH_GITHUB_LINK)
 @pytest.mark.parametrize(
     ("link_display", "expected_text"),
