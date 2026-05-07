@@ -67,7 +67,7 @@
 \begin{minipage}[b]{0.55\linewidth}
 \raggedright
 {\sffamily\footnotesize\color{cvaccent}\MakeUppercase{The Curriculum Vit\ae{}}}\\[2pt]
-{\ebgaramond<< cv.personal.name | name_fontsize(34, 1.05) >> << cv.personal.name >>}
+{<< cv.personal.name | name_fontsize(34, 1.05) >> << cv.personal.name >>}
 <% if cv.personal.tagline %>
 \\[3pt]{\itshape\color{cvmute} << cv.personal.tagline >>}
 <% endif %>
@@ -96,7 +96,7 @@
 <% macro render_section(key) %>
 <% if key == 'summary' and cv.summary %>
 \section{<< section_titles.get(key, "Editor's Note") >>}
-{\lettrine[lines=2,findent=2pt,nindent=0pt,slope=-2pt]{\color{cvaccent}\ebgaramond << cv.summary[0] >>}{}<< cv.summary[1:] >>}
+{\lettrine[lines=2,findent=2pt,nindent=0pt,slope=-2pt]{\color{cvaccent} << cv.summary[0] >>}{}<< cv.summary[1:] >>}
 <% endif %>
 
 <% if key == 'experience' and cv.experience %>
