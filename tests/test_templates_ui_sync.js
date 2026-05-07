@@ -102,6 +102,7 @@ function createContext() {
     'template-trigger',
     'template-dropdown',
     'template-grid',
+    'tpl-popover-portal',
     'tpl-name-display',
     'error-banner',
     'btn-validate-template',

@@ -162,6 +162,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const nameDisplay  = document.getElementById("tpl-name-display");
     const banner       = document.getElementById("error-banner");
     const btnValidate  = document.getElementById("btn-validate-template");
+    const portal       = document.getElementById("tpl-popover-portal");
     window.templateUI.setControls({ wrapper, trigger, dropdown, nameDisplay });
 
     trigger.addEventListener("click", (e) => {
@@ -226,24 +227,29 @@ document.addEventListener("DOMContentLoaded", async () => {
             let hoverTimer = null;
             card.addEventListener("mouseenter", () => {
                 hoverTimer = setTimeout(() => {
-                    const popover = card.querySelector(".tpl-popover");
-                    if (popover) {
-                        const rect = card.getBoundingClientRect();
-                        popover.style.top = rect.top + "px";
-                        if (card.classList.contains("col-3")) {
-                            popover.style.left = "";
-                            popover.style.right = (window.innerWidth - rect.left + 10) + "px";
+                    const tplContent = card.querySelector(".tpl-popover");
+                    if (portal && tplContent) {
+                        const cardRect    = card.getBoundingClientRect();
+                        const wrapperRect = wrapper.getBoundingClientRect();
+                        const POPOVER_W   = 164;
+                        const GAP         = 10;
+                        portal.innerHTML  = tplContent.innerHTML;
+                        portal.style.top  = (cardRect.top - wrapperRect.top) + "px";
+                        const spaceRight  = window.innerWidth - cardRect.right - GAP;
+                        if (spaceRight >= POPOVER_W) {
+                            portal.style.left  = (cardRect.right - wrapperRect.left + GAP) + "px";
+                            portal.style.right = "";
                         } else {
-                            popover.style.left = (rect.right + 10) + "px";
-                            popover.style.right = "";
+                            portal.style.left  = (cardRect.left - wrapperRect.left - GAP - POPOVER_W) + "px";
+                            portal.style.right = "";
                         }
+                        portal.hidden = false;
                     }
-                    card.classList.add("popover-visible");
                 }, 400);
             });
             card.addEventListener("mouseleave", () => {
                 clearTimeout(hoverTimer);
-                card.classList.remove("popover-visible");
+                if (portal) portal.hidden = true;
             });
 
             grid.appendChild(card);
@@ -264,7 +270,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           </div>
         `;
         card.addEventListener("click", () => window.templateUI.selectTemplate("classic"));
-        dropdown.appendChild(card);
+        grid.appendChild(card);
         if (nameDisplay) nameDisplay.textContent = "Classic";
     }
 

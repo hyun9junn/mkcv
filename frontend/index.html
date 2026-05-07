@@ -214,10 +214,11 @@
     }
     .tpl-card.selected .tpl-label { color: var(--accent); }
 
-    /* Hover popover */
-    .tpl-popover {
-      display: none;
-      position: fixed;
+    /* Hover popover — hidden data container only, rendered via #tpl-popover-portal */
+    .tpl-popover { display: none; }
+
+    #tpl-popover-portal {
+      position: absolute;
       width: 164px;
       background: var(--paper);
       border: 1px solid var(--rule);
@@ -227,7 +228,7 @@
       z-index: 9999;
       pointer-events: none;
     }
-    .tpl-card.popover-visible .tpl-popover { display: block; }
+    #tpl-popover-portal[hidden] { display: none; }
 
     .popover-name {
       font-family: var(--font-serif);
@@ -1107,6 +1108,7 @@
         <span class="tpl-caret">▾</span>
       </button>
       <div id="template-dropdown" hidden><div id="template-grid"></div></div>
+      <div id="tpl-popover-portal" hidden></div>
       <div id="template-tooltip" hidden>
         <div id="tooltip-name"></div>
         <div id="tooltip-desc"></div>
