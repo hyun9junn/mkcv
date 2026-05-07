@@ -226,6 +226,18 @@ document.addEventListener("DOMContentLoaded", async () => {
             let hoverTimer = null;
             card.addEventListener("mouseenter", () => {
                 hoverTimer = setTimeout(() => {
+                    const popover = card.querySelector(".tpl-popover");
+                    if (popover) {
+                        const rect = card.getBoundingClientRect();
+                        popover.style.top = rect.top + "px";
+                        if (card.classList.contains("col-3")) {
+                            popover.style.left = "";
+                            popover.style.right = (window.innerWidth - rect.left + 10) + "px";
+                        } else {
+                            popover.style.left = (rect.right + 10) + "px";
+                            popover.style.right = "";
+                        }
+                    }
                     card.classList.add("popover-visible");
                 }, 400);
             });
