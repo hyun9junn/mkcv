@@ -415,9 +415,13 @@ def test_renderer_unknown_font_scale_falls_back(tmp_path, minimal_cv):
 
 
 def test_renderer_caches_environment_per_template(tmp_path, minimal_cv, monkeypatch):
-    tmpl_dir = tmp_path / "cached"
-    tmpl_dir.mkdir()
-    (tmpl_dir / "cv.tex.j2").write_text("<< cv.personal.name >>")
+    first_tmpl_dir = tmp_path / "cached-first"
+    first_tmpl_dir.mkdir()
+    (first_tmpl_dir / "cv.tex.j2").write_text("first << cv.personal.name >>")
+
+    second_tmpl_dir = tmp_path / "cached-second"
+    second_tmpl_dir.mkdir()
+    (second_tmpl_dir / "cv.tex.j2").write_text("second << cv.personal.name >>")
 
     real_environment = __import__("backend.renderers.latex", fromlist=["jinja2"]).jinja2.Environment
     environment_calls = 0
@@ -429,10 +433,11 @@ def test_renderer_caches_environment_per_template(tmp_path, minimal_cv, monkeypa
 
     monkeypatch.setattr("backend.renderers.latex.jinja2.Environment", counting_environment)
 
-    LaTeXRenderer(tmp_path, template="cached").render(minimal_cv)
-    LaTeXRenderer(tmp_path, template="cached").render(minimal_cv)
+    LaTeXRenderer(tmp_path, template="cached-first").render(minimal_cv)
+    LaTeXRenderer(tmp_path, template="cached-first").render(minimal_cv)
+    LaTeXRenderer(tmp_path, template="cached-second").render(minimal_cv)
 
-    assert environment_calls == 1
+    assert environment_calls == 2
 
 
 def test_renderer_cached_environment_does_not_leak_per_request_helpers(
