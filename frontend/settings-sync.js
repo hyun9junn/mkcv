@@ -149,6 +149,13 @@ const settingsSync = (() => {
     return new Set();
   }
 
+  function _parseResumeYaml(yaml) {
+    if (window.sectionsState && typeof sectionsState.parseResumeYaml === 'function') {
+      return sectionsState.parseResumeYaml(yaml);
+    }
+    return jsyaml.load(yaml);
+  }
+
   function _formatResumeSectionTitleComments(yaml, settings = _parsed.value) {
     if (typeof yaml !== 'string' || !yaml.trim()) return yaml;
 
@@ -273,7 +280,7 @@ const settingsSync = (() => {
       typeof sectionsState.getYamlSectionState !== 'function'
     ) return;
     try {
-      const parsedResume = jsyaml.load(yaml);
+      const parsedResume = _parseResumeYaml(yaml);
       if (!parsedResume || typeof parsedResume !== 'object') return;
     } catch {
       return;

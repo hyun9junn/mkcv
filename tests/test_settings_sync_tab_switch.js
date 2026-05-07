@@ -320,6 +320,37 @@ test('switching back to resume does not trigger resume-side change listeners', a
   assert.equal(resumeSideChanges, 0);
 });
 
+test('resume sync prefers shared sections-state resume parser when available', async () => {
+  const resumeYaml = 'summary: Shared parser path\n';
+  const { context, domReadyCallbacks } = createContext({
+    initialOrder: ['summary'],
+    initialYaml: resumeYaml,
+  });
+
+  let helperCalls = 0;
+  let rawParseCalls = 0;
+  context.jsyaml = {
+    load(source) {
+      rawParseCalls += 1;
+      return { summary: source };
+    },
+  };
+  context.sectionsState.parseResumeYaml = (source) => {
+    helperCalls += 1;
+    assert.equal(source, resumeYaml);
+    return { summary: 'Shared parser path' };
+  };
+  context.sectionsState.getYamlSectionState = () => ({ order: ['summary'], hidden: [] });
+  context.sectionsState.getExpandedPresentKeys = () => ['summary'];
+
+  await bootSettingsSync(context, domReadyCallbacks);
+
+  context.window.editorAdapter.setValue(resumeYaml);
+
+  assert.equal(helperCalls, 1);
+  assert.equal(rawParseCalls, 0);
+});
+
 test('resume and settings tabs each restore their own last editor scroll position', async () => {
   const { context, domReadyCallbacks, elements } = createContext();
   await bootSettingsSync(context, domReadyCallbacks);

@@ -104,6 +104,10 @@ const sectionsState = (() => {
   };
 
   const DEFAULT_ORDER = Object.keys(SECTION_DEFS);
+  let _cachedResumeYaml = null;
+  let _cachedParsedResume = null;
+  let _cachedResumeError = null;
+  let _hasCachedResume = false;
 
   function _load() {
     try {
@@ -169,9 +173,36 @@ const sectionsState = (() => {
     }
   }
 
-  function getCustomDefs(rawYaml) {
+  function parseResumeYaml(rawYaml) {
+    const useCache = typeof rawYaml === "string";
+    if (useCache && _hasCachedResume && rawYaml === _cachedResumeYaml) {
+      if (_cachedResumeError) throw _cachedResumeError;
+      return _cachedParsedResume;
+    }
+
     try {
       const parsed = jsyaml.load(rawYaml);
+      if (useCache) {
+        _cachedResumeYaml = rawYaml;
+        _cachedParsedResume = parsed;
+        _cachedResumeError = null;
+        _hasCachedResume = true;
+      }
+      return parsed;
+    } catch (error) {
+      if (useCache) {
+        _cachedResumeYaml = rawYaml;
+        _cachedParsedResume = null;
+        _cachedResumeError = error;
+        _hasCachedResume = true;
+      }
+      throw error;
+    }
+  }
+
+  function getCustomDefs(rawYaml) {
+    try {
+      const parsed = parseResumeYaml(rawYaml);
       if (!parsed || !Array.isArray(parsed.custom_sections)) return {};
       const defs = {};
       for (const cs of parsed.custom_sections) {
@@ -187,7 +218,7 @@ const sectionsState = (() => {
 
   function getExpandedPresentKeys(rawYaml) {
     try {
-      const parsed = jsyaml.load(rawYaml);
+      const parsed = parseResumeYaml(rawYaml);
       if (!parsed || typeof parsed !== "object") return [];
       const keys = Object.keys(parsed).filter((k) => k !== "personal" && k !== "custom_sections");
       const customDefs = getCustomDefs(rawYaml);
@@ -205,7 +236,7 @@ const sectionsState = (() => {
 
   function getFilteredYaml(rawYaml) {
     try {
-      const parsed = jsyaml.load(rawYaml);
+      const parsed = parseResumeYaml(rawYaml);
       if (!parsed || typeof parsed !== "object") return rawYaml;
       const hidden = _getState().hidden;
       const filtered = {};
@@ -220,7 +251,7 @@ const sectionsState = (() => {
 
   function getOrderedFilteredYaml(rawYaml) {
     try {
-      const parsed = jsyaml.load(rawYaml);
+      const parsed = parseResumeYaml(rawYaml);
       if (!parsed || typeof parsed !== "object") return rawYaml;
       const { hidden, order } = _getState();
       const customDefs = getCustomDefs(rawYaml);
@@ -253,7 +284,7 @@ const sectionsState = (() => {
 
   function getVisibleOrder(rawYaml) {
     try {
-      const parsed = jsyaml.load(rawYaml);
+      const parsed = parseResumeYaml(rawYaml);
       if (!parsed || typeof parsed !== "object") return [];
       const { hidden, order } = _getState();
       const expandedKeys = getExpandedPresentKeys(rawYaml);
@@ -553,6 +584,7 @@ const sectionsState = (() => {
     getOrder,
     setOrder,
     ensureInOrder,
+    parseResumeYaml,
     getFilteredYaml,
     getOrderedFilteredYaml,
     getVisibleOrder,
