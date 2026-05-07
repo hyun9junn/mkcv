@@ -358,6 +358,57 @@ def _preview_stale_response(session_id: str, request_seq: int, latest_seq: int) 
     )
 
 
+def _record_preview_request(session_id: str, request_seq: int) -> _PreviewSessionState:
+    state = _get_preview_session_state(session_id)
+    state.active_requests += 1
+    state.latest_seq = max(state.latest_seq, request_seq)
+    _touch_preview_session_state(state)
+    return state
+
+
+def _stale_preview_response_if_needed(
+    session_state: Optional[_PreviewSessionState],
+    session_id: Optional[str],
+    request_seq: Optional[int],
+) -> Optional[JSONResponse]:
+    if session_state is None or session_id is None or request_seq is None:
+        return None
+
+    _touch_preview_session_state(session_state)
+    if request_seq < session_state.latest_seq:
+        return _preview_stale_response(session_id, request_seq, session_state.latest_seq)
+
+    return None
+
+
+async def _compile_preview_pdf(latex_content: str) -> tuple[Optional[bytes], Optional[JSONResponse]]:
+    with tempfile.TemporaryDirectory() as tmpdir:
+        tex_path = Path(tmpdir) / "cv.tex"
+        tex_path.write_text(latex_content)
+        try:
+            result = await asyncio.to_thread(
+                subprocess.run,
+                ["xelatex", "-interaction=nonstopmode", "cv.tex"],
+                cwd=tmpdir,
+                capture_output=True,
+                timeout=30,
+                text=True,
+            )
+        except subprocess.TimeoutExpired:
+            return None, _error("pdf_generation_failed", "xelatex timed out after 30 seconds")
+        except FileNotFoundError:
+            return None, _error("pdf_generation_failed", "xelatex not found — install TeX Live or MiKTeX")
+
+        if result.returncode != 0:
+            error_lines = [line for line in result.stdout.splitlines() if line.startswith("!")]
+            details = error_lines or [line for line in result.stderr.splitlines() if line.strip()]
+            return None, _error("pdf_generation_failed", "xelatex exited with errors", details)
+
+        pdf_bytes = (Path(tmpdir) / "cv.pdf").read_bytes()
+
+    return pdf_bytes, None
+
+
 def _build_cv_schema() -> dict:
     """Derive autocomplete schema from Pydantic models."""
     from pydantic_core import PydanticUndefinedType
@@ -553,7 +604,18 @@ async def export_pdf(req: CVRequest):
 
 @app.post("/api/preview/pdf")
 async def preview_pdf(req: CVRequest):
+    session_id = req.preview_session_id
+    request_seq = req.preview_request_seq
+    session_state: Optional[_PreviewSessionState] = None
+
+    if session_id is not None and request_seq is not None:
+        session_state = _record_preview_request(session_id, request_seq)
+
     try:
+        stale_response = _stale_preview_response_if_needed(session_state, session_id, request_seq)
+        if stale_response is not None:
+            return stale_response
+
         cv = parse_yaml(req.yaml)
     except YAMLParseError as e:
         return _error("invalid_yaml", e.message, e.details)
@@ -571,80 +633,30 @@ async def preview_pdf(req: CVRequest):
         link_display=req.link_display,
         personal_fields=req.personal_fields or [],
     )
-    session_id = req.preview_session_id
-    request_seq = req.preview_request_seq
-    session_state: Optional[_PreviewSessionState] = None
-
-    if session_id is not None and request_seq is not None:
-        session_state = _get_preview_session_state(session_id)
-        session_state.active_requests += 1
-        session_state.latest_seq = max(session_state.latest_seq, request_seq)
-        _touch_preview_session_state(session_state)
 
     try:
         if session_state is not None and session_id is not None and request_seq is not None:
             async with session_state.lock:
-                _touch_preview_session_state(session_state)
-                if request_seq < session_state.latest_seq:
-                    return _preview_stale_response(session_id, request_seq, session_state.latest_seq)
+                stale_response = _stale_preview_response_if_needed(session_state, session_id, request_seq)
+                if stale_response is not None:
+                    return stale_response
 
                 latex_content = renderer.render(cv, req.section_order, req.section_titles)
+                pdf_bytes, compile_error = await _compile_preview_pdf(latex_content)
 
-                with tempfile.TemporaryDirectory() as tmpdir:
-                    tex_path = Path(tmpdir) / "cv.tex"
-                    tex_path.write_text(latex_content)
-                    try:
-                        result = await asyncio.to_thread(
-                            subprocess.run,
-                            ["xelatex", "-interaction=nonstopmode", "cv.tex"],
-                            cwd=tmpdir,
-                            capture_output=True,
-                            timeout=30,
-                            text=True,
-                        )
-                    except subprocess.TimeoutExpired:
-                        return _error("pdf_generation_failed", "xelatex timed out after 30 seconds")
-                    except FileNotFoundError:
-                        return _error("pdf_generation_failed", "xelatex not found — install TeX Live or MiKTeX")
+                stale_response = _stale_preview_response_if_needed(session_state, session_id, request_seq)
+                if stale_response is not None:
+                    return stale_response
 
-                    if result.returncode != 0:
-                        error_lines = [line for line in result.stdout.splitlines() if line.startswith("!")]
-                        details = error_lines or [line for line in result.stderr.splitlines() if line.strip()]
-                        return _error("pdf_generation_failed", "xelatex exited with errors", details)
-
-                    pdf_bytes = (Path(tmpdir) / "cv.pdf").read_bytes()
-
-                _touch_preview_session_state(session_state)
-                if request_seq < session_state.latest_seq:
-                    return _preview_stale_response(session_id, request_seq, session_state.latest_seq)
+                if compile_error is not None:
+                    return compile_error
 
                 return Response(content=pdf_bytes, media_type="application/pdf")
 
         latex_content = renderer.render(cv, req.section_order, req.section_titles)
-
-        with tempfile.TemporaryDirectory() as tmpdir:
-            tex_path = Path(tmpdir) / "cv.tex"
-            tex_path.write_text(latex_content)
-            try:
-                result = await asyncio.to_thread(
-                    subprocess.run,
-                    ["xelatex", "-interaction=nonstopmode", "cv.tex"],
-                    cwd=tmpdir,
-                    capture_output=True,
-                    timeout=30,
-                    text=True,
-                )
-            except subprocess.TimeoutExpired:
-                return _error("pdf_generation_failed", "xelatex timed out after 30 seconds")
-            except FileNotFoundError:
-                return _error("pdf_generation_failed", "xelatex not found — install TeX Live or MiKTeX")
-
-            if result.returncode != 0:
-                error_lines = [line for line in result.stdout.splitlines() if line.startswith("!")]
-                details = error_lines or [line for line in result.stderr.splitlines() if line.strip()]
-                return _error("pdf_generation_failed", "xelatex exited with errors", details)
-
-            pdf_bytes = (Path(tmpdir) / "cv.pdf").read_bytes()
+        pdf_bytes, compile_error = await _compile_preview_pdf(latex_content)
+        if compile_error is not None:
+            return compile_error
 
         return Response(content=pdf_bytes, media_type="application/pdf")
     finally:

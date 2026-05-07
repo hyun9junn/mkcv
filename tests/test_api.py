@@ -187,6 +187,10 @@ summary: Preview request for {name}
 def _fake_pdf_compile_result() -> SimpleNamespace:
     return SimpleNamespace(returncode=0, stdout="", stderr="")
 
+
+def _fake_pdf_compile_failure_result(message: str = "! simulated xelatex failure") -> SimpleNamespace:
+    return SimpleNamespace(returncode=1, stdout=message, stderr="")
+
 async def test_preview_pdf_invalid_yaml(app):
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         resp = await client.post("/api/preview/pdf", json={"yaml": INVALID_YAML, "template": "classic"})
@@ -301,6 +305,97 @@ async def test_preview_pdf_keeps_sessions_isolated(app, monkeypatch):
     assert alpha_one_resp.status_code == 409
     assert alpha_one_resp.json()["error"] == "stale_preview"
     assert alpha_two_resp.status_code == 200
+
+
+async def test_preview_pdf_newer_invalid_request_supersedes_older_inflight_valid_request(app, monkeypatch):
+    from backend import main as backend_main
+
+    backend_main._preview_sessions.clear()
+    first_compile_started = asyncio.Event()
+    allow_first_compile_to_finish = asyncio.Event()
+
+    async def fake_to_thread(func, *args, **kwargs):
+        if func is backend_main.subprocess.run:
+            tmpdir = Path(kwargs["cwd"])
+            latex_source = (tmpdir / "cv.tex").read_text()
+            if "Valid First" in latex_source:
+                first_compile_started.set()
+                await allow_first_compile_to_finish.wait()
+                (tmpdir / "cv.pdf").write_bytes(b"%PDF-valid-first")
+                return _fake_pdf_compile_result()
+            raise AssertionError(f"Unexpected compile payload: {latex_source}")
+        return func(*args, **kwargs)
+
+    monkeypatch.setattr(backend_main.asyncio, "to_thread", fake_to_thread)
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        first_task = asyncio.create_task(
+            client.post("/api/preview/pdf", json=_preview_pdf_payload("Valid First", "supersede-invalid", 1))
+        )
+        await first_compile_started.wait()
+
+        invalid_resp = await asyncio.wait_for(
+            client.post(
+                "/api/preview/pdf",
+                json={
+                    "yaml": INVALID_YAML,
+                    "template": "classic",
+                    "preview_session_id": "supersede-invalid",
+                    "preview_request_seq": 2,
+                },
+            ),
+            timeout=0.5,
+        )
+
+        allow_first_compile_to_finish.set()
+        first_resp = await first_task
+
+    assert invalid_resp.status_code == 422
+    assert invalid_resp.json()["error"] == "invalid_yaml"
+    assert first_resp.status_code == 409
+    assert first_resp.json()["error"] == "stale_preview"
+
+
+async def test_preview_pdf_stale_preview_wins_over_outdated_compile_failure(app, monkeypatch):
+    from backend import main as backend_main
+
+    backend_main._preview_sessions.clear()
+    first_compile_started = asyncio.Event()
+    allow_first_compile_to_finish = asyncio.Event()
+
+    async def fake_to_thread(func, *args, **kwargs):
+        if func is backend_main.subprocess.run:
+            tmpdir = Path(kwargs["cwd"])
+            latex_source = (tmpdir / "cv.tex").read_text()
+            if "Failing First" in latex_source:
+                first_compile_started.set()
+                await allow_first_compile_to_finish.wait()
+                return _fake_pdf_compile_failure_result()
+            if "Recovery Second" in latex_source:
+                (tmpdir / "cv.pdf").write_bytes(b"%PDF-recovery-second")
+                return _fake_pdf_compile_result()
+            raise AssertionError(f"Unexpected compile payload: {latex_source}")
+        return func(*args, **kwargs)
+
+    monkeypatch.setattr(backend_main.asyncio, "to_thread", fake_to_thread)
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        first_task = asyncio.create_task(
+            client.post("/api/preview/pdf", json=_preview_pdf_payload("Failing First", "compile-failure-stale", 1))
+        )
+        await first_compile_started.wait()
+
+        second_task = asyncio.create_task(
+            client.post("/api/preview/pdf", json=_preview_pdf_payload("Recovery Second", "compile-failure-stale", 2))
+        )
+
+        allow_first_compile_to_finish.set()
+        first_resp, second_resp = await asyncio.gather(first_task, second_task)
+
+    assert first_resp.status_code == 409
+    assert first_resp.json()["error"] == "stale_preview"
+    assert second_resp.status_code == 200
+    assert second_resp.headers["content-type"] == "application/pdf"
 
 async def test_schema_returns_200(app):
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
