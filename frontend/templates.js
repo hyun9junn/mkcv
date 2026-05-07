@@ -85,7 +85,7 @@ window.templateUI = (() => {
     }
 
     function syncSelectedOption(name) {
-        controls.dropdown?.querySelectorAll(".tpl-option").forEach(el => {
+        controls.dropdown?.querySelectorAll(".tpl-card").forEach(el => {
             el.classList.toggle("selected", el.dataset.name === name);
         });
     }
@@ -179,6 +179,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         window.templateRegistry.setAllMeta(data.meta || {});
         window.templateUI.setAvailableTemplates(data.templates || []);
 
+        let cardIndex = 0;
         data.templates.forEach((name) => {
             const meta        = window.templateRegistry.getMeta(name);
             const isValid     = validationMap[name] ? validationMap[name].valid : null;
@@ -187,40 +188,67 @@ document.addEventListener("DOMContentLoaded", async () => {
                 .map(part => part.charAt(0).toUpperCase() + part.slice(1))
                 .join(" ");
             const description = meta.description  || "";
+            const audience    = meta.audience     || "";
             const badge       = isValid === false ? "⚠ Error" : (meta.ui?.badge || "");
             const isFirst     = name === app.state.template;
+            const col         = (cardIndex % 3) + 1;
 
-            const opt = document.createElement("div");
-            opt.className = "tpl-option" + (isFirst ? " selected" : "");
-            opt.dataset.name = name;
+            const card = document.createElement("div");
+            card.className = `tpl-card${isFirst ? " selected" : ""} col-${col}`;
+            card.dataset.name = name;
 
-            opt.innerHTML = `
-              <div>
-                <div class="tpl-option-name">${displayName}</div>
-                ${description ? `<div class="tpl-option-desc">${description}</div>` : ""}
+            card.innerHTML = `
+              <img class="tpl-thumb"
+                   src="/assets/template-previews/${name}.png"
+                   alt="${displayName}"
+                   onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+              <div class="tpl-thumb tpl-thumb-${name}" style="display:none"></div>
+              <div class="tpl-label">${displayName}</div>
+              <div class="tpl-popover">
+                <div class="popover-name">${displayName}</div>
+                ${audience ? `<span class="popover-audience">${audience}</span>` : ""}
+                ${badge    ? `<span class="popover-badge">${badge}</span>`       : ""}
+                ${description ? `<div class="popover-desc">${description}</div>` : ""}
               </div>
-              ${badge ? `<span class="tpl-option-badge">${badge}</span>` : ""}
             `;
 
             if (isFirst && nameDisplay) nameDisplay.textContent = displayName;
 
-            opt.addEventListener("click", (e) => {
+            card.addEventListener("click", (e) => {
                 e.stopPropagation();
                 window.templateUI.selectTemplate(name);
             });
 
-            dropdown.appendChild(opt);
+            let hoverTimer = null;
+            card.addEventListener("mouseenter", () => {
+                hoverTimer = setTimeout(() => {
+                    card.classList.add("popover-visible");
+                }, 400);
+            });
+            card.addEventListener("mouseleave", () => {
+                clearTimeout(hoverTimer);
+                card.classList.remove("popover-visible");
+            });
+
+            dropdown.appendChild(card);
+            cardIndex++;
         });
 
     } catch {
         window.templateRegistry.setAllMeta({});
         window.templateUI.setAvailableTemplates(["classic"]);
-        const opt = document.createElement("div");
-        opt.className = "tpl-option selected";
-        opt.dataset.name = "classic";
-        opt.innerHTML = `<div><div class="tpl-option-name">Classic</div></div>`;
-        opt.addEventListener("click", () => window.templateUI.selectTemplate("classic"));
-        dropdown.appendChild(opt);
+        const card = document.createElement("div");
+        card.className = "tpl-card selected col-1";
+        card.dataset.name = "classic";
+        card.innerHTML = `
+          <div class="tpl-thumb tpl-thumb-classic"></div>
+          <div class="tpl-label">Classic</div>
+          <div class="tpl-popover">
+            <div class="popover-name">Classic</div>
+          </div>
+        `;
+        card.addEventListener("click", () => window.templateUI.selectTemplate("classic"));
+        dropdown.appendChild(card);
         if (nameDisplay) nameDisplay.textContent = "Classic";
     }
 
