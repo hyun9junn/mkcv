@@ -17,10 +17,12 @@
 
 - `frontend/onboarding.js` — 온보딩 전체를 담당하는 독립 모듈
 
-### index.html 변경 (최소)
+### 변경 파일
 
-- 모달 컨테이너 `<div id="onboarding-overlay">` 추가 (hidden)
-- 헤더에 `?` 도움말 버튼 추가
+| 파일 | 변경 내용 |
+|------|-----------|
+| `frontend/app.js` | `state.lang` 필드 추가, `setLang()` 헬퍼 추가 |
+| `frontend/index.html` | 헤더에 `KO / EN` 토글 버튼 + `?` 버튼 추가, 모달 컨테이너 추가 |
 
 ### 의존성
 
@@ -47,24 +49,69 @@
 
 ---
 
+## Language System
+
+### app.js 확장
+
+```js
+const app = {
+  state: {
+    // 기존 필드...
+    lang: localStorage.getItem('mkcv_lang') || 'ko',  // 'ko' | 'en'
+  },
+  setLang(lang) {
+    this.state.lang = lang;
+    localStorage.setItem('mkcv_lang', lang);
+    document.documentElement.lang = lang === 'ko' ? 'ko' : 'en';
+    document.dispatchEvent(new CustomEvent('langchange', { detail: { lang } }));
+  },
+};
+```
+
+### KO / EN 토글 버튼
+
+헤더에 추가. 클릭 시 `app.setLang()` 호출:
+
+```html
+<div id="lang-toggle" class="lang-toggle">
+  <button class="lang-btn" data-lang="ko">KO</button>
+  <button class="lang-btn" data-lang="en">EN</button>
+</div>
+```
+
+### 온보딩 언어 반응
+
+`onboarding.js`는 `langchange` 이벤트를 구독해 위저드가 열려 있을 때 즉시 재렌더링한다.
+
+---
+
 ## Module Structure
 
 ```js
 // frontend/onboarding.js
 
 const STEPS = [
-  { icon, title, desc, tips: [{label, text}], img, strip }
+  {
+    icon: '✏️',
+    title: { ko: 'YAML 에디터',  en: 'YAML Editor' },
+    desc:  { ko: '왼쪽 패널에서...', en: 'Write your resume...' },
+    tips:  [{ label: 'Ctrl+Space', ko: '필드 자동완성', en: 'Field autocomplete' }],
+    img:   '02-editor.png',
+    strip: false,
+  },
+  // ...
 ];
 
-function render(stepIndex) { /* 현재 스텝 DOM 업데이트 */ }
+function t(obj)            { return obj[app.state.lang] ?? obj.ko; }  // 번역 헬퍼
+function render(stepIndex) { /* t()로 현재 언어 텍스트 선택 후 DOM 업데이트 */ }
 function show()            { /* 오버레이 표시, 스텝 0으로 초기화 */ }
 function hide()            { /* 오버레이 숨김, localStorage 기록 */ }
-function init()            { /* 진입점: localStorage 확인 후 show() 또는 skip */ }
+function init()            { /* localStorage 확인 후 show() 또는 skip, langchange 구독 */ }
 
 export { init, show };
 ```
 
-`init()`은 `app.js` 또는 `index.html` 하단 script에서 호출한다.
+`init()`은 `index.html` 하단 `<script>`에서 호출한다.
 
 ---
 
@@ -80,6 +127,8 @@ export { init, show };
       .onboarding-dots       ← 점 인디케이터 (현재 스텝 강조)
       .onboarding-buttons    ← [건너뛰기]  [← 이전] [다음 → / 완료 ✓]
 ```
+
+버튼 텍스트(건너뛰기, 이전, 다음, 완료)도 `t()` 헬퍼를 통해 현재 언어로 렌더링한다.
 
 기존 `.modal-backdrop` / `.modal` CSS를 기반으로 하되, 위저드 전용 클래스명을 별도로 사용해 충돌 방지.
 
@@ -126,11 +175,12 @@ export { init, show };
 
 ## State
 
-| Key | Value | 의미 |
-|-----|-------|------|
+| localStorage Key | Value | 의미 |
+|-----------------|-------|------|
 | `mkcv_onboarding_seen` | `'1'` | 온보딩을 한 번 이상 완료/건너뛴 상태 |
+| `mkcv_lang` | `'ko'` \| `'en'` | 현재 언어 설정 (기본값: `'ko'`) |
 
-`?` 버튼은 이 키와 무관하게 항상 `show()`를 호출한다.
+`?` 버튼은 `mkcv_onboarding_seen`와 무관하게 항상 `show()`를 호출한다.
 
 ---
 
