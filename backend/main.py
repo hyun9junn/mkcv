@@ -4,7 +4,9 @@ import asyncio
 import subprocess
 import tempfile
 from contextlib import asynccontextmanager
+from dataclasses import dataclass, field
 from pathlib import Path
+import time
 from typing import Literal, Optional, List
 import typing
 
@@ -65,6 +67,7 @@ _VALID_FONT_SCALES = {"small", "normal", "large"}
 _VALID_LINK_DISPLAYS = {"label", "url", "both"}
 _FIELD_LINK_DISPLAYS = {"default", "label", "url", "both"}
 _VALID_SECTION_TITLE_CASES = {"upper", "lower", "title"}
+_PREVIEW_SESSION_TTL_SECONDS = 60.0
 _PERSONAL_FIELD_KEYS = [
     "name",
     "email",
@@ -88,6 +91,17 @@ _BUILTIN_SECTION_KEYS = {
     "awards",
     "extracurricular",
 }
+
+
+@dataclass
+class _PreviewSessionState:
+    latest_seq: int = -1
+    active_requests: int = 0
+    last_touched: float = 0.0
+    lock: asyncio.Lock = field(default_factory=asyncio.Lock)
+
+
+_preview_sessions: dict[str, _PreviewSessionState] = {}
 
 
 def _normalize_template_defaults(defaults: object) -> dict:
@@ -293,6 +307,8 @@ class CVRequest(BaseModel):
     font_scale: Literal["small", "normal", "large"] = "normal"
     link_display: Literal["label", "url", "both"] = "label"
     personal_fields: Optional[List[dict]] = None
+    preview_session_id: Optional[str] = None
+    preview_request_seq: Optional[int] = None
 
 
 def _error(error_type: str, message: str, details: list[str] | None = None, status: int = 422):
@@ -304,6 +320,42 @@ def _error(error_type: str, message: str, details: list[str] | None = None, stat
 
 def _template_exists(template: str) -> bool:
     return (TEMPLATES_DIR / template / "cv.tex.j2").exists()
+
+
+def _cleanup_preview_sessions(now: float) -> None:
+    expired_session_ids = [
+        session_id
+        for session_id, state in _preview_sessions.items()
+        if state.active_requests == 0 and (now - state.last_touched) > _PREVIEW_SESSION_TTL_SECONDS
+    ]
+    for session_id in expired_session_ids:
+        _preview_sessions.pop(session_id, None)
+
+
+def _get_preview_session_state(session_id: str) -> _PreviewSessionState:
+    now = time.monotonic()
+    _cleanup_preview_sessions(now)
+    state = _preview_sessions.get(session_id)
+    if state is None:
+        state = _PreviewSessionState(last_touched=now)
+        _preview_sessions[session_id] = state
+        return state
+
+    state.last_touched = now
+    return state
+
+
+def _touch_preview_session_state(state: _PreviewSessionState) -> None:
+    state.last_touched = time.monotonic()
+
+
+def _preview_stale_response(session_id: str, request_seq: int, latest_seq: int) -> JSONResponse:
+    return _error(
+        "stale_preview",
+        f"Preview request {request_seq} for session '{session_id}' is stale",
+        [f"Latest preview request sequence is {latest_seq}"],
+        status=409,
+    )
 
 
 def _build_cv_schema() -> dict:
@@ -519,33 +571,86 @@ async def preview_pdf(req: CVRequest):
         link_display=req.link_display,
         personal_fields=req.personal_fields or [],
     )
-    latex_content = renderer.render(cv, req.section_order, req.section_titles)
+    session_id = req.preview_session_id
+    request_seq = req.preview_request_seq
+    session_state: Optional[_PreviewSessionState] = None
 
-    with tempfile.TemporaryDirectory() as tmpdir:
-        tex_path = Path(tmpdir) / "cv.tex"
-        tex_path.write_text(latex_content)
-        try:
-            result = await asyncio.to_thread(
-                subprocess.run,
-                ["xelatex", "-interaction=nonstopmode", "cv.tex"],
-                cwd=tmpdir,
-                capture_output=True,
-                timeout=30,
-                text=True,
-            )
-        except subprocess.TimeoutExpired:
-            return _error("pdf_generation_failed", "xelatex timed out after 30 seconds")
-        except FileNotFoundError:
-            return _error("pdf_generation_failed", "xelatex not found — install TeX Live or MiKTeX")
+    if session_id is not None and request_seq is not None:
+        session_state = _get_preview_session_state(session_id)
+        session_state.active_requests += 1
+        session_state.latest_seq = max(session_state.latest_seq, request_seq)
+        _touch_preview_session_state(session_state)
 
-        if result.returncode != 0:
-            error_lines = [line for line in result.stdout.splitlines() if line.startswith("!")]
-            details = error_lines or [line for line in result.stderr.splitlines() if line.strip()]
-            return _error("pdf_generation_failed", "xelatex exited with errors", details)
+    try:
+        if session_state is not None and session_id is not None and request_seq is not None:
+            async with session_state.lock:
+                _touch_preview_session_state(session_state)
+                if request_seq < session_state.latest_seq:
+                    return _preview_stale_response(session_id, request_seq, session_state.latest_seq)
 
-        pdf_bytes = (Path(tmpdir) / "cv.pdf").read_bytes()
+                latex_content = renderer.render(cv, req.section_order, req.section_titles)
 
-    return Response(content=pdf_bytes, media_type="application/pdf")
+                with tempfile.TemporaryDirectory() as tmpdir:
+                    tex_path = Path(tmpdir) / "cv.tex"
+                    tex_path.write_text(latex_content)
+                    try:
+                        result = await asyncio.to_thread(
+                            subprocess.run,
+                            ["xelatex", "-interaction=nonstopmode", "cv.tex"],
+                            cwd=tmpdir,
+                            capture_output=True,
+                            timeout=30,
+                            text=True,
+                        )
+                    except subprocess.TimeoutExpired:
+                        return _error("pdf_generation_failed", "xelatex timed out after 30 seconds")
+                    except FileNotFoundError:
+                        return _error("pdf_generation_failed", "xelatex not found — install TeX Live or MiKTeX")
+
+                    if result.returncode != 0:
+                        error_lines = [line for line in result.stdout.splitlines() if line.startswith("!")]
+                        details = error_lines or [line for line in result.stderr.splitlines() if line.strip()]
+                        return _error("pdf_generation_failed", "xelatex exited with errors", details)
+
+                    pdf_bytes = (Path(tmpdir) / "cv.pdf").read_bytes()
+
+                _touch_preview_session_state(session_state)
+                if request_seq < session_state.latest_seq:
+                    return _preview_stale_response(session_id, request_seq, session_state.latest_seq)
+
+                return Response(content=pdf_bytes, media_type="application/pdf")
+
+        latex_content = renderer.render(cv, req.section_order, req.section_titles)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tex_path = Path(tmpdir) / "cv.tex"
+            tex_path.write_text(latex_content)
+            try:
+                result = await asyncio.to_thread(
+                    subprocess.run,
+                    ["xelatex", "-interaction=nonstopmode", "cv.tex"],
+                    cwd=tmpdir,
+                    capture_output=True,
+                    timeout=30,
+                    text=True,
+                )
+            except subprocess.TimeoutExpired:
+                return _error("pdf_generation_failed", "xelatex timed out after 30 seconds")
+            except FileNotFoundError:
+                return _error("pdf_generation_failed", "xelatex not found — install TeX Live or MiKTeX")
+
+            if result.returncode != 0:
+                error_lines = [line for line in result.stdout.splitlines() if line.startswith("!")]
+                details = error_lines or [line for line in result.stderr.splitlines() if line.strip()]
+                return _error("pdf_generation_failed", "xelatex exited with errors", details)
+
+            pdf_bytes = (Path(tmpdir) / "cv.pdf").read_bytes()
+
+        return Response(content=pdf_bytes, media_type="application/pdf")
+    finally:
+        if session_state is not None:
+            session_state.active_requests -= 1
+            _touch_preview_session_state(session_state)
 
 
 @app.get("/api/templates")

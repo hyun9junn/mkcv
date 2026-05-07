@@ -1,3 +1,7 @@
+import asyncio
+from pathlib import Path
+from types import SimpleNamespace
+
 import pytest
 from httpx import AsyncClient, ASGITransport
 from tests.conftest import xelatex_available
@@ -165,6 +169,24 @@ personal:
 summary: A brief summary.
 """
 
+
+def _preview_pdf_payload(name: str, preview_session_id: str, preview_request_seq: int) -> dict:
+    return {
+        "yaml": f"""
+personal:
+  name: {name}
+  email: {name.lower().replace(" ", ".")}@example.com
+summary: Preview request for {name}
+""",
+        "template": "classic",
+        "preview_session_id": preview_session_id,
+        "preview_request_seq": preview_request_seq,
+    }
+
+
+def _fake_pdf_compile_result() -> SimpleNamespace:
+    return SimpleNamespace(returncode=0, stdout="", stderr="")
+
 async def test_preview_pdf_invalid_yaml(app):
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         resp = await client.post("/api/preview/pdf", json={"yaml": INVALID_YAML, "template": "classic"})
@@ -185,6 +207,100 @@ async def test_preview_pdf_unknown_template(app):
         resp = await client.post("/api/preview/pdf", json={"yaml": VALID_YAML, "template": "nonexistent"})
     assert resp.status_code == 422
     assert resp.json()["error"] == "unknown_template"
+
+
+async def test_preview_pdf_stale_preview_for_older_request_in_same_session(app, monkeypatch):
+    from backend import main as backend_main
+
+    backend_main._preview_sessions.clear()
+    first_compile_started = asyncio.Event()
+    allow_first_compile_to_finish = asyncio.Event()
+
+    async def fake_to_thread(func, *args, **kwargs):
+        if func is backend_main.subprocess.run:
+            tmpdir = Path(kwargs["cwd"])
+            latex_source = (tmpdir / "cv.tex").read_text()
+            if "Alice One" in latex_source:
+                first_compile_started.set()
+                await allow_first_compile_to_finish.wait()
+                (tmpdir / "cv.pdf").write_bytes(b"%PDF-1")
+                return _fake_pdf_compile_result()
+            if "Alice Two" in latex_source:
+                (tmpdir / "cv.pdf").write_bytes(b"%PDF-2")
+                return _fake_pdf_compile_result()
+            raise AssertionError(f"Unexpected compile payload: {latex_source}")
+        return func(*args, **kwargs)
+
+    monkeypatch.setattr(backend_main.asyncio, "to_thread", fake_to_thread)
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        first_task = asyncio.create_task(
+            client.post("/api/preview/pdf", json=_preview_pdf_payload("Alice One", "stale-session-a", 1))
+        )
+        await first_compile_started.wait()
+
+        second_task = asyncio.create_task(
+            client.post("/api/preview/pdf", json=_preview_pdf_payload("Alice Two", "stale-session-a", 2))
+        )
+
+        allow_first_compile_to_finish.set()
+        first_resp, second_resp = await asyncio.gather(first_task, second_task)
+
+    assert first_resp.status_code == 409
+    assert first_resp.json()["error"] == "stale_preview"
+    assert second_resp.status_code == 200
+    assert second_resp.headers["content-type"] == "application/pdf"
+
+
+async def test_preview_pdf_keeps_sessions_isolated(app, monkeypatch):
+    from backend import main as backend_main
+
+    backend_main._preview_sessions.clear()
+    first_compile_started = asyncio.Event()
+    allow_first_compile_to_finish = asyncio.Event()
+
+    async def fake_to_thread(func, *args, **kwargs):
+        if func is backend_main.subprocess.run:
+            tmpdir = Path(kwargs["cwd"])
+            latex_source = (tmpdir / "cv.tex").read_text()
+            if "Alpha One" in latex_source:
+                first_compile_started.set()
+                await allow_first_compile_to_finish.wait()
+                (tmpdir / "cv.pdf").write_bytes(b"%PDF-alpha-1")
+                return _fake_pdf_compile_result()
+            if "Alpha Two" in latex_source:
+                (tmpdir / "cv.pdf").write_bytes(b"%PDF-alpha-2")
+                return _fake_pdf_compile_result()
+            if "Bravo One" in latex_source:
+                (tmpdir / "cv.pdf").write_bytes(b"%PDF-bravo-1")
+                return _fake_pdf_compile_result()
+            raise AssertionError(f"Unexpected compile payload: {latex_source}")
+        return func(*args, **kwargs)
+
+    monkeypatch.setattr(backend_main.asyncio, "to_thread", fake_to_thread)
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        alpha_one_task = asyncio.create_task(
+            client.post("/api/preview/pdf", json=_preview_pdf_payload("Alpha One", "isolated-session-a", 1))
+        )
+        await first_compile_started.wait()
+
+        alpha_two_task = asyncio.create_task(
+            client.post("/api/preview/pdf", json=_preview_pdf_payload("Alpha Two", "isolated-session-a", 2))
+        )
+        bravo_one_task = asyncio.create_task(
+            client.post("/api/preview/pdf", json=_preview_pdf_payload("Bravo One", "isolated-session-b", 1))
+        )
+
+        bravo_resp = await asyncio.wait_for(bravo_one_task, timeout=0.5)
+        allow_first_compile_to_finish.set()
+        alpha_one_resp, alpha_two_resp = await asyncio.gather(alpha_one_task, alpha_two_task)
+
+    assert bravo_resp.status_code == 200
+    assert bravo_resp.headers["content-type"] == "application/pdf"
+    assert alpha_one_resp.status_code == 409
+    assert alpha_one_resp.json()["error"] == "stale_preview"
+    assert alpha_two_resp.status_code == 200
 
 async def test_schema_returns_200(app):
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
