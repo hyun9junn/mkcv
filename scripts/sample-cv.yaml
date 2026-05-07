@@ -1,0 +1,70 @@
+personal:
+  name: Jane Smith
+  email: jane.smith@example.com
+  phone: "+1 (415) 555-0192"
+  location: San Francisco, CA
+  linkedin: linkedin.com/in/janesmith
+  github: github.com/janesmith
+  website: janesmith.dev
+
+summary: >
+  Senior software engineer with 7 years building scalable web services and
+  data pipelines. Strong background in Python, TypeScript, and cloud
+  infrastructure. Passionate about developer experience and clean architecture.
+
+experience:
+  - title: Senior Software Engineer
+    company: Acme Technologies
+    start_date: Jan 2021
+    end_date: Present
+    location: San Francisco, CA
+    highlights:
+      - Led migration of monolithic backend to microservices, cutting deploy time by 60%
+      - Designed real-time data pipeline processing 2M events per day
+      - Mentored three junior engineers and established team code-review standards
+    tech_stack: [Python, Kubernetes, PostgreSQL]
+
+  - title: Software Engineer
+    company: Bright Solutions
+    start_date: Jun 2018
+    end_date: Dec 2020
+    location: Austin, TX
+    highlights:
+      - Built customer-facing REST API serving 50k daily active users
+      - Reduced page load time by 40% through frontend performance work
+      - Contributed to open-source CLI tool with 1,000+ GitHub stars
+    tech_stack: [TypeScript, React, Redis]
+
+education:
+  - degree: B.S. Computer Science
+    institution: University of California, Berkeley
+    start_date: "2014"
+    end_date: "2018"
+    gpa: "3.8"
+
+skills:
+  - category: Languages
+    items: [Python, TypeScript, Go, SQL]
+  - category: Frameworks
+    items: [FastAPI, React, PostgreSQL, Redis]
+  - category: Infrastructure
+    items: [Docker, Kubernetes, GitHub Actions, AWS]
+
+projects:
+  - name: OpenMetrics
+    description: Open-source metrics aggregation library for Python microservices
+    url: github.com/janesmith/openmetrics
+    highlights:
+      - "2,400+ GitHub stars, used in production at 12 companies"
+      - Supports Prometheus, Datadog, and OpenTelemetry exporters
+
+certifications:
+  - name: AWS Solutions Architect Professional
+    issuer: Amazon Web Services
+    date: "2022"
+
+languages:
+  - language: English
+    proficiency: Native
+  - language: Korean
+    proficiency: Conversational
