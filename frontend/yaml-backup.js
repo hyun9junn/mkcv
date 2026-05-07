@@ -23,14 +23,21 @@ window.yamlBackup = (() => {
     return new Date().toISOString().slice(0, 10);
   }
 
-  async function exportZip() {
+  async function _buildZipBlob() {
     const resumeYaml = window.editorAdapter.getValue();
     const settingsYaml = window.settingsSync.getYaml();
     const zip = new JSZip();
     zip.file('resume.yaml', resumeYaml);
     zip.file('settings.yaml', settingsYaml);
-    const blob = await zip.generateAsync({ type: 'blob' });
-    _download(blob, `mkcv-backup-${_todayStr()}.zip`);
+    return zip.generateAsync({ type: 'blob' });
+  }
+
+  async function exportZip() {
+    _download(await _buildZipBlob(), `mkcv-backup-${_todayStr()}.zip`);
+  }
+
+  async function exportZipNamed(filename) {
+    _download(await _buildZipBlob(), filename);
   }
 
   let _pendingResume = null;
@@ -98,7 +105,7 @@ window.yamlBackup = (() => {
 
   document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btn-yaml-export').addEventListener('click', () => {
-      exportZip().catch(() => _toast('Export failed', 'warn'));
+      window.exporter.openFilenameModal('yaml-backup');
     });
     document.getElementById('btn-yaml-import').addEventListener('click', () => {
       document.getElementById('import-yaml-input').click();
@@ -115,5 +122,5 @@ window.yamlBackup = (() => {
     });
   });
 
-  return { exportZip, importZip };
+  return { exportZip, exportZipNamed, importZip };
 })();

@@ -1368,6 +1368,22 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }, { passive: false });
 
+  /* Modal Enter / Escape */
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' && e.key !== 'Escape') return;
+    const openModal = document.querySelector('.modal-backdrop.open');
+    if (!openModal) return;
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const confirmBtn = openModal.querySelector('.modal-foot .btn-danger, .modal-foot .btn-accent');
+      if (confirmBtn) confirmBtn.click();
+    } else {
+      e.preventDefault();
+      const cancelBtn = openModal.querySelector('.modal-foot .btn-ghost');
+      if (cancelBtn) cancelBtn.click();
+    }
+  });
+
   /* Keyboard shortcuts */
   document.addEventListener('keydown', (e) => {
     if (e.metaKey || e.ctrlKey) {

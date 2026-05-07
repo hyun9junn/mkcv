@@ -9,6 +9,9 @@ const exporter = (() => {
   }
 
   function defaultFilename(format) {
+    if (format === "yaml-backup") {
+      return `mkcv-backup-${new Date().toISOString().slice(0, 10)}.zip`;
+    }
     const ext = { markdown: "md", latex: "tex", pdf: "pdf" }[format];
     try {
       const parsed = jsyaml.load(app.state.yaml);
@@ -39,6 +42,19 @@ const exporter = (() => {
   }
 
   async function exportFile(format, filename) {
+    if (format === "yaml-backup") {
+      const trimmed = filename.trim();
+      const finalName = trimmed
+        ? (trimmed.includes(".") ? trimmed : `${trimmed}.zip`)
+        : defaultFilename("yaml-backup");
+      try {
+        await window.yamlBackup.exportZipNamed(finalName);
+      } catch {
+        alert("Export failed");
+      }
+      return;
+    }
+
     const ext = { markdown: "md", latex: "tex", pdf: "pdf" }[format];
     const trimmed = filename.trim();
     const finalName = trimmed
@@ -77,6 +93,8 @@ const exporter = (() => {
       alert("Export failed: network error");
     }
   }
+
+  window.exporter = { openFilenameModal };
 
   document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("btn-md").addEventListener("click", () => openFilenameModal("markdown"));
