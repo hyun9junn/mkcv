@@ -10,9 +10,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     texlive-pictures \
     fonts-nanum \
     fonts-noto-cjk \
+    fonts-linuxlibertine \
     lmodern \
     tex-gyre \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && printf '<fontconfig>\n  <dir>/usr/share/texmf/fonts/opentype</dir>\n  <dir>/usr/share/texlive/texmf-dist/fonts/opentype</dir>\n</fontconfig>\n' \
+       > /etc/fonts/conf.d/09-texlive.conf \
+    && fc-cache -fv
 
 WORKDIR /app
 
