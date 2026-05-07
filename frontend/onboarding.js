@@ -155,7 +155,7 @@ window.onboarding = (() => {
     _el('ob-btn-prev').textContent = ui.prev;
     _el('ob-btn-next').textContent = isLast ? ui.done : ui.next;
     _el('ob-btn-skip').textContent = ui.skip;
-    _el('ob-btn-skip').style.display = isLast ? 'none' : '';
+    _el('ob-btn-skip').style.visibility = isLast ? 'hidden' : '';
   }
 
   function show() {

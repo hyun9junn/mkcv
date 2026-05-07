@@ -928,7 +928,8 @@
     .ob-overlay {
       display: none; position: fixed; inset: 0;
       background: oklch(0% 0 0 / 0.55); z-index: 1000;
-      align-items: center; justify-content: center;
+      align-items: flex-end; justify-content: center;
+      padding-bottom: 40px;
     }
     .ob-overlay.open { display: flex; }
     .ob-modal {
@@ -1032,10 +1033,6 @@
   </div>
 
   <div class="masthead-right">
-    <div id="lang-toggle" class="lang-toggle">
-      <button class="lang-btn active" data-lang="ko">KO</button>
-      <button class="lang-btn" data-lang="en">EN</button>
-    </div>
     <button class="help-btn" id="onboarding-help-btn" title="Getting started guide">?</button>
     <button class="icon-btn" id="btn-validate-icon" title="Validate template (checks Jinja2 + pdflatex)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -1204,7 +1201,13 @@
 <div class="ob-overlay" id="onboarding-overlay">
   <div class="ob-modal" role="dialog" aria-modal="true" aria-label="Getting started guide">
     <div class="ob-top">
-      <span class="ob-step-label" id="ob-step-label"></span>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span class="ob-step-label" id="ob-step-label"></span>
+        <div id="lang-toggle" class="lang-toggle">
+          <button class="lang-btn active" data-lang="ko">KO</button>
+          <button class="lang-btn" data-lang="en">EN</button>
+        </div>
+      </div>
       <button class="ob-close" id="ob-btn-close" aria-label="Close">×</button>
     </div>
     <div class="ob-visual" id="ob-visual"></div>
