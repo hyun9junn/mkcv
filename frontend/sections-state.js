@@ -173,7 +173,19 @@ const sectionsState = (() => {
     }
   }
 
-  function parseResumeYaml(rawYaml) {
+  function _cloneValue(value) {
+    if (value == null || typeof value !== "object") return value;
+    if (typeof structuredClone === "function") return structuredClone(value);
+    if (Array.isArray(value)) return value.map(_cloneValue);
+    if (value instanceof Date) return new Date(value.getTime());
+    const cloned = {};
+    for (const [key, nestedValue] of Object.entries(value)) {
+      cloned[key] = _cloneValue(nestedValue);
+    }
+    return cloned;
+  }
+
+  function _getParsedResume(rawYaml) {
     const useCache = typeof rawYaml === "string";
     if (useCache && _hasCachedResume && rawYaml === _cachedResumeYaml) {
       if (_cachedResumeError) throw _cachedResumeError;
@@ -200,9 +212,13 @@ const sectionsState = (() => {
     }
   }
 
+  function parseResumeYaml(rawYaml) {
+    return _cloneValue(_getParsedResume(rawYaml));
+  }
+
   function getCustomDefs(rawYaml) {
     try {
-      const parsed = parseResumeYaml(rawYaml);
+      const parsed = _getParsedResume(rawYaml);
       if (!parsed || !Array.isArray(parsed.custom_sections)) return {};
       const defs = {};
       for (const cs of parsed.custom_sections) {
@@ -218,7 +234,7 @@ const sectionsState = (() => {
 
   function getExpandedPresentKeys(rawYaml) {
     try {
-      const parsed = parseResumeYaml(rawYaml);
+      const parsed = _getParsedResume(rawYaml);
       if (!parsed || typeof parsed !== "object") return [];
       const keys = Object.keys(parsed).filter((k) => k !== "personal" && k !== "custom_sections");
       const customDefs = getCustomDefs(rawYaml);
@@ -236,7 +252,7 @@ const sectionsState = (() => {
 
   function getFilteredYaml(rawYaml) {
     try {
-      const parsed = parseResumeYaml(rawYaml);
+      const parsed = _getParsedResume(rawYaml);
       if (!parsed || typeof parsed !== "object") return rawYaml;
       const hidden = _getState().hidden;
       const filtered = {};
@@ -251,7 +267,7 @@ const sectionsState = (() => {
 
   function getOrderedFilteredYaml(rawYaml) {
     try {
-      const parsed = parseResumeYaml(rawYaml);
+      const parsed = _getParsedResume(rawYaml);
       if (!parsed || typeof parsed !== "object") return rawYaml;
       const { hidden, order } = _getState();
       const customDefs = getCustomDefs(rawYaml);
@@ -284,7 +300,7 @@ const sectionsState = (() => {
 
   function getVisibleOrder(rawYaml) {
     try {
-      const parsed = parseResumeYaml(rawYaml);
+      const parsed = _getParsedResume(rawYaml);
       if (!parsed || typeof parsed !== "object") return [];
       const { hidden, order } = _getState();
       const expandedKeys = getExpandedPresentKeys(rawYaml);

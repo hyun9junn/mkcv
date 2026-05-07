@@ -38,7 +38,7 @@ function loadScript(filename, context) {
   vm.runInNewContext(source, context, { filename });
 }
 
-test('same resume yaml reuses one parsed result across section helpers', () => {
+test('same resume yaml reuses one parse internally while public reads stay isolated', () => {
   const { context, getLoadCalls } = createContext();
   loadScript('frontend/sections-state.js', context);
 
@@ -60,13 +60,17 @@ test('same resume yaml reuses one parsed result across section helpers', () => {
   ].join('\n');
 
   const parsed = context.window.sectionsState.parseResumeYaml(resumeYaml);
+  parsed.projects[0].name = 'Poisoned';
+  parsed.custom_sections[0].title = 'Poisoned Title';
   const parsedAgain = context.window.sectionsState.parseResumeYaml(resumeYaml);
   const customDefs = context.window.sectionsState.getCustomDefs(resumeYaml);
   const presentKeys = context.window.sectionsState.getExpandedPresentKeys(resumeYaml);
   const orderedYaml = context.window.sectionsState.getOrderedFilteredYaml(resumeYaml);
   const visibleOrder = context.window.sectionsState.getVisibleOrder(resumeYaml);
 
-  assert.equal(parsedAgain, parsed);
+  assert.notEqual(parsedAgain, parsed);
+  assert.equal(parsedAgain.projects[0].name, 'Parser Cache');
+  assert.equal(parsedAgain.custom_sections[0].title, 'Side Projects');
   assert.deepEqual(JSON.parse(JSON.stringify(customDefs)), {
     side_projects: { label: 'Side Projects', yaml: null },
   });

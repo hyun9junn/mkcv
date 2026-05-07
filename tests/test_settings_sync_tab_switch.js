@@ -351,6 +351,31 @@ test('resume sync prefers shared sections-state resume parser when available', a
   assert.equal(rawParseCalls, 0);
 });
 
+test('resume sync falls back to raw yaml parsing when sections-state parser helper is absent', async () => {
+  const resumeYaml = 'summary: Raw fallback path\n';
+  const { context, domReadyCallbacks } = createContext({
+    initialOrder: ['summary'],
+    initialYaml: resumeYaml,
+  });
+
+  let rawParseCalls = 0;
+  context.jsyaml = {
+    load(source) {
+      rawParseCalls += 1;
+      assert.equal(source, resumeYaml);
+      return { summary: 'Raw fallback path' };
+    },
+  };
+  context.sectionsState.getYamlSectionState = () => ({ order: ['summary'], hidden: [] });
+  context.sectionsState.getExpandedPresentKeys = () => ['summary'];
+
+  await bootSettingsSync(context, domReadyCallbacks);
+
+  context.window.editorAdapter.setValue(resumeYaml);
+
+  assert.equal(rawParseCalls, 1);
+});
+
 test('resume and settings tabs each restore their own last editor scroll position', async () => {
   const { context, domReadyCallbacks, elements } = createContext();
   await bootSettingsSync(context, domReadyCallbacks);
