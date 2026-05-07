@@ -166,15 +166,19 @@
       border-radius: 10px;
       box-shadow: var(--shadow-md);
       width: 480px;
-      max-height: 60vh;
-      overflow-y: auto;
-      padding: 10px;
       z-index: 50;
+      overflow: visible;
+    }
+    #template-dropdown[hidden] { display: none; }
+    #template-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
       gap: 8px;
+      padding: 10px;
+      max-height: 60vh;
+      overflow-y: auto;
+      border-radius: 10px;
     }
-    #template-dropdown[hidden] { display: none; }
 
     /* Template card */
     .tpl-card {
@@ -1108,7 +1112,7 @@
         <span id="tpl-name-display">Classic</span>
         <span class="tpl-caret">▾</span>
       </button>
-      <div id="template-dropdown" hidden></div>
+      <div id="template-dropdown" hidden><div id="template-grid"></div></div>
       <div id="template-tooltip" hidden>
         <div id="tooltip-name"></div>
         <div id="tooltip-desc"></div>

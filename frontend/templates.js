@@ -158,6 +158,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const wrapper      = document.getElementById("template-select-wrapper");
     const trigger      = document.getElementById("template-trigger");
     const dropdown     = document.getElementById("template-dropdown");
+    const grid         = document.getElementById("template-grid");
     const nameDisplay  = document.getElementById("tpl-name-display");
     const banner       = document.getElementById("error-banner");
     const btnValidate  = document.getElementById("btn-validate-template");
@@ -233,7 +234,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 card.classList.remove("popover-visible");
             });
 
-            dropdown.appendChild(card);
+            grid.appendChild(card);
             cardIndex++;
         });
 

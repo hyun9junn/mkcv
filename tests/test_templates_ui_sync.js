@@ -68,12 +68,13 @@ function createElement(id = '') {
       return child;
     },
     querySelectorAll(selector) {
-      if (selector === '.tpl-option') {
-        return this.children.filter((child) => child.classList?.contains('tpl-option'));
-      }
-      if (selector === '.tpl-card') {
-        return this.children.filter((child) => child.classList?.contains('tpl-card'));
-      }
+      const matchClass = (cls) => {
+        const direct = this.children.filter((child) => child.classList?.contains(cls));
+        if (direct.length) return direct;
+        return this.children.flatMap((child) => child.children || []).filter((c) => c.classList?.contains(cls));
+      };
+      if (selector === '.tpl-option') return matchClass('tpl-option');
+      if (selector === '.tpl-card') return matchClass('tpl-card');
       return [];
     },
     querySelector(selector) {
@@ -100,6 +101,7 @@ function createContext() {
     'template-select-wrapper',
     'template-trigger',
     'template-dropdown',
+    'template-grid',
     'tpl-name-display',
     'error-banner',
     'btn-validate-template',
@@ -107,6 +109,7 @@ function createContext() {
     'toast-stack',
   ];
   for (const id of ids) elements.set(id, createElement(id));
+  elements.get('template-dropdown').appendChild(elements.get('template-grid'));
 
   const settingsState = {
     template: 'classic',
@@ -247,7 +250,7 @@ test('template picker shows badge from template metadata', async () => {
 
   await bootTemplates(context, domReadyCallbacks);
 
-  const cards = elements.get('template-dropdown').children;
+  const cards = elements.get('template-grid').children;
   const signatureCard = cards.find((child) => child.dataset.name === 'signature-split');
 
   assert.match(signatureCard.innerHTML, /Popular/);
@@ -258,7 +261,7 @@ test('template picker renders tpl-card elements with thumbnail img src', async (
 
   await bootTemplates(context, domReadyCallbacks);
 
-  const cards = elements.get('template-dropdown').children;
+  const cards = elements.get('template-grid').children;
   assert.equal(cards.length, 2, 'one card per template');
 
   const classicCard = cards.find((c) => c.dataset.name === 'classic');
@@ -273,7 +276,7 @@ test('template picker popover contains description text', async () => {
 
   await bootTemplates(context, domReadyCallbacks);
 
-  const cards = elements.get('template-dropdown').children;
+  const cards = elements.get('template-grid').children;
   const sigCard = cards.find((c) => c.dataset.name === 'signature-split');
   assert.ok(sigCard, 'signature-split card exists');
   assert.ok(sigCard.classList.contains('col-2'), 'second card is col-2');
@@ -288,7 +291,7 @@ test('syncSelectedOption updates tpl-card selected class', async () => {
 
   context.window.templateUI.selectTemplate('signature-split');
 
-  const cards = elements.get('template-dropdown').children;
+  const cards = elements.get('template-grid').children;
   const classicCard = cards.find((c) => c.dataset.name === 'classic');
   const sigCard = cards.find((c) => c.dataset.name === 'signature-split');
 
