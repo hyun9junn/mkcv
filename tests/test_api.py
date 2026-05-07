@@ -13,6 +13,13 @@ personal:
   name: [unclosed bracket
 """
 
+SPECIAL_CHAR_YAML = """
+personal:
+  name: Alice
+  email: alice@example.com
+summary: %growth
+"""
+
 BAD_FIELDS_YAML = """
 summary: "no personal section"
 """
@@ -163,6 +170,15 @@ async def test_preview_pdf_invalid_yaml(app):
         resp = await client.post("/api/preview/pdf", json={"yaml": INVALID_YAML, "template": "classic"})
     assert resp.status_code == 422
     assert resp.json()["error"] == "invalid_yaml"
+
+
+async def test_preview_pdf_invalid_yaml_with_plain_text_special_chars_returns_hint(app):
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        resp = await client.post("/api/preview/pdf", json={"yaml": SPECIAL_CHAR_YAML, "template": "classic"})
+    assert resp.status_code == 422
+    data = resp.json()
+    assert data["error"] == "invalid_yaml"
+    assert any("wrap the value in quotes" in detail.lower() for detail in data["details"])
 
 async def test_preview_pdf_unknown_template(app):
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:

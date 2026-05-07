@@ -214,6 +214,85 @@ def test_template_render_metadata_can_force_lowercase_on_builtin_titles(tmp_path
     assert r"\section{editor's note}" in output
 
 
+def test_renderer_escapes_special_chars_in_titles_and_body_text():
+    from backend.models import (
+        AwardItem,
+        CustomBlock,
+        CustomSection,
+        CVData,
+        ExperienceItem,
+        PersonalInfo,
+    )
+
+    cv = CVData(
+        personal=PersonalInfo(
+            name="R&D Lead",
+            email="lead_dev@example.com",
+            location="Seoul #42",
+        ),
+        summary="Improved latency by 38% & stabilized foo_bar services.",
+        experience=[
+            ExperienceItem(
+                title="Platform & Infra Lead",
+                company="AT&T",
+                start_date="2024",
+                highlights=["Cut errors by 50% in core_api."],
+            )
+        ],
+        awards=[
+            AwardItem(
+                name="Builder #1",
+                issuer="R&D Org",
+                date="2025",
+                description="Saved 20% of spend & reduced toil.",
+            )
+        ],
+        custom_sections=[
+            CustomSection(
+                key="notes",
+                title="Research & Notes",
+                content=[CustomBlock(type="text", value="Covered {alpha} and 100% rollout.")],
+            )
+        ],
+    )
+
+    output = LaTeXRenderer(TEMPLATES_DIR, template="classic").render(
+        cv,
+        section_order=["summary", "experience", "awards", "notes"],
+        section_titles={"summary": "R&D Summary"},
+    )
+
+    assert "R\\&D Lead" in output
+    assert "lead\\_dev@example.com" in output
+    assert "Seoul \\#42" in output
+    assert r"\section{R\&D Summary}" in output
+    assert "38\\% \\& stabilized foo\\_bar services." in output
+    assert "Platform \\& Infra Lead" in output
+    assert "AT\\&T" in output
+    assert "50\\% in core\\_api." in output
+    assert r"\section{Research \& Notes}" in output
+    assert "Covered \\{alpha\\} and 100\\% rollout." in output
+
+
+def test_renderer_preserves_existing_manual_latex_escapes():
+    from backend.models import CVData, PersonalInfo
+
+    cv = CVData(
+        personal=PersonalInfo(name="Jane \\& Doe", email="jane@example.com"),
+        summary="Held \\% steady while keeping foo\\_bar online.",
+    )
+
+    output = LaTeXRenderer(TEMPLATES_DIR, template="classic").render(
+        cv,
+        section_order=["summary"],
+        section_titles={"summary": "R\\&D"},
+    )
+
+    assert "Jane \\& Doe" in output
+    assert "Held \\% steady while keeping foo\\_bar online." in output
+    assert r"\section{R\&D}" in output
+
+
 def test_font_size_map():
     assert _FONT_SIZE["small"] == "10pt"
     assert _FONT_SIZE["normal"] == "11pt"

@@ -34,7 +34,9 @@ const sectionsState = (() => {
       yaml: [
         "skills:",
         "  - category: Languages",
-        "    items: [Python, JavaScript]",
+        "    items:",
+        "      - Python",
+        "      - JavaScript",
         "",
       ].join("\n"),
     },

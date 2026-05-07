@@ -273,6 +273,16 @@ test('education default section scaffold uses start and end dates', () => {
   assert.doesNotMatch(context.window.sectionsState.SECTION_DEFS.education.yaml, /\byear:/);
 });
 
+test('skills default section scaffold uses block-list items without forced quotes', () => {
+  const { context } = createContext();
+
+  loadScript('frontend/sections-state.js', context);
+
+  assert.match(context.window.sectionsState.SECTION_DEFS.skills.yaml, /category: Languages/);
+  assert.match(context.window.sectionsState.SECTION_DEFS.skills.yaml, /items:\n\s+- Python\n\s+- JavaScript/);
+  assert.doesNotMatch(context.window.sectionsState.SECTION_DEFS.skills.yaml, /items: \[/);
+});
+
 test('clicking an absent hidden built-in section adds it as visible content', () => {
   const { context, elements } = createContext({
     initialYaml: [

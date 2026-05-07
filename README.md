@@ -172,21 +172,31 @@ education:
     start_date: "2016"
     end_date: "2020"
     gpa: "3.9"                # optional
-    courses: [Algorithms, Systems]  # optional
+    courses:                  # optional
+      - Algorithms
+      - Systems
     thesis: "My thesis title"       # optional
 
 skills:
   - category: Languages
-    items: [Python, Go, TypeScript]
+    items:
+      - Python
+      - Go
+      - TypeScript
   - category: Tools
-    items: [Docker, Kubernetes, PostgreSQL]
+    items:
+      - Docker
+      - Kubernetes
+      - PostgreSQL
 
 projects:
   - name: my-project
     description: What it does
     url: github.com/you/my-project
     date: "2023"
-    tech_stack: [Python, FastAPI]
+    tech_stack:
+      - Python
+      - FastAPI
     highlights:
       - 500+ GitHub stars
 
@@ -200,7 +210,9 @@ publications:
     venue: Conference Name / Journal
     date: "2023"
     url: link.to/paper
-    authors: [Author One, Author Two]
+    authors:
+      - Author One
+      - Author Two
     doi: "10.1234/example"
 
 languages:

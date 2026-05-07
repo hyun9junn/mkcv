@@ -230,11 +230,23 @@ education:
 
 skills:
   - category: Languages
-    items: [Python, TypeScript, SQL, Go]
+    items:
+      - Python
+      - TypeScript
+      - SQL
+      - Go
   - category: Frameworks
-    items: [FastAPI, React, Node.js, PostgreSQL]
+    items:
+      - FastAPI
+      - React
+      - Node.js
+      - PostgreSQL
   - category: Tools
-    items: [Docker, Redis, AWS, GitHub Actions]
+    items:
+      - Docker
+      - Redis
+      - AWS
+      - GitHub Actions
 
 projects:
   - name: Incident Review Assistant

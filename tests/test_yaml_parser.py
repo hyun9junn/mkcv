@@ -14,6 +14,13 @@ personal:
   name: [unclosed bracket
 """
 
+ACCIDENTAL_CONTROL_TOKEN = """
+personal:
+  name: Alice
+  email: alice@example.com
+summary: &Growth
+"""
+
 MISSING_REQUIRED = """
 summary: "No personal section here"
 """
@@ -31,6 +38,12 @@ def test_parse_invalid_yaml_raises():
     with pytest.raises(YAMLParseError) as exc:
         parse_yaml(INVALID_YAML)
     assert exc.value.error_type == "invalid_yaml"
+
+def test_parse_plain_text_value_starting_with_control_token_raises_helpful_error():
+    with pytest.raises(YAMLParseError) as exc:
+        parse_yaml(ACCIDENTAL_CONTROL_TOKEN)
+    assert exc.value.error_type == "invalid_yaml"
+    assert any("wrap the value in quotes" in detail.lower() for detail in exc.value.details)
 
 def test_parse_missing_required_field_raises():
     with pytest.raises(CVValidationError) as exc:
