@@ -1032,6 +1032,11 @@
   </div>
 
   <div class="masthead-right">
+    <div id="lang-toggle" class="lang-toggle">
+      <button class="lang-btn active" data-lang="ko">KO</button>
+      <button class="lang-btn" data-lang="en">EN</button>
+    </div>
+    <button class="help-btn" id="onboarding-help-btn" title="Getting started guide">?</button>
     <button class="icon-btn" id="btn-validate-icon" title="Validate template (checks Jinja2 + pdflatex)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
         <path d="M20 6L9 17l-5-5"/>
@@ -1195,6 +1200,28 @@
 <!-- ═══ TOAST STACK ═══ -->
 <div class="toast-stack" id="toast-stack"></div>
 
+<!-- ═══ ONBOARDING WIZARD ═══ -->
+<div class="ob-overlay" id="onboarding-overlay">
+  <div class="ob-modal" role="dialog" aria-modal="true" aria-label="Getting started guide">
+    <div class="ob-top">
+      <span class="ob-step-label" id="ob-step-label"></span>
+      <button class="ob-close" id="ob-btn-close" aria-label="Close">×</button>
+    </div>
+    <div class="ob-visual" id="ob-visual"></div>
+    <div class="ob-body" id="ob-body"></div>
+    <div class="ob-foot">
+      <div class="ob-dots" id="ob-dots"></div>
+      <div class="ob-buttons">
+        <button class="ob-btn-skip" id="ob-btn-skip">건너뛰기</button>
+        <div class="ob-btn-nav">
+          <button class="ob-btn-prev" id="ob-btn-prev" style="display:none">← 이전</button>
+          <button class="ob-btn-next" id="ob-btn-next">다음 →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ═══ RESET ALL MODAL ═══ -->
 <div class="modal-backdrop" id="reset-all-modal">
   <div class="modal">
@@ -1284,6 +1311,7 @@
 <script src="layout-controls.js"></script>
 <script src="settings-sync.js"></script>
 <script src="yaml-backup.js"></script>
+<script src="onboarding.js"></script>
 
 <script>
 /* ── UI wiring: new elements not covered by existing modules ── */
