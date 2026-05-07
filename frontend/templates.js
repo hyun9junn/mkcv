@@ -197,6 +197,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             card.className = `tpl-card${isFirst ? " selected" : ""} col-${col}`;
             card.dataset.name = name;
 
+            // Fields below are from server-side meta.yaml (developer-controlled, not user input).
             card.innerHTML = `
               <img class="tpl-thumb"
                    src="/assets/template-previews/${name}.png"
