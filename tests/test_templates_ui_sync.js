@@ -71,6 +71,9 @@ function createElement(id = '') {
       if (selector === '.tpl-option') {
         return this.children.filter((child) => child.classList?.contains('tpl-option'));
       }
+      if (selector === '.tpl-card') {
+        return this.children.filter((child) => child.classList?.contains('tpl-card'));
+      }
       return [];
     },
     querySelector(selector) {
@@ -244,8 +247,51 @@ test('template picker shows badge from template metadata', async () => {
 
   await bootTemplates(context, domReadyCallbacks);
 
-  const options = elements.get('template-dropdown').children;
-  const signatureOption = options.find((child) => child.dataset.name === 'signature-split');
+  const cards = elements.get('template-dropdown').children;
+  const signatureCard = cards.find((child) => child.dataset.name === 'signature-split');
 
-  assert.match(signatureOption.innerHTML, /Popular/);
+  assert.match(signatureCard.innerHTML, /Popular/);
+});
+
+test('template picker renders tpl-card elements with thumbnail img src', async () => {
+  const { context, domReadyCallbacks, elements } = createContext();
+
+  await bootTemplates(context, domReadyCallbacks);
+
+  const cards = elements.get('template-dropdown').children;
+  assert.equal(cards.length, 2, 'one card per template');
+
+  const classicCard = cards.find((c) => c.dataset.name === 'classic');
+  assert.ok(classicCard, 'classic card exists');
+  assert.ok(classicCard.classList.contains('tpl-card'), 'card has tpl-card class');
+  assert.ok(classicCard.classList.contains('col-1'), 'first card is col-1');
+  assert.match(classicCard.innerHTML, /\/assets\/template-previews\/classic\.png/);
+});
+
+test('template picker popover contains description text', async () => {
+  const { context, domReadyCallbacks, elements } = createContext();
+
+  await bootTemplates(context, domReadyCallbacks);
+
+  const cards = elements.get('template-dropdown').children;
+  const sigCard = cards.find((c) => c.dataset.name === 'signature-split');
+  assert.ok(sigCard, 'signature-split card exists');
+  assert.ok(sigCard.classList.contains('col-2'), 'second card is col-2');
+  assert.match(sigCard.innerHTML, /Creative direction/);
+  assert.match(sigCard.innerHTML, /Popular/);
+});
+
+test('syncSelectedOption updates tpl-card selected class', async () => {
+  const { context, domReadyCallbacks, elements } = createContext();
+
+  await bootTemplates(context, domReadyCallbacks);
+
+  context.window.templateUI.selectTemplate('signature-split');
+
+  const cards = elements.get('template-dropdown').children;
+  const classicCard = cards.find((c) => c.dataset.name === 'classic');
+  const sigCard = cards.find((c) => c.dataset.name === 'signature-split');
+
+  assert.ok(!classicCard.classList.contains('selected'), 'classic no longer selected');
+  assert.ok(sigCard.classList.contains('selected'), 'signature-split now selected');
 });
