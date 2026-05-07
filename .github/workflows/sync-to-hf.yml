@@ -63,12 +63,16 @@ jobs:
               f.write(textwrap.dedent(readme))
           PYEOF
 
+      - name: Install XET client
+        run: pip install hf_xet
+
       - name: Commit and push to HF Space
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
           cd /tmp/hf-space
           git init -b main
+          printf '*.png filter=xet diff=xet merge=xet -text\n*.jpg filter=xet diff=xet merge=xet -text\n' > .gitattributes
           git add .
           git commit -m "sync: ${{ github.sha }}"
           git push https://Hyun9junn:$HF_TOKEN@huggingface.co/spaces/Hyun9junn/mkcv main --force
