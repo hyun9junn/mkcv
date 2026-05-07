@@ -37,6 +37,10 @@ def _social_cv() -> CVData:
     )
 
 
+def _template_source(template_name: str) -> str:
+    return (TEMPLATES_DIR / template_name / "cv.tex.j2").read_text()
+
+
 def test_latex_contains_name(sample_cv):
     output = LaTeXRenderer(TEMPLATES_DIR, template="classic").render(sample_cv)
     assert "Jane Smith" in output
@@ -72,6 +76,13 @@ def test_latex_skips_empty_summary(minimal_cv):
 def test_latex_unknown_template_raises(sample_cv):
     with pytest.raises(ValueError, match="unknown_template"):
         LaTeXRenderer(TEMPLATES_DIR, template="nonexistent").render(sample_cv)
+
+
+def test_trackline_template_replaces_tikz_marker_with_text_command():
+    source = _template_source("trackline")
+    assert r"\usepackage{tikz}" not in source
+    assert r"\begin{tikzpicture}" not in source
+    assert r"\newcommand{\timelinedot}" in source
 
 
 def test_classic_latex_renders_awards(sample_cv):

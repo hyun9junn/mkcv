@@ -440,12 +440,15 @@
       border-radius: 7px;
       padding: 2px;
       background: var(--paper-2);
+      height: 22px;
+      box-sizing: border-box;
     }
     .file-tab {
       display: inline-flex;
       align-items: center;
+      align-self: stretch;
       gap: 6px;
-      padding: 3px 10px;
+      padding: 0 10px;
       border-radius: 5px;
       font-family: var(--font-mono);
       font-size: 11px;
@@ -1054,8 +1057,8 @@
         <div class="export-option" data-export="tex">↓ LaTeX source <span class="kbd">⌘L</span></div>
         <div class="export-option" data-export="md">↓ Markdown <span class="kbd">⌘M</span></div>
         <hr>
-        <div class="export-option" id="btn-yaml-export">↓ YAML backup</div>
-        <div class="export-option" id="btn-yaml-import">↑ Import YAML…</div>
+        <div class="export-option" id="btn-yaml-export">↓ YAML backup <span class="kbd">⌘S</span></div>
+        <div class="export-option" id="btn-yaml-import">↑ Import YAML… <span class="kbd">⌘O</span></div>
       </div>
     </div>
 
@@ -1371,6 +1374,8 @@ document.addEventListener('DOMContentLoaded', () => {
       if (e.key === 'p') { e.preventDefault(); document.getElementById('btn-pdf').click(); }
       if (e.key === 'l') { e.preventDefault(); document.getElementById('btn-tex').click(); }
       if (e.key === 'm') { e.preventDefault(); document.getElementById('btn-md').click(); }
+      if (e.key === 's') { e.preventDefault(); document.getElementById('btn-yaml-export').click(); }
+      if (e.key === 'o') { e.preventDefault(); document.getElementById('btn-yaml-import').click(); }
       if (e.key === '=' || e.key === '+') { e.preventDefault(); preview.zoomIn(); }
       if (e.key === '-') { e.preventDefault(); preview.zoomOut(); }
       if (e.key === '0') { e.preventDefault(); preview.resetZoom(); }

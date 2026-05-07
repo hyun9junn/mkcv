@@ -169,7 +169,13 @@ window.onboarding = (() => {
     _el('onboarding-overlay').classList.remove('open');
   }
 
+  function preloadImages() {
+    STEPS.forEach(s => { const img = new Image(); img.src = s.img; });
+  }
+
   function init() {
+    preloadImages();
+
     _el('ob-btn-next').addEventListener('click', () => {
       if (_step < STEPS.length - 1) { _step++; render(); } else { hide(); }
     });
