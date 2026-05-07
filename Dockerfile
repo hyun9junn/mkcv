@@ -13,6 +13,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     fonts-linuxlibertine \
     lmodern \
     tex-gyre \
+    fontconfig \
     && rm -rf /var/lib/apt/lists/* \
     && printf '<fontconfig>\n  <dir>/usr/share/texmf/fonts/opentype</dir>\n  <dir>/usr/share/texlive/texmf-dist/fonts/opentype</dir>\n</fontconfig>\n' \
        > /etc/fonts/conf.d/09-texlive.conf \
