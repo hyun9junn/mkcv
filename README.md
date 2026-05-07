@@ -323,7 +323,7 @@ mkcv is a stateless container — deploy anywhere Docker runs. No platform-speci
 
 Required for local dev only. Docker users can skip this.
 
-mkcv uses `xelatex` for PDF generation. For Korean text support, make sure your local setup includes both XeLaTeX and Korean fonts such as Nanum or Noto CJK.
+mkcv uses `xelatex` for PDF generation. For full template parity with the Docker image, make sure your local setup includes XeLaTeX, Korean fonts such as Nanum or Noto CJK, and the Latin/display fonts used by several templates (`EB Garamond`, `Linux Libertine`, `TeX Gyre`).
 
 ### macOS
 
@@ -338,10 +338,12 @@ Open a new terminal after installation.
 brew install --cask basictex
 # open a new terminal, then:
 sudo tlmgr update --self
-sudo tlmgr install xetex collection-langkorean collection-fontsrecommended enumitem geometry hyperref xcolor fontawesome5
+sudo tlmgr install xetex collection-langkorean collection-fontsrecommended \
+     collection-fontsextra collection-pictures enumitem geometry hyperref \
+     xcolor fontawesome5
 ```
 
-If Korean text still falls back to generic fonts, install Nanum or Noto CJK fonts at the OS level.
+If Korean text still falls back to generic fonts, install Nanum or Noto CJK fonts at the OS level. If `foundry`, `masthead`, `scholar-index`, `boardroom`, `letterpress`, or `signature-split` fail locally but work in Docker, also install `EB Garamond` and `Linux Libertine` and refresh your font cache.
 
 ### Windows
 
@@ -350,6 +352,8 @@ If Korean text still falls back to generic fonts, install Nanum or Noto CJK font
 2. Run the installer (install for all users recommended)
 3. Open a new Command Prompt — `xelatex` is on `PATH` automatically
 4. Keep on-the-fly package installation enabled, and install Nanum or Noto CJK fonts in Windows if Korean font lookup fails
+
+If serif/editorial templates still fail, also install `EB Garamond` and `Linux Libertine` at the OS level.
 
 **TeX Live:**
 1. Download `install-tl-windows.exe` from https://tug.org/texlive/acquire-netinstall.html
@@ -362,7 +366,10 @@ If Korean text still falls back to generic fonts, install Nanum or Noto CJK font
 # Debian / Ubuntu
 sudo apt-get install texlive-latex-recommended texlive-fonts-recommended \
      texlive-latex-extra texlive-fonts-extra texlive-lang-korean \
-     texlive-xetex fonts-nanum fonts-noto-cjk
+     texlive-xetex texlive-pictures tex-gyre fontconfig \
+     fonts-nanum fonts-noto-cjk fonts-linuxlibertine fonts-ebgaramond
+
+sudo fc-cache -fv
 
 # Fedora / RHEL
 sudo dnf install texlive-scheme-medium texlive-xetex google-noto-cjk-fonts
@@ -370,6 +377,8 @@ sudo dnf install texlive-scheme-medium texlive-xetex google-noto-cjk-fonts
 # Arch Linux
 sudo pacman -S texlive-most noto-fonts-cjk
 ```
+
+If your distro splits template fonts into separate packages, also install `EB Garamond` and `Linux Libertine`, then refresh `fontconfig` so `fontspec` can find them.
 
 **Verify:**
 ```bash
