@@ -1146,9 +1146,9 @@
           </button>
         </div>
         <div class="zoom-controls">
-          <button class="zoom-btn" id="editor-zoom-out" title="Zoom out (Ctrl+scroll)">−</button>
+          <button class="zoom-btn" id="editor-zoom-out" title="Zoom out (Ctrl/Cmd+scroll)">−</button>
           <span class="zoom-label" id="editor-zoom-label" title="Click to reset zoom">100%</span>
-          <button class="zoom-btn" id="editor-zoom-in" title="Zoom in (Ctrl+scroll)">+</button>
+          <button class="zoom-btn" id="editor-zoom-in" title="Zoom in (Ctrl/Cmd+scroll)">+</button>
         </div>
       </div>
       <span class="mini" id="editor-meta"></span>
@@ -1162,9 +1162,9 @@
     <div class="pane-header">
       <span id="preview-pane-title">Preview</span>
       <div class="zoom-controls">
-        <button class="zoom-btn" id="preview-zoom-out" title="Zoom out (Ctrl+scroll)">−</button>
-        <span class="zoom-label" id="preview-zoom-label" title="Click to reset zoom">100%</span>
-        <button class="zoom-btn" id="preview-zoom-in" title="Zoom in (Ctrl+scroll)">+</button>
+        <button class="zoom-btn" id="preview-zoom-out" title="Zoom out (Ctrl/Cmd+scroll or Alt+Ctrl/Cmd+-)">−</button>
+        <span class="zoom-label" id="preview-zoom-label" title="Click to reset zoom or use Alt+Ctrl/Cmd+0">100%</span>
+        <button class="zoom-btn" id="preview-zoom-in" title="Zoom in (Ctrl/Cmd+scroll or Alt+Ctrl/Cmd++)">+</button>
       </div>
     </div>
     <div style="flex:1;position:relative;overflow:hidden;display:flex;flex-direction:column">
@@ -1392,9 +1392,11 @@ document.addEventListener('DOMContentLoaded', () => {
       if (e.key === 'm') { e.preventDefault(); document.getElementById('btn-md').click(); }
       if (e.key === 's') { e.preventDefault(); document.getElementById('btn-yaml-export').click(); }
       if (e.key === 'o') { e.preventDefault(); document.getElementById('btn-yaml-import').click(); }
-      if (e.key === '=' || e.key === '+') { e.preventDefault(); preview.zoomIn(); }
-      if (e.key === '-') { e.preventDefault(); preview.zoomOut(); }
-      if (e.key === '0') { e.preventDefault(); preview.resetZoom(); }
+      if (e.altKey) {
+        if (e.key === '=' || e.key === '+') { e.preventDefault(); preview.zoomIn(); }
+        if (e.key === '-') { e.preventDefault(); preview.zoomOut(); }
+        if (e.key === '0') { e.preventDefault(); preview.resetZoom(); }
+      }
     }
   });
 

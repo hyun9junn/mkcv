@@ -14,7 +14,10 @@ function makeContext() {
   };
 
   const domReadyCallbacks = [];
+  const documentListeners = new Map();
   const elements = new Map();
+  const previewCalls = { zoomIn: 0, zoomOut: 0, resetZoom: 0, refit: 0 };
+  const editorCalls = { zoomIn: 0, zoomOut: 0, resetZoom: 0 };
 
   function makeEl(id) {
     const listeners = new Map();
@@ -26,10 +29,15 @@ function makeContext() {
         if (!listeners.has(type)) listeners.set(type, []);
         listeners.get(type).push(cb);
       },
+      trigger(type, event = {}) {
+        for (const cb of listeners.get(type) || []) cb(event);
+      },
       click() {
         for (const cb of listeners.get('click') || []) cb({ stopPropagation() {} });
       },
       querySelectorAll(selector) { return []; },
+      querySelector() { return null; },
+      getBoundingClientRect() { return { left: 0, width: 100 }; },
       hidden: false,
     };
   }
@@ -39,6 +47,11 @@ function makeContext() {
     'reset-all-modal',
     'reset-all-cancel',
     'reset-all-confirm',
+    'btn-pdf',
+    'btn-tex',
+    'btn-md',
+    'btn-yaml-export',
+    'btn-yaml-import',
     'export-trigger',
     'export-menu',
     'template-dropdown',
@@ -48,6 +61,7 @@ function makeContext() {
     'reset-sections-order-btn',
     'theme-toggle', 'theme-label',
     'gutter-handle', 'split', 'editor-pane', 'preview-pane',
+    'lines-stat', 'editor-meta', 'save-dot', 'save-text', 'cursor-pos',
   ];
   for (const id of ids) elements.set(id, makeEl(id));
 
@@ -60,20 +74,54 @@ function makeContext() {
     document: {
       getElementById(id) { return elements.get(id) ?? null; },
       addEventListener(type, cb) {
-        if (type === 'DOMContentLoaded') domReadyCallbacks.push(cb);
+        if (type === 'DOMContentLoaded') {
+          domReadyCallbacks.push(cb);
+          return;
+        }
+        if (!documentListeners.has(type)) documentListeners.set(type, []);
+        documentListeners.get(type).push(cb);
       },
+      querySelector() { return null; },
       documentElement: { dataset: { theme: 'light' } },
+      body: { style: {} },
     },
     location: { reload() { reloaded = true; } },
     window: {},
-    preview: { zoomIn() {}, zoomOut() {}, resetZoom() {}, refit() {} },
-    editorAdapter: { zoomIn() {}, zoomOut() {}, resetZoom() {}, onChange() {}, onCursorActivity() {}, getCursor() { return { line: 0, ch: 0 }; } },
-    app: { state: { template: 'classic' } },
+    preview: {
+      zoomIn() { previewCalls.zoomIn += 1; },
+      zoomOut() { previewCalls.zoomOut += 1; },
+      resetZoom() { previewCalls.resetZoom += 1; },
+      refit() { previewCalls.refit += 1; },
+    },
+    editorAdapter: {
+      zoomIn() { editorCalls.zoomIn += 1; },
+      zoomOut() { editorCalls.zoomOut += 1; },
+      resetZoom() { editorCalls.resetZoom += 1; },
+      onChange() {},
+      onCursorActivity() {},
+      getCursor() { return { line: 0, ch: 0 }; },
+    },
+    app: {
+      state: { template: 'classic', yaml: 'name: Test\n', lang: 'en' },
+      setLang(lang) { this.state.lang = lang; },
+    },
     settingsSync: null,
     templateRegistry: null,
+    onboarding: { init() {}, show() {} },
   };
   ctx.window = ctx;
-  return { ctx, store, elements, domReadyCallbacks, get reloaded() { return reloaded; } };
+  return {
+    ctx,
+    store,
+    elements,
+    domReadyCallbacks,
+    previewCalls,
+    editorCalls,
+    dispatchDocumentEvent(type, event) {
+      for (const cb of documentListeners.get(type) || []) cb(event);
+    },
+    get reloaded() { return reloaded; },
+  };
 }
 
 function boot(ctx, domReadyCallbacks) {
@@ -119,4 +167,59 @@ test('clearMkcvStorage handles empty localStorage without errors', () => {
   boot(ctx, domReadyCallbacks);
   assert.doesNotThrow(() => ctx.clearMkcvStorage());
   assert.equal(store.size, 0);
+});
+
+function createKeyEvent(overrides = {}) {
+  return {
+    key: '',
+    ctrlKey: false,
+    metaKey: false,
+    altKey: false,
+    defaultPrevented: false,
+    preventDefault() {
+      this.defaultPrevented = true;
+    },
+    stopPropagation() {},
+    ...overrides,
+  };
+}
+
+test('cmd/ctrl +/-/0 no longer hijacks browser zoom for preview', () => {
+  const { domReadyCallbacks, dispatchDocumentEvent, previewCalls, ctx } = makeContext();
+  boot(ctx, domReadyCallbacks);
+
+  const zoomInEvent = createKeyEvent({ key: '=', metaKey: true });
+  dispatchDocumentEvent('keydown', zoomInEvent);
+
+  const zoomOutEvent = createKeyEvent({ key: '-', ctrlKey: true });
+  dispatchDocumentEvent('keydown', zoomOutEvent);
+
+  const resetEvent = createKeyEvent({ key: '0', metaKey: true });
+  dispatchDocumentEvent('keydown', resetEvent);
+
+  assert.deepEqual(previewCalls, { zoomIn: 0, zoomOut: 0, resetZoom: 0, refit: 0 });
+  assert.equal(zoomInEvent.defaultPrevented, false);
+  assert.equal(zoomOutEvent.defaultPrevented, false);
+  assert.equal(resetEvent.defaultPrevented, false);
+});
+
+test('alt+cmd/ctrl +/-/0 still controls preview zoom', () => {
+  const { domReadyCallbacks, dispatchDocumentEvent, previewCalls, ctx } = makeContext();
+  boot(ctx, domReadyCallbacks);
+
+  const zoomInEvent = createKeyEvent({ key: '+', altKey: true, metaKey: true });
+  dispatchDocumentEvent('keydown', zoomInEvent);
+
+  const zoomOutEvent = createKeyEvent({ key: '-', altKey: true, ctrlKey: true });
+  dispatchDocumentEvent('keydown', zoomOutEvent);
+
+  const resetEvent = createKeyEvent({ key: '0', altKey: true, metaKey: true });
+  dispatchDocumentEvent('keydown', resetEvent);
+
+  assert.equal(previewCalls.zoomIn, 1);
+  assert.equal(previewCalls.zoomOut, 1);
+  assert.equal(previewCalls.resetZoom, 1);
+  assert.equal(zoomInEvent.defaultPrevented, true);
+  assert.equal(zoomOutEvent.defaultPrevented, true);
+  assert.equal(resetEvent.defaultPrevented, true);
 });
