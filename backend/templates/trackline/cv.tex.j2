@@ -1,16 +1,13 @@
 % =============================================================
 % MKCV — Template: trackline
 % Audience: product / design / data — info-design forward
-% Compiler: pdfLaTeX
+% Compiler: XeLaTeX
 % Layout: left date-rail with dots, content hanging on the right
 % =============================================================
 \documentclass[<< font_size >>,a4paper]{article}
 << layout_preamble >>
 
 \usepackage[a4paper,top=18mm,bottom=18mm,left=18mm,right=18mm]{geometry}
-\usepackage[T1]{fontenc}
-\usepackage[utf8]{inputenc}
-\usepackage{lmodern}
 \usepackage{tgheros}
 \usepackage{xcolor}
 \usepackage{enumitem}
@@ -21,7 +18,6 @@
 \usepackage{array}
 \usepackage{parskip}
 \usepackage{etoolbox}
-\usepackage{tikz}
 
 % ---------- palette: forest green accent on warm white -------
 \definecolor{cvink}{HTML}{14181B}
@@ -49,6 +45,7 @@
 \newcommand{\cvrole}[1]{{\bfseries #1}}
 \newcommand{\cvorg}[1]{{\color{cvaccent} #1}}
 \newcommand{\cvdate}[1]{{\footnotesize\color{cvmute} #1}}
+\newcommand{\timelinedot}{{\color{cvaccent}\large\textbullet}}
 
 % Timeline entry: date column on left, dot, content on right
 % Args: 1 = date string, 2 = body
@@ -58,9 +55,7 @@
   \end{minipage}%
   \hspace{4pt}%
   \begin{minipage}[t]{0.025\linewidth}\centering
-    \begin{tikzpicture}[baseline=(d.base)]
-      \node[circle,draw=cvaccent,fill=cvaccent2,line width=0.8pt,inner sep=1.6pt] (d) at (0,0) {};
-    \end{tikzpicture}
+    \timelinedot
   \end{minipage}%
   \hspace{4pt}%
   \begin{minipage}[t]{0.72\linewidth}
