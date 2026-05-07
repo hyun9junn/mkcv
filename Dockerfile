@@ -11,12 +11,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     fonts-nanum \
     fonts-noto-cjk \
     fonts-linuxlibertine \
+    fonts-ebgaramond \
     lmodern \
     tex-gyre \
     fontconfig \
     && rm -rf /var/lib/apt/lists/* \
-    && printf '<fontconfig>\n  <dir>/usr/share/texmf/fonts/opentype</dir>\n  <dir>/usr/share/texlive/texmf-dist/fonts/opentype</dir>\n</fontconfig>\n' \
-       > /etc/fonts/conf.d/09-texlive.conf \
+    && mkdir -p /usr/local/share/fonts/opentype \
+    && find /usr/share/texmf /usr/share/texlive -name "*.otf" -exec cp {} /usr/local/share/fonts/opentype/ \; 2>/dev/null || true \
     && fc-cache -fv
 
 WORKDIR /app
