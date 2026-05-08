@@ -101,7 +101,7 @@ export async function main({ baseUrl = DEFAULT_BASE_URL, outputDir = DEFAULT_OUT
   const { chromium } = await import('playwright');
   const resumeYaml = fs.readFileSync(SAMPLE_RESUME_PATH, 'utf8');
   const seed = buildSeedStorage(resumeYaml);
-  const url = baseUrl.replace(/\/$/, '') + '/';
+  const url = baseUrl.replace(/\/$/, '') + '/?capture=gif';
 
   fs.mkdirSync(outputDir, { recursive: true });
 
