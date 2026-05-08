@@ -55,6 +55,10 @@ export function resolveGifencBindings(moduleNamespace) {
   return bindings;
 }
 
+export function resolveGifFrameDelayMs(holdMs) {
+  return Math.max(1, Math.round(holdMs));
+}
+
 async function waitForPreviewStable(page) {
   await page.waitForFunction(() => {
     const loading = document.getElementById('preview-loading');
@@ -117,7 +121,7 @@ async function encodeGif(frames, outputPath) {
     const pixels = applyPalette(png.data, palette);
     gif.writeFrame(pixels, png.width, png.height, {
       palette,
-      delay: Math.max(1, Math.round(frame.holdMs / 10)),
+      delay: resolveGifFrameDelayMs(frame.holdMs),
     });
   }
 

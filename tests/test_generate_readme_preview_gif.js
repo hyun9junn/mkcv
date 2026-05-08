@@ -68,3 +68,10 @@ test('resolveGifencBindings unwraps CommonJS-flavored module exports', async () 
   assert.equal(typeof bindings.quantize, 'function');
   assert.equal(typeof bindings.applyPalette, 'function');
 });
+
+test('resolveGifFrameDelayMs keeps storyboard hold values in real milliseconds', async () => {
+  const mod = await loadModule();
+
+  assert.equal(mod.resolveGifFrameDelayMs(4500), 4500);
+  assert.equal(mod.resolveGifFrameDelayMs(1100), 1100);
+});
