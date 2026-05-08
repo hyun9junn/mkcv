@@ -27,7 +27,7 @@ jobs:
             --exclude='docs' \
             --exclude='tests' \
             --exclude='README.md' \
-            --exclude='preview.png' \
+            --exclude='preview.gif' \
             . /tmp/hf-space/
 
       - name: Write HF Space README
