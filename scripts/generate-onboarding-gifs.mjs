@@ -315,42 +315,38 @@ async function scene06Layout(page, frames) {
 }
 
 async function scene07aTemplatePicker(page, frames) {
-  // Open template picker
+  // Open template picker, zoom in to show cards
   await page.click('#template-trigger');
   await page.waitForTimeout(300);
+  await captureZoomedFrame(page, frames, ZOOM_TEMPLATE_PICKER, 1000);
 
-  // Zoom in on picker panel
-  await captureZoomedFrame(page, frames, ZOOM_TEMPLATE_PICKER, 900);
-
-  // Click 'classic' template
+  // Click 'classic' — picker closes, preview re-renders
   await waitForNextPreviewStable(page, () =>
     page.click('.tpl-card[data-name="classic"]')
   );
-  await captureZoomedFrame(page, frames, ZOOM_TEMPLATE_PICKER, 700);
 
   // Zoom out — preview shows classic template
   await captureFrame(page, frames, 1700);
 
-  // Zoom back in, click 'boardroom'
-  await captureZoomedFrame(page, frames, ZOOM_TEMPLATE_PICKER, 600);
+  // Reopen picker, zoom in again
+  await page.click('#template-trigger');
+  await page.waitForTimeout(300);
+  await captureZoomedFrame(page, frames, ZOOM_TEMPLATE_PICKER, 800);
+
+  // Click 'boardroom' — picker closes, preview re-renders
   await waitForNextPreviewStable(page, () =>
     page.click('.tpl-card[data-name="boardroom"]')
   );
-  await captureZoomedFrame(page, frames, ZOOM_TEMPLATE_PICKER, 700);
 
   // Zoom out — preview shows boardroom template
   await captureFrame(page, frames, 1700);
 
-  // Restore original template — close picker first, then reopen to select trackline
-  await page.keyboard.press('Escape');
-  await page.waitForTimeout(200);
+  // Restore original template
   await page.click('#template-trigger');
   await page.waitForTimeout(300);
   await waitForNextPreviewStable(page, () =>
     page.click('.tpl-card[data-name="trackline"]')
   );
-  await page.keyboard.press('Escape');
-  await page.waitForTimeout(200);
 }
 
 async function scene07bSettings(page, frames) {
