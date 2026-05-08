@@ -241,6 +241,164 @@ async function scene05Contact(page, frames) {
   await page.waitForTimeout(300);
 }
 
+async function scene04Sections(page, frames) {
+  const CHIP_KEY = 'skills';
+
+  // Zoom in on toolbar — show chips clearly
+  await captureZoomedFrame(page, frames, ZOOM_TOOLBAR, 900);
+
+  // Click chip-dot to hide the skills section, wait for preview
+  await waitForNextPreviewStable(page, () =>
+    page.click(`.chip[data-key="${CHIP_KEY}"] .chip-dot`)
+  );
+  await captureZoomedFrame(page, frames, ZOOM_TOOLBAR, 600);
+
+  // Zoom out — preview shows section is gone
+  await captureFrame(page, frames, 1800);
+
+  // Zoom back in
+  await captureZoomedFrame(page, frames, ZOOM_TOOLBAR, 700);
+
+  // Click chip-dot again to unhide
+  await waitForNextPreviewStable(page, () =>
+    page.click(`.chip[data-key="${CHIP_KEY}"] .chip-dot`)
+  );
+  await captureZoomedFrame(page, frames, ZOOM_TOOLBAR, 500);
+
+  // Double-click chip-name to rename
+  await page.dblclick(`.chip[data-key="${CHIP_KEY}"] .chip-name`);
+  await page.waitForTimeout(300);
+  await captureZoomedFrame(page, frames, ZOOM_TOOLBAR, 700);
+
+  // Clear the input and type new name
+  await page.keyboard.press('Control+A');
+  await page.keyboard.type('Core Skills');
+  await captureZoomedFrame(page, frames, ZOOM_TOOLBAR, 800);
+
+  // Confirm with Enter — triggers preview update
+  await waitForNextPreviewStable(page, () => page.keyboard.press('Enter'));
+
+  // Zoom out — preview shows new section title
+  await captureFrame(page, frames, 2000);
+
+  // Restore original name to leave app clean for subsequent scenes
+  await page.dblclick(`.chip[data-key="${CHIP_KEY}"] .chip-name`);
+  await page.waitForTimeout(200);
+  await page.keyboard.press('Control+A');
+  await page.keyboard.type('skills');
+  await waitForNextPreviewStable(page, () => page.keyboard.press('Enter'));
+}
+
+async function scene06Layout(page, frames) {
+  // Zoom in on density buttons
+  await captureZoomedFrame(page, frames, ZOOM_TOOLBAR, 800);
+
+  // Comfortable → Balanced
+  await waitForNextPreviewStable(page, () =>
+    page.click('#density-group button[data-value="balanced"]')
+  );
+  await captureZoomedFrame(page, frames, ZOOM_TOOLBAR, 500);
+  await captureFrame(page, frames, 1500);
+
+  // Balanced → Compact
+  await captureZoomedFrame(page, frames, ZOOM_TOOLBAR, 500);
+  await waitForNextPreviewStable(page, () =>
+    page.click('#density-group button[data-value="compact"]')
+  );
+  await captureZoomedFrame(page, frames, ZOOM_TOOLBAR, 500);
+  await captureFrame(page, frames, 1500);
+
+  // Restore comfortable to leave app clean
+  await waitForNextPreviewStable(page, () =>
+    page.click('#density-group button[data-value="comfortable"]')
+  );
+}
+
+async function scene07aTemplatePicker(page, frames) {
+  // Open template picker
+  await page.click('#template-trigger');
+  await page.waitForTimeout(300);
+
+  // Zoom in on picker panel
+  await captureZoomedFrame(page, frames, ZOOM_TEMPLATE_PICKER, 900);
+
+  // Click 'classic' template
+  await waitForNextPreviewStable(page, () =>
+    page.click('.tpl-card[data-name="classic"]')
+  );
+  await captureZoomedFrame(page, frames, ZOOM_TEMPLATE_PICKER, 700);
+
+  // Zoom out — preview shows classic template
+  await captureFrame(page, frames, 1700);
+
+  // Zoom back in, click 'boardroom'
+  await captureZoomedFrame(page, frames, ZOOM_TEMPLATE_PICKER, 600);
+  await waitForNextPreviewStable(page, () =>
+    page.click('.tpl-card[data-name="boardroom"]')
+  );
+  await captureZoomedFrame(page, frames, ZOOM_TEMPLATE_PICKER, 700);
+
+  // Zoom out — preview shows boardroom template
+  await captureFrame(page, frames, 1700);
+
+  // Restore original template — close picker first, then reopen to select trackline
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(200);
+  await page.click('#template-trigger');
+  await page.waitForTimeout(300);
+  await waitForNextPreviewStable(page, () =>
+    page.click('.tpl-card[data-name="trackline"]')
+  );
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(200);
+}
+
+async function scene07bSettings(page, frames) {
+  const shoot = async (holdMs) => {
+    const buf = await page.screenshot({ clip: CLIP_EDITOR });
+    frames.push({ buffer: buf, holdMs });
+  };
+
+  // Show resume tab baseline
+  await shoot(700);
+
+  // Switch to settings tab
+  await page.click('#file-tab-settings');
+  await page.waitForTimeout(500);
+  await shoot(2000);
+
+  // Switch back to resume tab
+  await page.click('#file-tab-resume');
+  await page.waitForTimeout(300);
+  await shoot(600);
+}
+
+async function scene08Export(page, frames) {
+  // Zoom in on export button area
+  await captureZoomedFrame(page, frames, ZOOM_EXPORT_BTN, 800);
+
+  // Open export dropdown
+  await page.click('#export-trigger');
+  await page.waitForTimeout(300);
+  await captureZoomedFrame(page, frames, ZOOM_EXPORT_BTN, 1200);
+
+  // Click PDF option — triggers filename modal (full page overlay)
+  await page.click('.export-option[data-export="pdf"]');
+  await page.waitForFunction(() => {
+    const modal = document.getElementById('filename-modal');
+    return Boolean(modal?.classList.contains('open'));
+  }, null, { timeout: 10000 });
+
+  // Zoom out — filename modal visible over full page
+  await captureFrame(page, frames, 2400);
+
+  // Close modal to leave app clean
+  await page.click('#filename-modal-cancel').catch(() =>
+    page.keyboard.press('Escape')
+  );
+  await page.waitForTimeout(300);
+}
+
 export async function main({ baseUrl = DEFAULT_BASE_URL, outputDir = DEFAULT_OUT_DIR } = {}) {
   const { chromium } = await import('playwright');
   const resumeYaml = fs.readFileSync(SAMPLE_RESUME_PATH, 'utf8');
