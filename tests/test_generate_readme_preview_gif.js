@@ -48,3 +48,20 @@ test('resolveCaptureOptions points at ?capture=gif and preview.gif', async () =>
   assert.equal(opts.targetTemplate, 'trackline');
   assert.equal(opts.outputPath, path.resolve('preview.gif'));
 });
+
+test('resolveGifencBindings unwraps CommonJS-flavored module exports', async () => {
+  const mod = await loadModule();
+  const fakeModule = {
+    default: {
+      GIFEncoder() {},
+      quantize() {},
+      applyPalette() {},
+    },
+  };
+
+  const bindings = mod.resolveGifencBindings(fakeModule);
+
+  assert.equal(typeof bindings.GIFEncoder, 'function');
+  assert.equal(typeof bindings.quantize, 'function');
+  assert.equal(typeof bindings.applyPalette, 'function');
+});

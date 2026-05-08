@@ -41,6 +41,20 @@ export function resolveCaptureOptions({
   };
 }
 
+export function resolveGifencBindings(moduleNamespace) {
+  const bindings =
+    (moduleNamespace && typeof moduleNamespace.GIFEncoder === 'function' && moduleNamespace) ||
+    (moduleNamespace?.default && typeof moduleNamespace.default.GIFEncoder === 'function' && moduleNamespace.default) ||
+    (moduleNamespace?.['module.exports'] &&
+      typeof moduleNamespace['module.exports'].GIFEncoder === 'function' &&
+      moduleNamespace['module.exports']);
+
+  if (!bindings) {
+    throw new TypeError('Unable to resolve gifenc bindings');
+  }
+  return bindings;
+}
+
 async function waitForPreviewStable(page) {
   await page.waitForFunction(() => {
     const loading = document.getElementById('preview-loading');
@@ -92,7 +106,8 @@ async function openExport(page, frames, clip, beat) {
 
 async function encodeGif(frames, outputPath) {
   const { PNG } = await import('pngjs');
-  const { GIFEncoder, quantize, applyPalette } = await import('gifenc');
+  const gifencModule = await import('gifenc');
+  const { GIFEncoder, quantize, applyPalette } = resolveGifencBindings(gifencModule);
 
   const gif = GIFEncoder();
 
