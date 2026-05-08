@@ -24,5 +24,10 @@
   "homepage": "https://github.com/hyun9junn/mkcv#readme",
   "dependencies": {
     "js-yaml": "^4.1.1"
+  },
+  "devDependencies": {
+    "gifenc": "^1.0.3",
+    "playwright": "^1.59.1",
+    "pngjs": "^7.0.0"
   }
 }
