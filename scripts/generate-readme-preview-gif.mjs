@@ -18,12 +18,12 @@ export function buildSeedStorage(resumeYaml) {
 
 export function buildStoryboard() {
   return [
-    { name: 'initial-state', holdMs: 600 },
-    { name: 'typed-name', holdMs: 100 },
-    { name: 'preview-settled', holdMs: 900 },
-    { name: 'template-picker-open', holdMs: 350 },
-    { name: 'template-applied', holdMs: 900, template: TARGET_TEMPLATE },
-    { name: 'export-open', holdMs: 1200 },
+    { name: 'initial-state', holdMs: 900 },
+    { name: 'typed-name', holdMs: 220 },
+    { name: 'preview-settled', holdMs: 1500 },
+    { name: 'template-picker-open', holdMs: 1400 },
+    { name: 'template-applied', holdMs: 1700, template: TARGET_TEMPLATE },
+    { name: 'export-open', holdMs: 2200 },
   ];
 }
 

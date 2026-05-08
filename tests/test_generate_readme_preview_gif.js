@@ -34,8 +34,11 @@ test('buildStoryboard returns the README beats in a fixed order', async () => {
       'export-open',
     ]
   );
+  assert.deepEqual(
+    storyboard.map((beat) => beat.holdMs),
+    [900, 220, 1500, 1400, 1700, 2200]
+  );
   assert.equal(storyboard.find((beat) => beat.name === 'template-applied').template, 'trackline');
-  assert.equal(storyboard.at(-1).holdMs, 1200);
 });
 
 test('resolveCaptureOptions points at ?capture=gif and preview.gif', async () => {
