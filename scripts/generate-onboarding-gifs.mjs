@@ -13,6 +13,7 @@ export function buildSeedStorage(resumeYaml) {
     mkcv_onboarding_seen: '1',
     mkcv_theme: 'light',
     'mkcv:default:resume.yaml': resumeYaml,
+    'mkcv:default:settings.yaml': 'layout:\n  density: comfortable\n',
   };
 }
 
@@ -270,8 +271,7 @@ async function scene04Sections(page, frames) {
   await page.waitForTimeout(300);
   await captureZoomedFrame(page, frames, ZOOM_TOOLBAR, 700);
 
-  // Clear the input and type new name
-  await page.keyboard.press('Control+A');
+  // Input text is auto-selected on focus (sections-ui.js:145), so type directly
   await page.keyboard.type('Core Skills');
   await captureZoomedFrame(page, frames, ZOOM_TOOLBAR, 800);
 
@@ -284,7 +284,6 @@ async function scene04Sections(page, frames) {
   // Restore original name to leave app clean for subsequent scenes
   await page.dblclick(`.chip[data-key="${CHIP_KEY}"] .chip-name`);
   await page.waitForTimeout(200);
-  await page.keyboard.press('Control+A');
   await page.keyboard.type('skills');
   await waitForNextPreviewStable(page, () => page.keyboard.press('Enter'));
 }
