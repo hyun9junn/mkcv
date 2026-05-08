@@ -97,6 +97,71 @@ async function encodeGif(frames, outputPath) {
   fs.writeFileSync(outputPath, Buffer.from(gif.bytes()));
 }
 
+const ZOOM_EDITOR = { x: 0, y: 55, width: 650, height: 795 };
+const ZOOM_TOOLBAR = { x: 0, y: 0, width: 1400, height: 110 };
+const ZOOM_TEMPLATE_PICKER = { x: 578, y: 0, width: 422, height: 700 };
+const ZOOM_EXPORT_BTN = { x: 1150, y: 0, width: 250, height: 200 };
+
+const CLIP_EDITOR  = { x: 0,   y: 55, width: 650, height: 795 };
+const CLIP_PREVIEW = { x: 695, y: 55, width: 705, height: 795 };
+const CLIP_CONTACT = { x: 0,   y: 55, width: 750, height: 420 };
+
+async function scene01Welcome(page, frames) {
+  // Zoom in: show editor with cursor positioned
+  await page.locator('.CodeMirror').click();
+  await page.evaluate(() => {
+    const cm = window.editorAdapter?._editor;
+    if (!cm) throw new Error('CodeMirror editor not ready');
+    cm.focus();
+    cm.setCursor({ line: 1, ch: '  name: Jane'.length });
+  });
+  await captureZoomedFrame(page, frames, ZOOM_EDITOR, 800);
+
+  // Type " Marie" and zoom out once preview settles
+  await waitForNextPreviewStable(page, async () => {
+    for (const char of ' Marie') {
+      await page.keyboard.type(char, { delay: 40 });
+      await captureZoomedFrame(page, frames, ZOOM_EDITOR, 80);
+    }
+  });
+
+  // Zoom out: full viewport shows updated preview
+  await captureFrame(page, frames, 2000);
+}
+
+async function scene02Editor(page, frames) {
+  // Show editor in initial state
+  await page.locator('.CodeMirror').click();
+  await page.evaluate(() => {
+    const cm = window.editorAdapter?._editor;
+    cm.focus();
+    cm.setCursor({ line: 3, ch: 0 });
+  });
+
+  // Capture tight editor crop — no zoom technique here (preview doesn't change)
+  const shoot = async (holdMs) => {
+    const buf = await page.screenshot({ clip: CLIP_EDITOR });
+    frames.push({ buffer: buf, holdMs });
+  };
+
+  await shoot(700);
+
+  // Type a character to trigger autocomplete
+  await page.keyboard.type('  ');
+  await shoot(300);
+
+  // Open autocomplete
+  await page.keyboard.press('Control+Space');
+  await page.waitForTimeout(400);
+  await shoot(2000);
+
+  // Dismiss and leave editor clean for subsequent scenes
+  await page.keyboard.press('Escape');
+  await page.keyboard.press('Control+Z');
+  await page.keyboard.press('Control+Z');
+  await page.waitForTimeout(200);
+}
+
 export async function main({ baseUrl = DEFAULT_BASE_URL, outputDir = DEFAULT_OUT_DIR } = {}) {
   const { chromium } = await import('playwright');
   const resumeYaml = fs.readFileSync(SAMPLE_RESUME_PATH, 'utf8');
