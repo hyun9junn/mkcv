@@ -36,7 +36,7 @@ test('buildStoryboard returns the README beats in a fixed order', async () => {
   );
   assert.deepEqual(
     storyboard.map((beat) => beat.holdMs),
-    [900, 220, 1500, 1400, 1700, 2200]
+    [4500, 1100, 7500, 7000, 8500, 11000]
   );
   assert.equal(storyboard.find((beat) => beat.name === 'template-applied').template, 'trackline');
 });
