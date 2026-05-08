@@ -18,12 +18,13 @@ export function buildSeedStorage(resumeYaml) {
 
 export function buildStoryboard() {
   return [
-    { name: 'initial-state', holdMs: 4500 },
-    { name: 'typed-name', holdMs: 1100 },
-    { name: 'preview-settled', holdMs: 7500 },
-    { name: 'template-picker-open', holdMs: 7000 },
-    { name: 'template-applied', holdMs: 8500, template: TARGET_TEMPLATE },
-    { name: 'export-open', holdMs: 11000 },
+    { name: 'initial-state', holdMs: 900 },
+    { name: 'typed-name', holdMs: 220 },
+    { name: 'preview-settled', holdMs: 1500 },
+    { name: 'template-picker-open', holdMs: 1400 },
+    { name: 'template-applied', holdMs: 1700, template: TARGET_TEMPLATE },
+    { name: 'export-open', holdMs: 2200 },
+    { name: 'export-filename-modal', holdMs: 2400 },
   ];
 }
 
@@ -59,6 +60,16 @@ export function resolveGifFrameDelayMs(holdMs) {
   return Math.max(1, Math.round(holdMs));
 }
 
+export function isPreviewPdfResponse({ url, method }) {
+  if (typeof method !== 'string' || method.toUpperCase() !== 'POST') return false;
+
+  try {
+    return new URL(url).pathname === '/api/preview/pdf';
+  } catch {
+    return false;
+  }
+}
+
 async function waitForPreviewStable(page) {
   await page.waitForFunction(() => {
     const loading = document.getElementById('preview-loading');
@@ -70,6 +81,21 @@ async function waitForPreviewStable(page) {
       frame.querySelectorAll('canvas').length > 0
     );
   }, null, { timeout: 30000 });
+}
+
+async function waitForNextPreviewStable(page, action) {
+  const nextPreviewResponse = page.waitForResponse(
+    (response) =>
+      isPreviewPdfResponse({
+        url: response.url(),
+        method: response.request().method(),
+      }) && response.ok(),
+    { timeout: 30000 }
+  );
+
+  await action();
+  await nextPreviewResponse;
+  await waitForPreviewStable(page);
 }
 
 async function captureFrame(page, frames, clip, holdMs) {
@@ -97,14 +123,24 @@ async function openTemplateAndApply(page, frames, capture, openBeat, appliedBeat
   await page.waitForTimeout(250);
   await captureFrame(page, frames, capture.clip, openBeat.holdMs);
 
-  await page.click(`.tpl-card[data-name="${capture.targetTemplate}"]`);
-  await waitForPreviewStable(page);
+  await waitForNextPreviewStable(page, () =>
+    page.click(`.tpl-card[data-name="${capture.targetTemplate}"]`)
+  );
   await captureFrame(page, frames, capture.clip, appliedBeat.holdMs);
 }
 
 async function openExport(page, frames, clip, beat) {
   await page.click('#export-trigger');
   await page.waitForTimeout(250);
+  await captureFrame(page, frames, clip, beat.holdMs);
+}
+
+async function openExportFilenameModal(page, frames, clip, beat) {
+  await page.click('.export-option[data-export="pdf"]');
+  await page.waitForFunction(() => {
+    const modal = document.getElementById('filename-modal');
+    return Boolean(modal?.classList.contains('open'));
+  }, null, { timeout: 30000 });
   await captureFrame(page, frames, clip, beat.holdMs);
 }
 
@@ -144,6 +180,7 @@ export async function main({
   const templateOpenBeat = storyboard[3];
   const templateAppliedBeat = storyboard[4];
   const exportBeat = storyboard[5];
+  const exportFilenameModalBeat = storyboard[6];
   const frames = [];
 
   const browser = await chromium.launch();
@@ -162,12 +199,12 @@ export async function main({
     await waitForPreviewStable(page);
     await captureFrame(page, frames, capture.clip, initialBeat.holdMs);
 
-    await typeNameEdit(page, frames, capture.clip, typedBeat);
-    await waitForPreviewStable(page);
+    await waitForNextPreviewStable(page, () => typeNameEdit(page, frames, capture.clip, typedBeat));
     await captureFrame(page, frames, capture.clip, previewBeat.holdMs);
 
     await openTemplateAndApply(page, frames, capture, templateOpenBeat, templateAppliedBeat);
     await openExport(page, frames, capture.clip, exportBeat);
+    await openExportFilenameModal(page, frames, capture.clip, exportFilenameModalBeat);
 
     await encodeGif(frames, capture.outputPath);
     console.log(`Wrote ${capture.outputPath}`);

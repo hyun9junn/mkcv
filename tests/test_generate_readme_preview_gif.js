@@ -32,11 +32,12 @@ test('buildStoryboard returns the README beats in a fixed order', async () => {
       'template-picker-open',
       'template-applied',
       'export-open',
+      'export-filename-modal',
     ]
   );
   assert.deepEqual(
     storyboard.map((beat) => beat.holdMs),
-    [4500, 1100, 7500, 7000, 8500, 11000]
+    [900, 220, 1500, 1400, 1700, 2200, 2400]
   );
   assert.equal(storyboard.find((beat) => beat.name === 'template-applied').template, 'trackline');
 });
@@ -67,6 +68,32 @@ test('resolveGifencBindings unwraps CommonJS-flavored module exports', async () 
   assert.equal(typeof bindings.GIFEncoder, 'function');
   assert.equal(typeof bindings.quantize, 'function');
   assert.equal(typeof bindings.applyPalette, 'function');
+});
+
+test('isPreviewPdfResponse matches preview POST requests only', async () => {
+  const mod = await loadModule();
+
+  assert.equal(
+    mod.isPreviewPdfResponse({
+      url: 'http://localhost:8000/api/preview/pdf',
+      method: 'POST',
+    }),
+    true
+  );
+  assert.equal(
+    mod.isPreviewPdfResponse({
+      url: 'http://localhost:8000/api/export/pdf',
+      method: 'POST',
+    }),
+    false
+  );
+  assert.equal(
+    mod.isPreviewPdfResponse({
+      url: 'http://localhost:8000/api/preview/pdf',
+      method: 'GET',
+    }),
+    false
+  );
 });
 
 test('resolveGifFrameDelayMs keeps storyboard hold values in real milliseconds', async () => {
