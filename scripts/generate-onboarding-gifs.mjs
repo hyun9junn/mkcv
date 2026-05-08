@@ -130,15 +130,23 @@ async function scene01Welcome(page, frames) {
 }
 
 async function scene02Editor(page, frames) {
-  // Show editor with cursor at end of the email line (indent-2, under personal:)
+  // Position cursor at the end of the first experience title: line so that pressing
+  // Enter auto-indents to the experience item level and autocomplete resolves to
+  // experience fields (company, location, start_date, end_date, description, …)
   await page.locator('.CodeMirror').click();
   await page.evaluate(() => {
     const cm = window.editorAdapter?._editor;
     if (!cm) throw new Error('CodeMirror editor not ready');
     cm.focus();
-    // After scene01, line 2 is "  email: jane.smith@example.com"
-    const emailLine = 2;
-    cm.setCursor({ line: emailLine, ch: cm.getLine(emailLine).length });
+    const totalLines = cm.lineCount();
+    let titleLine = -1;
+    for (let i = 0; i < totalLines; i++) {
+      const line = cm.getLine(i);
+      if (/^\s{4}-\s*$/.test(line) || /^\s{2}-\s*$/.test(line)) continue;
+      if (/^\s{4}title:/.test(line)) { titleLine = i; break; }
+    }
+    if (titleLine === -1) throw new Error('title line not found');
+    cm.setCursor({ line: titleLine, ch: cm.getLine(titleLine).length });
   });
 
   // Capture tight editor crop — no zoom technique here (preview doesn't change)
@@ -149,12 +157,13 @@ async function scene02Editor(page, frames) {
 
   await shoot(700);
 
-  // Press Enter → CodeMirror auto-indents to 2 spaces (inside personal: block)
+  // Press Enter → CodeMirror auto-indents to match the experience item field level
   await page.keyboard.press('Enter');
   await shoot(300);
 
-  // Type a partial key to trigger the change-event autocomplete (300ms debounce)
-  await page.keyboard.type('p');
+  // Type 'c' to trigger the change-event autocomplete (300ms debounce)
+  // showing experience field completions: company, certifications, etc.
+  await page.keyboard.type('c');
   // Wait for the 300ms debounce + render
   await page.waitForTimeout(500);
   await shoot(2000);
@@ -163,14 +172,15 @@ async function scene02Editor(page, frames) {
   await page.keyboard.press('Escape');
 
   // Undo all changes made in this scene via CodeMirror API for reliability
-  // Each undo() reverses one history entry: typed 'p', then the Enter
+  // Each undo() reverses one history entry: typed 'c', then the Enter
   await page.evaluate(() => {
     const cm = window.editorAdapter?._editor;
     if (!cm) throw new Error('CodeMirror editor not ready');
-    cm.undo(); // undo typed 'p'
+    cm.closeHint?.(); // explicitly dismiss any stray autocomplete dropdown
+    cm.undo(); // undo typed 'c'
     cm.undo(); // undo Enter keypress
   });
-  await page.waitForTimeout(200);
+  await page.waitForTimeout(400);
 }
 
 export async function main({ baseUrl = DEFAULT_BASE_URL, outputDir = DEFAULT_OUT_DIR } = {}) {
