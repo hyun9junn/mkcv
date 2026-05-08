@@ -108,7 +108,7 @@ function createFetchResponse({ ok = true, jsonData, arrayBufferData }) {
   };
 }
 
-function createHarness({ search = '' } = {}) {
+function createHarness({ search = '', getVisibleOrder, getOrderedFilteredYaml } = {}) {
   const timers = createTimerHarness();
   const domReadyCallbacks = [];
   const elements = new Map([
@@ -182,9 +182,11 @@ function createHarness({ search = '' } = {}) {
     },
     sectionsState: {
       getVisibleOrder(yaml) {
+        if (typeof getVisibleOrder === 'function') return getVisibleOrder(yaml);
         return [`visible:${yaml}`];
       },
       getOrderedFilteredYaml(yaml) {
+        if (typeof getOrderedFilteredYaml === 'function') return getOrderedFilteredYaml(yaml);
         return `ordered:${yaml}`;
       },
     },
@@ -365,6 +367,146 @@ test('capture=gif lowers the debounce window for README capture runs', async () 
 
   assert.equal(harness.fetchCalls.length, 2);
   assert.equal(JSON.parse(harness.fetchCalls[1].options.body).yaml, 'ordered:yaml-fast');
+});
+
+test('editor changes skip duplicate preview requests when normalized render input is unchanged', async () => {
+  const harness = createHarness({
+    getVisibleOrder() {
+      return ['summary'];
+    },
+    getOrderedFilteredYaml(yaml) {
+      if (yaml === 'yaml-space-a' || yaml === 'yaml-space-b') return 'ordered:stable';
+      return `ordered:${yaml}`;
+    },
+  });
+  harness.boot();
+
+  harness.timers.advanceBy(200);
+  await flushMicrotasks();
+  await settleRequest(
+    harness.fetchCalls[0],
+    createFetchResponse({ arrayBufferData: new ArrayBuffer(4) })
+  );
+  await flushMicrotasks();
+
+  harness.context.app.state.yaml = 'yaml-space-a';
+  harness.editorCallbacks[0]();
+  harness.timers.runAll();
+  await flushMicrotasks();
+
+  assert.equal(harness.fetchCalls.length, 2);
+  assert.equal(JSON.parse(harness.fetchCalls[1].options.body).yaml, 'ordered:stable');
+  await settleRequest(
+    harness.fetchCalls[1],
+    createFetchResponse({ arrayBufferData: new ArrayBuffer(4) })
+  );
+  await flushMicrotasks();
+
+  harness.context.app.state.yaml = 'yaml-space-b';
+  harness.editorCallbacks[0]();
+  harness.timers.runAll();
+  await flushMicrotasks();
+
+  assert.equal(harness.fetchCalls.length, 2);
+});
+
+test('reverting to the in-flight preview state clears queued duplicate work', async () => {
+  const harness = createHarness({
+    getVisibleOrder() {
+      return ['summary'];
+    },
+  });
+  harness.boot();
+
+  harness.timers.advanceBy(200);
+  await flushMicrotasks();
+  await settleRequest(
+    harness.fetchCalls[0],
+    createFetchResponse({ arrayBufferData: new ArrayBuffer(4) })
+  );
+  await flushMicrotasks();
+
+  harness.context.preview.refresh('ordered:changed', 'classic');
+  await flushMicrotasks();
+  assert.equal(harness.fetchCalls.length, 2);
+
+  harness.context.preview.refresh('ordered:yaml-initial', 'classic');
+  harness.context.preview.refresh('ordered:changed', 'classic');
+  await flushMicrotasks();
+
+  await settleRequest(
+    harness.fetchCalls[1],
+    createFetchResponse({ arrayBufferData: new ArrayBuffer(4) })
+  );
+  await flushMicrotasks();
+
+  assert.equal(harness.fetchCalls.length, 2);
+});
+
+test('failed preview requests retry when the same render input is requested again', async () => {
+  const harness = createHarness();
+  harness.boot();
+
+  harness.timers.advanceBy(200);
+  await flushMicrotasks();
+  await settleRequest(
+    harness.fetchCalls[0],
+    createFetchResponse({ arrayBufferData: new ArrayBuffer(4) })
+  );
+  await flushMicrotasks();
+
+  harness.context.preview.refresh('ordered:retry-target', 'classic');
+  await flushMicrotasks();
+  assert.equal(harness.fetchCalls.length, 2);
+
+  await settleRequest(
+    harness.fetchCalls[1],
+    createFetchResponse({
+      ok: false,
+      jsonData: { error: 'render_failed', message: 'Render failed', details: ['missing font'] },
+    })
+  );
+  await flushMicrotasks();
+
+  harness.context.preview.refresh('ordered:retry-target', 'classic');
+  await flushMicrotasks();
+
+  assert.equal(harness.fetchCalls.length, 3);
+});
+
+test('returning to the last applied preview state clears stale error UI without a refetch', async () => {
+  const harness = createHarness();
+  harness.boot();
+
+  harness.timers.advanceBy(200);
+  await flushMicrotasks();
+  await settleRequest(
+    harness.fetchCalls[0],
+    createFetchResponse({ arrayBufferData: new TextEncoder().encode('applied').buffer })
+  );
+  await flushMicrotasks();
+
+  harness.context.preview.refresh('ordered:changed', 'classic');
+  await flushMicrotasks();
+  assert.equal(harness.fetchCalls.length, 2);
+
+  await settleRequest(
+    harness.fetchCalls[1],
+    createFetchResponse({
+      ok: false,
+      jsonData: { error: 'render_failed', message: 'Render failed', details: ['missing font'] },
+    })
+  );
+  await flushMicrotasks();
+
+  assert.equal(harness.elements.get('preview-error').style.display, 'block');
+
+  harness.context.preview.refresh('ordered:yaml-initial', 'classic');
+  await flushMicrotasks();
+
+  assert.equal(harness.fetchCalls.length, 2);
+  assert.equal(harness.elements.get('preview-error').style.display, 'none');
+  assert.equal(harness.elements.get('preview-error').innerHTML, '');
 });
 
 test('stale_preview responses are ignored without showing an error banner', async () => {

@@ -19,7 +19,10 @@ const preview = (() => {
   let zoomLevel = 1.0;
   let _abortController = null;
   let inFlight = false;
-  let pendingPayload = null;
+  let pendingRequestBody = null;
+  let pendingRequestSignature = null;
+  let activeRequestSignature = null;
+  let lastAppliedRequestSignature = null;
   let previewRequestSeq = 0;
   const previewSessionId = createPreviewSessionId();
 
@@ -29,6 +32,11 @@ const preview = (() => {
   function showLoading() {
     loading.style.display = "flex";
     errorEl.style.display = "none";
+  }
+
+  function clearError() {
+    errorEl.style.display = "none";
+    errorEl.innerHTML = "";
   }
 
   function showError(message, details) {
@@ -116,30 +124,43 @@ const preview = (() => {
   function zoomOut()   { setZoom(zoomLevel / 1.1); }
   function resetZoom() { setZoom(1.0); }
 
-  async function sendPreview(payload) {
+  function buildRequestBody(payload) {
+    const settings = window.settingsSync ? settingsSync.getSettings() : null;
+    return {
+      yaml: payload.yaml,
+      template: payload.template,
+      section_order: Array.isArray(payload.section_order) ? payload.section_order.slice() : [],
+      section_titles: settings
+        ? Object.fromEntries(settings.sections.map(s => [s.key, s.title]))
+        : {},
+      density: app.state.density,
+      font_scale: app.state.font_scale,
+      link_display: app.state.link_display,
+      personal_fields: Array.isArray(app.state.personal_fields)
+        ? app.state.personal_fields.map((field) => ({ ...field }))
+        : [],
+    };
+  }
+
+  function getRequestSignature(requestBody) {
+    return JSON.stringify(requestBody);
+  }
+
+  async function sendPreview(requestBody, requestSignature) {
     _abortController = new AbortController();
     const { signal } = _abortController;
     const requestSeq = ++previewRequestSeq;
+    activeRequestSignature = requestSignature;
+    let applied = false;
 
     inFlight = true;
     showLoading();
     try {
-      const _settings = window.settingsSync ? settingsSync.getSettings() : null;
-      const section_titles = _settings
-        ? Object.fromEntries(_settings.sections.map(s => [s.key, s.title]))
-        : {};
       const resp = await fetch("/api/preview/pdf", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          yaml: payload.yaml,
-          template: payload.template,
-          section_order: payload.section_order,
-          section_titles,
-          density: app.state.density,
-          font_scale: app.state.font_scale,
-          link_display: app.state.link_display,
-          personal_fields: app.state.personal_fields ?? [],
+          ...requestBody,
           preview_session_id: previewSessionId,
           preview_request_seq: requestSeq,
         }),
@@ -153,36 +174,55 @@ const preview = (() => {
         return;
       }
       const arrayBuffer = await resp.arrayBuffer();
-      if (pendingPayload) return;
-      await renderPdf(arrayBuffer, () => pendingPayload !== null);
+      if (pendingRequestBody) return;
+      applied = await renderPdf(arrayBuffer, () => pendingRequestBody !== null);
     } catch (e) {
       if (e.name === 'AbortError') return;
       showError("Preview unavailable — " + (e.message || "network error"), []);
     } finally {
       inFlight = false;
       _abortController = null;
-      if (pendingPayload) {
-        const nextPayload = pendingPayload;
-        pendingPayload = null;
-        sendPreview(nextPayload);
+      if (applied) lastAppliedRequestSignature = requestSignature;
+      activeRequestSignature = null;
+      if (pendingRequestBody) {
+        const nextRequestBody = pendingRequestBody;
+        const nextRequestSignature = pendingRequestSignature;
+        pendingRequestBody = null;
+        pendingRequestSignature = null;
+        sendPreview(nextRequestBody, nextRequestSignature);
       }
     }
   }
 
   function refresh(yaml, template) {
-    const payload = {
+    const requestBody = buildRequestBody({
       yaml,
       template,
       section_order: sectionsState.getVisibleOrder(app.state.yaml),
-    };
+    });
+    const requestSignature = getRequestSignature(requestBody);
 
     if (inFlight) {
-      pendingPayload = payload;
+      if (requestSignature === pendingRequestSignature) return;
+      if (requestSignature === activeRequestSignature) {
+        pendingRequestBody = null;
+        pendingRequestSignature = null;
+        return;
+      }
+      pendingRequestBody = requestBody;
+      pendingRequestSignature = requestSignature;
       return;
     }
 
-    pendingPayload = null;
-    sendPreview(payload);
+    if (requestSignature === lastAppliedRequestSignature) {
+      loading.style.display = "none";
+      clearError();
+      return;
+    }
+
+    pendingRequestBody = null;
+    pendingRequestSignature = null;
+    sendPreview(requestBody, requestSignature);
   }
 
   document.addEventListener("DOMContentLoaded", () => {
