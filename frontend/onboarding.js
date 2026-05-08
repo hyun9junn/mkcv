@@ -11,7 +11,7 @@ window.onboarding = (() => {
         en: "Write your résumé in YAML and export a polished PDF. Let's walk through the key features.",
       },
       tips: [],
-      img: `${ASSET_BASE}/01-welcome.png`,
+      img: `${ASSET_BASE}/01-welcome.gif`,
       strip: false,
     },
     {
@@ -22,7 +22,7 @@ window.onboarding = (() => {
         en: 'Write your résumé on the left panel. Errors are underlined instantly and changes save automatically.',
       },
       tips: [{ label: 'Ctrl+Space', ko: '커서 위치에서 사용 가능한 필드를 자동완성으로 제안', en: 'Autocomplete available fields at the cursor position' }],
-      img: `${ASSET_BASE}/02-editor.png`,
+      img: `${ASSET_BASE}/02-editor.gif`,
       strip: false,
     },
     {
@@ -33,7 +33,7 @@ window.onboarding = (() => {
         en: 'The right panel shows your rendered PDF, auto-updating ~1.5s after each change.',
       },
       tips: [{ label: 'Tip', ko: '줌 버튼(− / +)으로 25%~400% 배율 조정 가능', en: 'Use − / + buttons to zoom 25%–400%' }],
-      img: `${ASSET_BASE}/03-preview.png`,
+      img: `${ASSET_BASE}/03-preview.gif`,
       strip: false,
     },
     {
@@ -47,7 +47,7 @@ window.onboarding = (() => {
         { label: 'Drag', ko: '칩을 드래그해서 PDF 내 섹션 순서 변경', en: 'Drag chips to reorder sections in the PDF' },
         { label: 'Dbl-click', ko: '섹션 이름 더블클릭 → PDF 타이틀 직접 편집', en: 'Double-click a section name to edit its PDF title' },
       ],
-      img: `${ASSET_BASE}/04-sections-only.png`,
+      img: `${ASSET_BASE}/04-sections-only.gif`,
       strip: true,
     },
     {
@@ -58,7 +58,7 @@ window.onboarding = (() => {
         en: 'Use the Contact dropdown to toggle each personal field on or off in the PDF.',
       },
       tips: [{ label: 'Tip', ko: '필드별 링크 표시 방식(label / url / both)도 개별 설정 가능', en: 'Each field can also have its own link display mode: label / url / both' }],
-      img: `${ASSET_BASE}/05-contact.png`,
+      img: `${ASSET_BASE}/05-contact.gif`,
       strip: false,
     },
     {
@@ -72,7 +72,7 @@ window.onboarding = (() => {
         { label: 'Density', ko: 'Comfortable · Balanced · Compact — 줄 간격·여백 일괄 조정', en: 'Comfortable · Balanced · Compact — adjusts line spacing and margins globally' },
         { label: 'Font', ko: 'Small · Normal · Large — 전체 폰트 크기 일괄 조정', en: 'Small · Normal · Large — scales all font sizes at once' },
       ],
-      img: `${ASSET_BASE}/06-layout.png`,
+      img: `${ASSET_BASE}/06-layout.gif`,
       strip: true,
     },
     {
@@ -83,7 +83,7 @@ window.onboarding = (() => {
         en: 'Choose from 15 templates — the preview updates instantly. Open the picker via the TEMPLATE button.',
       },
       tips: [{ label: 'Tip', ko: '템플릿마다 최적 레이아웃이 다르니 몇 가지 바꿔보며 비교해 보세요', en: "Each template has its own optimal layout — try a few and compare" }],
-      img: `${ASSET_BASE}/07a-template-picker.png`,
+      img: `${ASSET_BASE}/07a-template-picker.gif`,
       strip: false,
     },
     {
@@ -94,7 +94,7 @@ window.onboarding = (() => {
         en: 'The settings.yaml tab lets you edit every setting — density, font, links, visibility — directly in YAML.',
       },
       tips: [{ label: 'Tip', ko: '툴바 토글과 양방향 동기화 — YAML 편집과 버튼 클릭 중 편한 방법 사용', en: 'Two-way sync with toolbar controls — use whichever you prefer' }],
-      img: `${ASSET_BASE}/07b-settings-yaml.png`,
+      img: `${ASSET_BASE}/07b-settings-yaml.gif`,
       strip: false,
     },
     {
@@ -105,7 +105,7 @@ window.onboarding = (() => {
         en: 'The Export menu handles PDF, LaTeX, and Markdown export plus full YAML backup and restore.',
       },
       tips: [{ label: 'Tip', ko: '이 가이드는 헤더의 ? 도움말 버튼으로 언제든 다시 볼 수 있어요', en: 'Reopen this guide anytime via the ? Help button in the header' }],
-      img: `${ASSET_BASE}/08-export.png`,
+      img: `${ASSET_BASE}/08-export.gif`,
       strip: false,
     },
   ];

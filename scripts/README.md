@@ -33,6 +33,49 @@ MKCV_CAPTURE_BASE_URL=http://localhost:3000 node scripts/generate-readme-preview
 
 ---
 
+## generate-onboarding-gifs.mjs
+
+Generates 9 animated GIFs used in the onboarding modal.  
+Launches a real browser via Playwright, demonstrates each feature in action (typing, section management, template switching, etc.), then encodes each sequence of frames as a GIF.
+
+Steps that trigger a PDF preview re-render use a zoom-in/zoom-out technique: a tight crop of the relevant UI element is digitally scaled up to show the interaction clearly, then a full-viewport frame reveals the updated preview.
+
+**One-time setup**
+
+```bash
+npm install playwright pngjs gifenc
+npx playwright install chromium
+```
+
+**Run**
+
+```bash
+# Start the app server at http://localhost:8000 first
+node scripts/generate-onboarding-gifs.mjs
+```
+
+To use a different server address:
+
+```bash
+MKCV_CAPTURE_BASE_URL=http://localhost:3000 node scripts/generate-onboarding-gifs.mjs
+```
+
+**Output:** 9 GIF files under `frontend/assets/onboarding/`
+
+| File | Content |
+|------|---------|
+| `01-welcome.gif` | Type a name edit → preview updates |
+| `02-editor.gif` | YAML editing + autocomplete popup |
+| `03-preview.gif` | Zoom in / zoom out on the PDF preview |
+| `04-sections-only.gif` | Hide a section chip + rename via double-click → preview updates |
+| `05-contact.gif` | Contact dropdown: toggle a field |
+| `06-layout.gif` | Density: Comfortable → Balanced → Compact → preview updates |
+| `07a-template-picker.gif` | Switch between two templates → preview updates |
+| `07b-settings-yaml.gif` | Switch to settings.yaml tab |
+| `08-export.gif` | Open export menu → PDF → filename modal |
+
+---
+
 ## take-onboarding-screenshots.mjs
 
 Captures 8 static PNG screenshots used in onboarding UI documentation.  
