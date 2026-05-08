@@ -29,11 +29,37 @@ export function resolveGifencBindings(moduleNamespace) {
 }
 
 export function cropAndScale(srcPng, clip, targetWidth, targetHeight) {
+  // Expand the clip to match the target aspect ratio (no letterboxing, no stretching).
+  // The clip grows outward from its center; expansion is clamped to image bounds.
+  const targetAR = targetWidth / targetHeight;
+  let { x, y, width, height } = clip;
+  const clipAR = width / height;
+
+  if (clipAR < targetAR) {
+    // Too tall — expand width
+    const newWidth = Math.round(height * targetAR);
+    const extra = newWidth - width;
+    let x1 = x - Math.floor(extra / 2);
+    let x2 = x1 + newWidth;
+    if (x1 < 0) { x2 = Math.min(srcPng.width, x2 - x1); x1 = 0; }
+    if (x2 > srcPng.width) { x1 = Math.max(0, x1 - (x2 - srcPng.width)); x2 = srcPng.width; }
+    x = x1; width = x2 - x1;
+  } else if (clipAR > targetAR) {
+    // Too wide — expand height
+    const newHeight = Math.round(width / targetAR);
+    const extra = newHeight - height;
+    let y1 = y - Math.floor(extra / 2);
+    let y2 = y1 + newHeight;
+    if (y1 < 0) { y2 = Math.min(srcPng.height, y2 - y1); y1 = 0; }
+    if (y2 > srcPng.height) { y1 = Math.max(0, y1 - (y2 - srcPng.height)); y2 = srcPng.height; }
+    y = y1; height = y2 - y1;
+  }
+
   const dst = new PNG({ width: targetWidth, height: targetHeight });
   for (let dy = 0; dy < targetHeight; dy++) {
     for (let dx = 0; dx < targetWidth; dx++) {
-      const sx = Math.min(clip.x + Math.floor((dx / targetWidth) * clip.width), srcPng.width - 1);
-      const sy = Math.min(clip.y + Math.floor((dy / targetHeight) * clip.height), srcPng.height - 1);
+      const sx = Math.min(x + Math.floor((dx / targetWidth) * width), srcPng.width - 1);
+      const sy = Math.min(y + Math.floor((dy / targetHeight) * height), srcPng.height - 1);
       const srcIdx = (sy * srcPng.width + sx) * 4;
       const dstIdx = (dy * targetWidth + dx) * 4;
       dst.data[dstIdx]   = srcPng.data[srcIdx];
@@ -143,8 +169,7 @@ async function scene02Editor(page, frames) {
     let titleLine = -1;
     for (let i = 0; i < totalLines; i++) {
       const line = cm.getLine(i);
-      if (/^\s{4}-\s*$/.test(line) || /^\s{2}-\s*$/.test(line)) continue;
-      if (/^\s{4}title:/.test(line)) { titleLine = i; break; }
+      if (/^\s*-\s+title:/.test(line)) { titleLine = i; break; }
     }
     if (titleLine === -1) throw new Error('title line not found');
     cm.setCursor({ line: titleLine, ch: cm.getLine(titleLine).length });
