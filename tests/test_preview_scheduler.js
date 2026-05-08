@@ -108,7 +108,7 @@ function createFetchResponse({ ok = true, jsonData, arrayBufferData }) {
   };
 }
 
-function createHarness() {
+function createHarness({ search = '' } = {}) {
   const timers = createTimerHarness();
   const domReadyCallbacks = [];
   const elements = new Map([
@@ -134,6 +134,9 @@ function createHarness() {
     ArrayBuffer,
     Uint8Array,
     TextEncoder,
+    TextDecoder,
+    URLSearchParams,
+    location: { search },
     setTimeout: timers.setTimeout.bind(timers),
     clearTimeout: timers.clearTimeout.bind(timers),
     fetch(url, options) {
@@ -336,6 +339,32 @@ test('editor changes wait for the longer debounce window before scheduling previ
   await flushMicrotasks();
 
   assert.equal(harness.fetchCalls.length, 2);
+});
+
+test('capture=gif lowers the debounce window for README capture runs', async () => {
+  const harness = createHarness({ search: '?capture=gif' });
+  harness.boot();
+
+  harness.timers.advanceBy(200);
+  await flushMicrotasks();
+  await settleRequest(
+    harness.fetchCalls[0],
+    createFetchResponse({ arrayBufferData: new ArrayBuffer(4) })
+  );
+  await flushMicrotasks();
+
+  harness.context.app.state.yaml = 'yaml-fast';
+  harness.editorCallbacks[0]();
+  harness.timers.advanceBy(199);
+  await flushMicrotasks();
+
+  assert.equal(harness.fetchCalls.length, 1);
+
+  harness.timers.advanceBy(1);
+  await flushMicrotasks();
+
+  assert.equal(harness.fetchCalls.length, 2);
+  assert.equal(JSON.parse(harness.fetchCalls[1].options.body).yaml, 'ordered:yaml-fast');
 });
 
 test('stale_preview responses are ignored without showing an error banner', async () => {

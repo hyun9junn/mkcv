@@ -2,7 +2,18 @@ const preview = (() => {
   const container = document.getElementById("preview-frame");
   const loading = document.getElementById("preview-loading");
   const errorEl = document.getElementById("preview-error");
-  const PREVIEW_DEBOUNCE_MS = 900;
+  const DEFAULT_PREVIEW_DEBOUNCE_MS = 900;
+  const GIF_CAPTURE_PREVIEW_DEBOUNCE_MS = 200;
+  function getPreviewDebounceMs() {
+    try {
+      const params = new URLSearchParams(window.location?.search || "");
+      if (params.get("capture") === "gif") return GIF_CAPTURE_PREVIEW_DEBOUNCE_MS;
+    } catch (_) {
+      // Fall through to the default debounce when URL parsing is unavailable.
+    }
+    return DEFAULT_PREVIEW_DEBOUNCE_MS;
+  }
+  const PREVIEW_DEBOUNCE_MS = getPreviewDebounceMs();
   let timer = null;
   let activePdf = null;
   let zoomLevel = 1.0;
