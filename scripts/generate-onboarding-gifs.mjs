@@ -183,6 +183,64 @@ async function scene02Editor(page, frames) {
   await page.waitForTimeout(400);
 }
 
+async function scene03Preview(page, frames) {
+  const shoot = async (holdMs) => {
+    const buf = await page.screenshot({ clip: CLIP_PREVIEW });
+    frames.push({ buffer: buf, holdMs });
+  };
+
+  await shoot(800);
+
+  // Zoom in twice
+  await page.click('#preview-zoom-in');
+  await page.waitForTimeout(200);
+  await shoot(600);
+
+  await page.click('#preview-zoom-in');
+  await page.waitForTimeout(200);
+  await shoot(1200);
+
+  // Zoom back out
+  await page.click('#preview-zoom-out');
+  await page.waitForTimeout(200);
+  await shoot(400);
+
+  await page.click('#preview-zoom-out');
+  await page.waitForTimeout(200);
+  await shoot(800);
+
+  // Reset to 100% to leave app clean
+  await page.click('#preview-zoom-label');
+  await page.waitForTimeout(200);
+}
+
+async function scene05Contact(page, frames) {
+  const shoot = async (holdMs) => {
+    const buf = await page.screenshot({ clip: CLIP_CONTACT });
+    frames.push({ buffer: buf, holdMs });
+  };
+
+  // Open Contact dropdown
+  await page.click('#contact-pill');
+  await page.waitForTimeout(500);
+  await shoot(1000);
+
+  // Toggle the first non-locked field off
+  const toggle = page.locator('#contact-fields-body .f-toggle:not(.locked)').first();
+  await toggle.click();
+  await page.waitForTimeout(300);
+  await shoot(900);
+
+  // Toggle it back on
+  await toggle.click();
+  await page.waitForTimeout(300);
+  await shoot(700);
+
+  // Close
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(300);
+}
+
 export async function main({ baseUrl = DEFAULT_BASE_URL, outputDir = DEFAULT_OUT_DIR } = {}) {
   const { chromium } = await import('playwright');
   const resumeYaml = fs.readFileSync(SAMPLE_RESUME_PATH, 'utf8');
