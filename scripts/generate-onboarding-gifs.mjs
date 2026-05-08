@@ -130,12 +130,15 @@ async function scene01Welcome(page, frames) {
 }
 
 async function scene02Editor(page, frames) {
-  // Show editor in initial state
+  // Show editor with cursor at end of the email line (indent-2, under personal:)
   await page.locator('.CodeMirror').click();
   await page.evaluate(() => {
     const cm = window.editorAdapter?._editor;
+    if (!cm) throw new Error('CodeMirror editor not ready');
     cm.focus();
-    cm.setCursor({ line: 3, ch: 0 });
+    // After scene01, line 2 is "  email: jane.smith@example.com"
+    const emailLine = 2;
+    cm.setCursor({ line: emailLine, ch: cm.getLine(emailLine).length });
   });
 
   // Capture tight editor crop — no zoom technique here (preview doesn't change)
@@ -146,19 +149,27 @@ async function scene02Editor(page, frames) {
 
   await shoot(700);
 
-  // Type a character to trigger autocomplete
-  await page.keyboard.type('  ');
+  // Press Enter → CodeMirror auto-indents to 2 spaces (inside personal: block)
+  await page.keyboard.press('Enter');
   await shoot(300);
 
-  // Open autocomplete
-  await page.keyboard.press('Control+Space');
-  await page.waitForTimeout(400);
+  // Type a partial key to trigger the change-event autocomplete (300ms debounce)
+  await page.keyboard.type('p');
+  // Wait for the 300ms debounce + render
+  await page.waitForTimeout(500);
   await shoot(2000);
 
-  // Dismiss and leave editor clean for subsequent scenes
+  // Dismiss the autocomplete dropdown
   await page.keyboard.press('Escape');
-  await page.keyboard.press('Control+Z');
-  await page.keyboard.press('Control+Z');
+
+  // Undo all changes made in this scene via CodeMirror API for reliability
+  // Each undo() reverses one history entry: typed 'p', then the Enter
+  await page.evaluate(() => {
+    const cm = window.editorAdapter?._editor;
+    if (!cm) throw new Error('CodeMirror editor not ready');
+    cm.undo(); // undo typed 'p'
+    cm.undo(); // undo Enter keypress
+  });
   await page.waitForTimeout(200);
 }
 
