@@ -102,6 +102,9 @@ function makeObCtx({ seen = null, lang = 'ko' } = {}) {
     CustomEvent: class CustomEvent {
       constructor(type, init) { this.type = type; this.detail = init?.detail; }
     },
+    Image: function Image() {
+      // Stub for onboarding.preloadImages — no real image loading in tests.
+    },
     app: { state: { lang } },
     _storage: storage,
     _overlayOpen: () => overlayOpen,
