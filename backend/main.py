@@ -18,6 +18,7 @@ from pydantic import BaseModel
 
 from backend.parsers.yaml_parser import parse_yaml, YAMLParseError, CVValidationError
 from backend.renderers.markdown import MarkdownRenderer
+from backend.services.pdf_compiler import compile_pdf
 from backend.templates.meta import load_template_meta
 from backend.renderers.latex import (
     LaTeXRenderer,
@@ -243,32 +244,6 @@ def _stale_preview_response_if_needed(
     return None
 
 
-async def _compile_preview_pdf(latex_content: str) -> tuple[Optional[bytes], Optional[JSONResponse]]:
-    with tempfile.TemporaryDirectory() as tmpdir:
-        tex_path = Path(tmpdir) / "cv.tex"
-        tex_path.write_text(latex_content)
-        try:
-            result = await asyncio.to_thread(
-                subprocess.run,
-                ["xelatex", "-interaction=nonstopmode", "cv.tex"],
-                cwd=tmpdir,
-                capture_output=True,
-                timeout=30,
-                text=True,
-            )
-        except subprocess.TimeoutExpired:
-            return None, _error("pdf_generation_failed", "xelatex timed out after 30 seconds")
-        except FileNotFoundError:
-            return None, _error("pdf_generation_failed", "xelatex not found — install TeX Live or MiKTeX")
-
-        if result.returncode != 0:
-            error_lines = [line for line in result.stdout.splitlines() if line.startswith("!")]
-            details = error_lines or [line for line in result.stderr.splitlines() if line.strip()]
-            return None, _error("pdf_generation_failed", "xelatex exited with errors", details)
-
-        pdf_bytes = (Path(tmpdir) / "cv.pdf").read_bytes()
-
-    return pdf_bytes, None
 
 
 def _build_cv_schema() -> dict:
@@ -504,21 +479,31 @@ async def preview_pdf(req: CVRequest):
                     return stale_response
 
                 latex_content = renderer.render(cv, req.section_order, req.section_titles)
-                pdf_bytes, compile_error = await _compile_preview_pdf(latex_content)
+                pdf_bytes, compile_err = await compile_pdf(latex_content)
 
                 stale_response = _stale_preview_response_if_needed(session_state, session_id, request_seq)
                 if stale_response is not None:
                     return stale_response
 
-                if compile_error is not None:
-                    return compile_error
+                if compile_err is not None:
+                    return _error(
+                        compile_err["error"],
+                        compile_err["message"],
+                        compile_err["details"],
+                        compile_err["status"],
+                    )
 
                 return Response(content=pdf_bytes, media_type="application/pdf")
 
         latex_content = renderer.render(cv, req.section_order, req.section_titles)
-        pdf_bytes, compile_error = await _compile_preview_pdf(latex_content)
-        if compile_error is not None:
-            return compile_error
+        pdf_bytes, compile_err = await compile_pdf(latex_content)
+        if compile_err is not None:
+            return _error(
+                compile_err["error"],
+                compile_err["message"],
+                compile_err["details"],
+                compile_err["status"],
+            )
 
         return Response(content=pdf_bytes, media_type="application/pdf")
     finally:

@@ -3,6 +3,8 @@
 Single source of truth for xelatex invocation. Replaces three duplicated
 sites in main.py (validate_template, _compile_preview_pdf, export_pdf).
 """
+from __future__ import annotations
+
 import asyncio
 import subprocess
 import tempfile
