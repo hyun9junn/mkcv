@@ -6,6 +6,7 @@ import re
 import jinja2
 import yaml
 from pydantic import BaseModel
+from backend.constants import BUILTIN_SECTION_KEYS, VALID_SECTION_TITLE_CASES
 from backend.models import CVData
 from backend.models import CustomBlock, CustomSection
 from backend.renderers.base import BaseRenderer
@@ -27,7 +28,6 @@ DEFAULT_SECTION_TITLES = {
     "awards":         "Awards",
     "extracurricular":"Extracurricular Activities",
 }
-_BUILTIN_SECTION_KEYS = set(DEFAULT_SECTION_TITLES)
 _TITLE_CASE_SMALL_WORDS = {
     "a",
     "an",
@@ -47,7 +47,6 @@ _TITLE_CASE_SMALL_WORDS = {
     "via",
     "with",
 }
-_VALID_SECTION_TITLE_CASES = {"upper", "lower", "title"}
 _TITLE_WORD_RE = re.compile(r"[A-Za-z0-9]+(?:'[A-Za-z0-9]+)?")
 _DEFAULT_XELATEX_FONTS = {
     "hangul_main_fonts": ["Nanum Myeongjo", "UnBatang"],
@@ -207,7 +206,7 @@ def _load_template_default_titles(templates_dir: str, template: str) -> dict[str
             continue
         key = section.get("key")
         title = section.get("title")
-        if key in _BUILTIN_SECTION_KEYS and isinstance(title, str) and title.strip():
+        if key in BUILTIN_SECTION_KEYS and isinstance(title, str) and title.strip():
             titles[key] = title
     return titles
 
@@ -220,7 +219,7 @@ def _load_template_render_config(templates_dir: str, template: str) -> dict[str,
         return {"section_title_case": "title"}
 
     section_title_case = render.get("section_title_case")
-    if section_title_case not in _VALID_SECTION_TITLE_CASES:
+    if section_title_case not in VALID_SECTION_TITLE_CASES:
         return {"section_title_case": "title"}
 
     return {"section_title_case": section_title_case}
@@ -394,7 +393,7 @@ def _prepare_section_titles(templates_dir: Path, template: str, section_titles: 
     for key, title in merged.items():
         if not isinstance(title, str):
             continue
-        if key in _BUILTIN_SECTION_KEYS:
+        if key in BUILTIN_SECTION_KEYS:
             prepared[key] = _escape_latex_text(
                 _transform_builtin_section_title(templates_dir, template, title)
             )

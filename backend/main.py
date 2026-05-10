@@ -33,6 +33,16 @@ from backend.models import (
     ProjectItem, CertificationItem, PublicationItem, LanguageItem,
     AwardItem, ExtracurricularItem, CustomSection, CustomBlock,
 )
+from backend.constants import (
+    BUILTIN_SECTION_KEYS,
+    VALID_DENSITIES,
+    VALID_FONT_SCALES,
+    VALID_LINK_DISPLAYS,
+    FIELD_LINK_DISPLAYS,
+    VALID_SECTION_TITLE_CASES,
+    PERSONAL_FIELD_KEYS,
+    LINK_PERSONAL_KEYS,
+)
 
 TEMPLATES_DIR = Path(__file__).parent / "templates"
 
@@ -62,35 +72,7 @@ _SAMPLE_CV = CVData(
 _template_validation_cache: dict[str, dict] = {}
 _template_meta_cache: dict[str, dict] = {}
 _CV_SCHEMA_CACHE: dict | None = None
-_VALID_DENSITIES = {"comfortable", "balanced", "compact"}
-_VALID_FONT_SCALES = {"small", "normal", "large"}
-_VALID_LINK_DISPLAYS = {"label", "url", "both"}
-_FIELD_LINK_DISPLAYS = {"default", "label", "url", "both"}
-_VALID_SECTION_TITLE_CASES = {"upper", "lower", "title"}
 _PREVIEW_SESSION_TTL_SECONDS = 60.0
-_PERSONAL_FIELD_KEYS = [
-    "name",
-    "email",
-    "phone",
-    "location",
-    "website",
-    "linkedin",
-    "github",
-    "huggingface",
-]
-_LINK_PERSONAL_KEYS = {"website", "linkedin", "github", "huggingface"}
-_BUILTIN_SECTION_KEYS = {
-    "summary",
-    "experience",
-    "education",
-    "skills",
-    "projects",
-    "certifications",
-    "publications",
-    "languages",
-    "awards",
-    "extracurricular",
-}
 
 
 @dataclass
@@ -113,11 +95,11 @@ def _normalize_template_defaults(defaults: object) -> dict:
     sections = defaults.get("sections")
     if not isinstance(layout, dict) or not isinstance(personal, dict) or not isinstance(sections, list):
         return {}
-    if layout.get("density") not in _VALID_DENSITIES:
+    if layout.get("density") not in VALID_DENSITIES:
         return {}
-    if layout.get("font_scale") not in _VALID_FONT_SCALES:
+    if layout.get("font_scale") not in VALID_FONT_SCALES:
         return {}
-    if personal.get("default_link_display") not in _VALID_LINK_DISPLAYS:
+    if personal.get("default_link_display") not in VALID_LINK_DISPLAYS:
         return {}
 
     personal_fields = personal.get("fields")
@@ -135,15 +117,15 @@ def _normalize_template_defaults(defaults: object) -> dict:
             return {}
 
         link_display = field.get("link_display")
-        if key in _LINK_PERSONAL_KEYS:
-            if link_display not in _FIELD_LINK_DISPLAYS:
+        if key in LINK_PERSONAL_KEYS:
+            if link_display not in FIELD_LINK_DISPLAYS:
                 return {}
         elif link_display is not None:
             return {}
 
         personal_keys.append(key)
 
-    if personal_keys != _PERSONAL_FIELD_KEYS:
+    if personal_keys != list(PERSONAL_FIELD_KEYS):
         return {}
 
     section_keys = []
@@ -161,9 +143,9 @@ def _normalize_template_defaults(defaults: object) -> dict:
             return {}
         section_keys.append(key)
 
-    if len(section_keys) != len(_BUILTIN_SECTION_KEYS):
+    if len(section_keys) != len(BUILTIN_SECTION_KEYS):
         return {}
-    if set(section_keys) != _BUILTIN_SECTION_KEYS:
+    if set(section_keys) != BUILTIN_SECTION_KEYS:
         return {}
 
     return defaults
@@ -186,7 +168,7 @@ def _normalize_template_render(render: object) -> dict:
         return {"section_title_case": "title"}
 
     section_title_case = render.get("section_title_case")
-    if section_title_case not in _VALID_SECTION_TITLE_CASES:
+    if section_title_case not in VALID_SECTION_TITLE_CASES:
         return {"section_title_case": "title"}
 
     return {"section_title_case": section_title_case}
