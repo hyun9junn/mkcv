@@ -408,29 +408,14 @@ async def export_pdf(req: CVRequest):
     )
     latex_content = renderer.render(cv, req.section_order, req.section_titles)
 
-    with tempfile.TemporaryDirectory() as tmpdir:
-        tex_path = Path(tmpdir) / "cv.tex"
-        tex_path.write_text(latex_content)
-        try:
-            result = await asyncio.to_thread(
-                subprocess.run,
-                ["xelatex", "-interaction=nonstopmode", "cv.tex"],
-                cwd=tmpdir,
-                capture_output=True,
-                timeout=30,
-                text=True,
-            )
-        except subprocess.TimeoutExpired:
-            return _error("pdf_generation_failed", "xelatex timed out after 30 seconds")
-        except FileNotFoundError:
-            return _error("pdf_generation_failed", "xelatex not found — install TeX Live or MiKTeX")
-
-        if result.returncode != 0:
-            error_lines = [line for line in result.stdout.splitlines() if line.startswith("!")]
-            details = error_lines or [line for line in result.stderr.splitlines() if line.strip()]
-            return _error("pdf_generation_failed", "xelatex exited with errors", details)
-
-        pdf_bytes = (Path(tmpdir) / "cv.pdf").read_bytes()
+    pdf_bytes, compile_err = await compile_pdf(latex_content)
+    if compile_err is not None:
+        return _error(
+            compile_err["error"],
+            compile_err["message"],
+            compile_err["details"],
+            compile_err["status"],
+        )
 
     return Response(
         content=pdf_bytes,
