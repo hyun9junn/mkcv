@@ -4,9 +4,14 @@ from functools import lru_cache
 from typing import Optional, List
 import re
 import jinja2
-import yaml
 from pydantic import BaseModel
-from backend.constants import BUILTIN_SECTION_KEYS, VALID_SECTION_TITLE_CASES
+from backend.constants import BUILTIN_SECTION_KEYS
+from backend.templates.meta import (
+    load_template_meta,
+    template_default_titles,
+    template_render_config,
+    template_xelatex_fonts,
+)
 from backend.models import CVData
 from backend.models import CustomBlock, CustomSection
 from backend.renderers.base import BaseRenderer
@@ -176,83 +181,6 @@ def _get_template_render_bundle(templates_dir: str, template: str) -> _TemplateR
     )
 
 
-@lru_cache(maxsize=None)
-def _load_template_meta_data(templates_dir: str, template: str) -> dict:
-    meta_path = Path(templates_dir) / template / "meta.yaml"
-    if not meta_path.exists():
-        return {}
-
-    try:
-        data = yaml.safe_load(meta_path.read_text()) or {}
-    except yaml.YAMLError:
-        return {}
-
-    if not isinstance(data, dict):
-        return {}
-    return data
-
-
-@lru_cache(maxsize=None)
-def _load_template_default_titles(templates_dir: str, template: str) -> dict[str, str]:
-    data = _load_template_meta_data(templates_dir, template)
-
-    sections = data.get("defaults", {}).get("sections", [])
-    if not isinstance(sections, list):
-        return {}
-
-    titles = {}
-    for section in sections:
-        if not isinstance(section, dict):
-            continue
-        key = section.get("key")
-        title = section.get("title")
-        if key in BUILTIN_SECTION_KEYS and isinstance(title, str) and title.strip():
-            titles[key] = title
-    return titles
-
-
-@lru_cache(maxsize=None)
-def _load_template_render_config(templates_dir: str, template: str) -> dict[str, str]:
-    data = _load_template_meta_data(templates_dir, template)
-    render = data.get("render")
-    if not isinstance(render, dict):
-        return {"section_title_case": "title"}
-
-    section_title_case = render.get("section_title_case")
-    if section_title_case not in VALID_SECTION_TITLE_CASES:
-        return {"section_title_case": "title"}
-
-    return {"section_title_case": section_title_case}
-
-
-def _normalize_font_list(value, default: list[str]) -> list[str]:
-    if not isinstance(value, list):
-        return list(default)
-
-    normalized = []
-    for item in value:
-        if isinstance(item, str) and item.strip():
-            normalized.append(item.strip())
-
-    return normalized or list(default)
-
-
-@lru_cache(maxsize=None)
-def _load_template_xelatex_font_config(templates_dir: str, template: str) -> dict[str, list[str]]:
-    data = _load_template_meta_data(templates_dir, template)
-    render = data.get("render")
-    if not isinstance(render, dict):
-        render = {}
-
-    xelatex = render.get("xelatex")
-    if not isinstance(xelatex, dict):
-        xelatex = {}
-
-    return {
-        key: _normalize_font_list(xelatex.get(key), default)
-        for key, default in _DEFAULT_XELATEX_FONTS.items()
-    }
-
 
 def _build_font_fallback_chain(command: str, fonts: list[str], options: str = "") -> str:
     option_suffix = f"[{options}]" if options else ""
@@ -336,7 +264,7 @@ def _sanitize_for_latex(value):
 
 
 def _build_xelatex_preamble(templates_dir: Path, template: str) -> str:
-    config = _load_template_xelatex_font_config(str(templates_dir), template)
+    config = template_xelatex_fonts(load_template_meta(str(Path(templates_dir) / template)))
     font_options = "AutoFakeSlant=0.2"
 
     return "\n".join([
@@ -376,7 +304,7 @@ def _smart_title_case(text: str) -> str:
 
 
 def _transform_builtin_section_title(templates_dir: Path, template: str, title: str) -> str:
-    policy = _load_template_render_config(str(templates_dir), template)["section_title_case"]
+    policy = template_render_config(load_template_meta(str(Path(templates_dir) / template)))["section_title_case"]
     if policy == "upper":
         return title.upper()
     if policy == "lower":
@@ -385,7 +313,7 @@ def _transform_builtin_section_title(templates_dir: Path, template: str, title: 
 
 
 def _prepare_section_titles(templates_dir: Path, template: str, section_titles: Optional[dict]) -> dict:
-    merged = dict(_load_template_default_titles(str(templates_dir), template))
+    merged = dict(template_default_titles(load_template_meta(str(Path(templates_dir) / template))))
     if section_titles:
         merged.update(section_titles)
 

@@ -11,7 +11,6 @@ from typing import Literal, Optional, List
 import typing
 
 import jinja2
-import yaml as _yaml
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
@@ -19,6 +18,7 @@ from pydantic import BaseModel
 
 from backend.parsers.yaml_parser import parse_yaml, YAMLParseError, CVValidationError
 from backend.renderers.markdown import MarkdownRenderer
+from backend.templates.meta import load_template_meta
 from backend.renderers.latex import (
     LaTeXRenderer,
     _build_layout_preamble,
@@ -32,16 +32,6 @@ from backend.models import (
     CVData, PersonalInfo, ExperienceItem, EducationItem, SkillGroup,
     ProjectItem, CertificationItem, PublicationItem, LanguageItem,
     AwardItem, ExtracurricularItem, CustomSection, CustomBlock,
-)
-from backend.constants import (
-    BUILTIN_SECTION_KEYS,
-    VALID_DENSITIES,
-    VALID_FONT_SCALES,
-    VALID_LINK_DISPLAYS,
-    FIELD_LINK_DISPLAYS,
-    VALID_SECTION_TITLE_CASES,
-    PERSONAL_FIELD_KEYS,
-    LINK_PERSONAL_KEYS,
 )
 
 TEMPLATES_DIR = Path(__file__).parent / "templates"
@@ -85,121 +75,6 @@ class _PreviewSessionState:
 
 _preview_sessions: dict[str, _PreviewSessionState] = {}
 
-
-def _normalize_template_defaults(defaults: object) -> dict:
-    if not isinstance(defaults, dict):
-        return {}
-
-    layout = defaults.get("layout")
-    personal = defaults.get("personal")
-    sections = defaults.get("sections")
-    if not isinstance(layout, dict) or not isinstance(personal, dict) or not isinstance(sections, list):
-        return {}
-    if layout.get("density") not in VALID_DENSITIES:
-        return {}
-    if layout.get("font_scale") not in VALID_FONT_SCALES:
-        return {}
-    if personal.get("default_link_display") not in VALID_LINK_DISPLAYS:
-        return {}
-
-    personal_fields = personal.get("fields")
-    if not isinstance(personal_fields, list):
-        return {}
-
-    personal_keys = []
-    for field in personal_fields:
-        if not isinstance(field, dict):
-            return {}
-        key = field.get("key")
-        if not isinstance(key, str):
-            return {}
-        if not isinstance(field.get("visible"), bool):
-            return {}
-
-        link_display = field.get("link_display")
-        if key in LINK_PERSONAL_KEYS:
-            if link_display not in FIELD_LINK_DISPLAYS:
-                return {}
-        elif link_display is not None:
-            return {}
-
-        personal_keys.append(key)
-
-    if personal_keys != list(PERSONAL_FIELD_KEYS):
-        return {}
-
-    section_keys = []
-    for section in sections:
-        if not isinstance(section, dict):
-            return {}
-        key = section.get("key")
-        if not isinstance(key, str):
-            return {}
-        if not isinstance(section.get("title"), str):
-            return {}
-        if not isinstance(section.get("visible"), bool):
-            return {}
-        if not section["title"].strip():
-            return {}
-        section_keys.append(key)
-
-    if len(section_keys) != len(BUILTIN_SECTION_KEYS):
-        return {}
-    if set(section_keys) != BUILTIN_SECTION_KEYS:
-        return {}
-
-    return defaults
-
-
-def _normalize_template_ui(ui: object) -> dict:
-    if not isinstance(ui, dict):
-        return {"badge": ""}
-
-    badge = ui.get("badge")
-    if not isinstance(badge, str):
-        return {"badge": ""}
-
-    badge = badge.strip()
-    return {"badge": badge if badge else ""}
-
-
-def _normalize_template_render(render: object) -> dict:
-    if not isinstance(render, dict):
-        return {"section_title_case": "title"}
-
-    section_title_case = render.get("section_title_case")
-    if section_title_case not in VALID_SECTION_TITLE_CASES:
-        return {"section_title_case": "title"}
-
-    return {"section_title_case": section_title_case}
-
-
-def _load_template_meta(template_dir: Path) -> dict:
-    meta_path = template_dir / "meta.yaml"
-    if not meta_path.exists():
-        return {
-            "display_name": template_dir.name.replace("-", " ").title(),
-            "description": "",
-            "audience": "",
-            "ui": _normalize_template_ui(None),
-            "render": _normalize_template_render(None),
-            "defaults": {},
-        }
-    try:
-        with meta_path.open() as f:
-            data = _yaml.safe_load(f) or {}
-    except _yaml.YAMLError:
-        data = {}
-    if not isinstance(data, dict):
-        data = {}
-    return {
-        "display_name": data.get("display_name", template_dir.name),
-        "description": data.get("description", ""),
-        "audience": data.get("audience", ""),
-        "ui": _normalize_template_ui(data.get("ui")),
-        "render": _normalize_template_render(data.get("render")),
-        "defaults": _normalize_template_defaults(data.get("defaults")),
-    }
 
 
 def _validate_template(name: str) -> dict:
@@ -273,7 +148,7 @@ async def lifespan(app: FastAPI):
             if (template_dir / "cv.tex.j2").exists():
                 _template_validation_cache[template_dir.name] = await asyncio.to_thread(_validate_template, template_dir.name)
             if (template_dir / "cv.tex.j2").exists() or (template_dir / "meta.yaml").exists():
-                _template_meta_cache[template_dir.name] = _load_template_meta(template_dir)
+                _template_meta_cache[template_dir.name] = load_template_meta(str(template_dir))
     yield
 
 
@@ -291,6 +166,11 @@ class CVRequest(BaseModel):
     personal_fields: Optional[List[dict]] = None
     preview_session_id: Optional[str] = None
     preview_request_seq: Optional[int] = None
+
+
+def _strip_internal_keys(meta: dict) -> dict:
+    """Remove _-prefixed implementation-detail keys before serialization."""
+    return {k: v for k, v in meta.items() if not k.startswith("_")}
 
 
 def _error(error_type: str, message: str, details: list[str] | None = None, status: int = 422):
@@ -660,7 +540,9 @@ async def list_templates():
     return {
         "templates": templates,
         "meta": {
-            name: _template_meta_cache.get(name, _load_template_meta(TEMPLATES_DIR / name))
+            name: _strip_internal_keys(
+                _template_meta_cache.get(name, load_template_meta(str(TEMPLATES_DIR / name)))
+            )
             for name in all_template_dirs
         },
         "validation": {
