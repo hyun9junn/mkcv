@@ -8,7 +8,7 @@ test.afterEach(async () => {
 });
 
 test('same resume yaml reuses one parse internally while public reads stay isolated', async () => {
-  const { sectionsState, _resetParseCache } = await import('../frontend/src/sections-state.js');
+  const { sectionsState, _resetParseCache, _getParseCount } = await import('../frontend/src/sections-state.js');
   _resetParseCache();
 
   const resumeYaml = [
@@ -39,6 +39,8 @@ test('same resume yaml reuses one parse internally while public reads stay isola
   const orderedYaml = sectionsState.getOrderedFilteredYaml(resumeYaml);
   const visibleOrder = sectionsState.getVisibleOrder(resumeYaml);
 
+  // All five reads of the same YAML should reuse a single internal parse
+  assert.equal(_getParseCount(), 1, 'same yaml across multiple public reads must parse once');
   // Returns a different object (clone), not the same reference
   assert.notEqual(parsedAgain, parsed);
   // Internal cache was not poisoned by the mutation above
@@ -51,8 +53,9 @@ test('same resume yaml reuses one parse internally while public reads stay isola
   assert.match(orderedYaml, /custom_sections:/);
   assert.deepEqual(Array.from(visibleOrder), ['summary', 'projects', 'side_projects']);
 
-  // A different YAML string must produce a fresh parse (different result)
+  // A different YAML string must produce a fresh parse
   const differentYaml = `${resumeYaml}languages:\n  - language: English\n`;
   const parsedDifferent = sectionsState.parseResumeYaml(differentYaml);
   assert.ok('languages' in parsedDifferent, 'different YAML must be parsed fresh');
+  assert.equal(_getParseCount(), 2, 'different yaml must trigger exactly one additional parse');
 });

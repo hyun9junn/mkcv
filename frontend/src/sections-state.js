@@ -109,6 +109,7 @@ let _cachedResumeYaml = null;
 let _cachedParsedResume = null;
 let _cachedResumeError = null;
 let _hasCachedResume = false;
+let _parseCount = 0;
 
 // Pluggable storage — defaults to globalThis.localStorage. Tests can override
 // with _setStorage(vmContextLocalStorage) to match the IIFE test harness.
@@ -202,6 +203,7 @@ function _getParsedResume(rawYaml) {
   }
 
   try {
+    _parseCount += 1;
     const parsed = jsyaml.load(rawYaml);
     if (useCache) {
       _cachedResumeYaml = rawYaml;
@@ -606,6 +608,11 @@ export function _resetParseCache() {
   _cachedParsedResume = null;
   _cachedResumeError = null;
   _hasCachedResume = false;
+  _parseCount = 0;
+}
+
+export function _getParseCount() {
+  return _parseCount;
 }
 
 export const sectionsState = {

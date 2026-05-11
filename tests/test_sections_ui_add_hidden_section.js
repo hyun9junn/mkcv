@@ -161,8 +161,6 @@ function createContext(options = {}) {
     order: initialOrder,
   });
   storage.set('mkcv_sections_state', sectionStateJson);
-  // Also set on globalThis.localStorage for the ESM sections-state module.
-  if (globalThis.localStorage) globalThis.localStorage.setItem('mkcv_sections_state', sectionStateJson);
 
   const settingsSections = options.settingsSections || [
     { key: 'summary', title: 'SUMMARY', visible: true },
