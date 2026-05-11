@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import asyncio
 from contextlib import asynccontextmanager
-from dataclasses import dataclass, field
 from pathlib import Path
 import time
 from typing import Literal, Optional, List
@@ -17,6 +16,12 @@ from pydantic import BaseModel
 from backend.parsers.yaml_parser import parse_yaml, YAMLParseError, CVValidationError
 from backend.renderers.markdown import MarkdownRenderer
 from backend.services.pdf_compiler import compile_pdf, compile_pdf_sync
+from backend.services.preview_session import (
+    PreviewSessionState,
+    record_preview_request,
+    stale_response_if_needed,
+    touch_preview_session_state,
+)
 from backend.templates.meta import load_template_meta
 from backend.renderers.latex import (
     LaTeXRenderer,
@@ -61,18 +66,6 @@ _SAMPLE_CV = CVData(
 _template_validation_cache: dict[str, dict] = {}
 _template_meta_cache: dict[str, dict] = {}
 _CV_SCHEMA_CACHE: dict | None = None
-_PREVIEW_SESSION_TTL_SECONDS = 60.0
-
-
-@dataclass
-class _PreviewSessionState:
-    latest_seq: int = -1
-    active_requests: int = 0
-    last_touched: float = 0.0
-    lock: asyncio.Lock = field(default_factory=asyncio.Lock)
-
-
-_preview_sessions: dict[str, _PreviewSessionState] = {}
 
 
 
@@ -167,63 +160,6 @@ def _template_exists(template: str) -> bool:
     return (TEMPLATES_DIR / template / "cv.tex.j2").exists()
 
 
-def _cleanup_preview_sessions(now: float) -> None:
-    expired_session_ids = [
-        session_id
-        for session_id, state in _preview_sessions.items()
-        if state.active_requests == 0 and (now - state.last_touched) > _PREVIEW_SESSION_TTL_SECONDS
-    ]
-    for session_id in expired_session_ids:
-        _preview_sessions.pop(session_id, None)
-
-
-def _get_preview_session_state(session_id: str) -> _PreviewSessionState:
-    now = time.monotonic()
-    _cleanup_preview_sessions(now)
-    state = _preview_sessions.get(session_id)
-    if state is None:
-        state = _PreviewSessionState(last_touched=now)
-        _preview_sessions[session_id] = state
-        return state
-
-    state.last_touched = now
-    return state
-
-
-def _touch_preview_session_state(state: _PreviewSessionState) -> None:
-    state.last_touched = time.monotonic()
-
-
-def _preview_stale_response(session_id: str, request_seq: int, latest_seq: int) -> JSONResponse:
-    return _error(
-        "stale_preview",
-        f"Preview request {request_seq} for session '{session_id}' is stale",
-        [f"Latest preview request sequence is {latest_seq}"],
-        status=409,
-    )
-
-
-def _record_preview_request(session_id: str, request_seq: int) -> _PreviewSessionState:
-    state = _get_preview_session_state(session_id)
-    state.active_requests += 1
-    state.latest_seq = max(state.latest_seq, request_seq)
-    _touch_preview_session_state(state)
-    return state
-
-
-def _stale_preview_response_if_needed(
-    session_state: Optional[_PreviewSessionState],
-    session_id: Optional[str],
-    request_seq: Optional[int],
-) -> Optional[JSONResponse]:
-    if session_state is None or session_id is None or request_seq is None:
-        return None
-
-    _touch_preview_session_state(session_state)
-    if request_seq < session_state.latest_seq:
-        return _preview_stale_response(session_id, request_seq, session_state.latest_seq)
-
-    return None
 
 
 
@@ -410,13 +346,13 @@ async def export_pdf(req: CVRequest):
 async def preview_pdf(req: CVRequest):
     session_id = req.preview_session_id
     request_seq = req.preview_request_seq
-    session_state: Optional[_PreviewSessionState] = None
+    session_state: Optional[PreviewSessionState] = None
 
     if session_id is not None and request_seq is not None:
-        session_state = _record_preview_request(session_id, request_seq)
+        session_state = record_preview_request(session_id, request_seq)
 
     try:
-        stale_response = _stale_preview_response_if_needed(session_state, session_id, request_seq)
+        stale_response = stale_response_if_needed(session_state, session_id, request_seq)
         if stale_response is not None:
             return stale_response
 
@@ -441,14 +377,14 @@ async def preview_pdf(req: CVRequest):
     try:
         if session_state is not None and session_id is not None and request_seq is not None:
             async with session_state.lock:
-                stale_response = _stale_preview_response_if_needed(session_state, session_id, request_seq)
+                stale_response = stale_response_if_needed(session_state, session_id, request_seq)
                 if stale_response is not None:
                     return stale_response
 
                 latex_content = renderer.render(cv, req.section_order, req.section_titles)
                 pdf_bytes, compile_err = await compile_pdf(latex_content)
 
-                stale_response = _stale_preview_response_if_needed(session_state, session_id, request_seq)
+                stale_response = stale_response_if_needed(session_state, session_id, request_seq)
                 if stale_response is not None:
                     return stale_response
 
@@ -476,7 +412,7 @@ async def preview_pdf(req: CVRequest):
     finally:
         if session_state is not None:
             session_state.active_requests -= 1
-            _touch_preview_session_state(session_state)
+            touch_preview_session_state(session_state)
 
 
 @app.get("/api/templates")

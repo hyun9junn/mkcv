@@ -216,8 +216,9 @@ async def test_preview_pdf_unknown_template(app):
 
 async def test_preview_pdf_stale_preview_for_older_request_in_same_session(app, monkeypatch):
     from backend import main as backend_main
+    from backend.services import preview_session as _preview_session_module
 
-    backend_main._preview_sessions.clear()
+    _preview_session_module._preview_sessions.clear()
     first_compile_started = asyncio.Event()
     allow_first_compile_to_finish = asyncio.Event()
 
@@ -259,8 +260,9 @@ async def test_preview_pdf_stale_preview_for_older_request_in_same_session(app, 
 
 async def test_preview_pdf_keeps_sessions_isolated(app, monkeypatch):
     from backend import main as backend_main
+    from backend.services import preview_session as _preview_session_module
 
-    backend_main._preview_sessions.clear()
+    _preview_session_module._preview_sessions.clear()
     first_compile_started = asyncio.Event()
     allow_first_compile_to_finish = asyncio.Event()
 
@@ -310,8 +312,9 @@ async def test_preview_pdf_keeps_sessions_isolated(app, monkeypatch):
 
 async def test_preview_pdf_newer_invalid_request_supersedes_older_inflight_valid_request(app, monkeypatch):
     from backend import main as backend_main
+    from backend.services import preview_session as _preview_session_module
 
-    backend_main._preview_sessions.clear()
+    _preview_session_module._preview_sessions.clear()
     first_compile_started = asyncio.Event()
     allow_first_compile_to_finish = asyncio.Event()
 
@@ -359,8 +362,9 @@ async def test_preview_pdf_newer_invalid_request_supersedes_older_inflight_valid
 
 async def test_preview_pdf_stale_preview_wins_over_outdated_compile_failure(app, monkeypatch):
     from backend import main as backend_main
+    from backend.services import preview_session as _preview_session_module
 
-    backend_main._preview_sessions.clear()
+    _preview_session_module._preview_sessions.clear()
     first_compile_started = asyncio.Event()
     allow_first_compile_to_finish = asyncio.Event()
 
