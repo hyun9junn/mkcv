@@ -8,8 +8,11 @@
     "test": "tests"
   },
   "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
     "test": "npm run test:js && npm run test:py",
-    "test:js": "node --test \"tests/test_*.js\" \"tests/*.test.mjs\"",
+    "test:js": "node --test --import ./tests/setup-dom.mjs \"tests/test_*.js\" \"tests/*.test.mjs\"",
     "test:py": "pytest"
   },
   "repository": {
@@ -25,11 +28,16 @@
   },
   "homepage": "https://github.com/hyun9junn/mkcv#readme",
   "dependencies": {
-    "js-yaml": "^4.1.1"
+    "codemirror": "^5.65.16",
+    "js-yaml": "^4.1.1",
+    "jszip": "^3.10.1",
+    "pdfjs-dist": "^3.11.174"
   },
   "devDependencies": {
+    "@happy-dom/global-registrator": "^14.12.3",
     "gifenc": "^1.0.3",
     "playwright": "^1.59.1",
-    "pngjs": "^7.0.0"
+    "pngjs": "^7.0.0",
+    "vite": "^5.4.21"
   }
 }
