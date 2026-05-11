@@ -1,114 +1,132 @@
-class CodeMirrorAdapter {
-  constructor(container, initialValue = "") {
-    this._zoomLevel = 1.0;
-    this._suppressChange = false;
-    this._suppressNextPreviewRefresh = false;
-    this._editor = CodeMirror(container, {
-      value: initialValue,
-      mode: "yaml",
-      theme: "material-darker",
-      lineNumbers: true,
-      lineWrapping: true,
-      tabSize: 2,
-      indentWithTabs: false,
-      autofocus: true,
-      extraKeys: {
-        Tab: _tabOrComplete,
-        "Shift-Tab": _shiftTab,
-        Enter: _enterSmartIndent,
-      },
-    });
+// CodeMirror editor adapter — wraps a single CodeMirror instance and exposes
+// the methods used by the rest of the app. Phase 2: converted from IIFE-on-
+// window to ESM. The aggregate `editorAdapter` export preserves the shape that
+// the previous `window.editorAdapter` instance had so still-IIFE callers
+// continue to work via the `window.editorAdapter = editorAdapter` shim in
+// main.js.
 
-    if (typeof initYamlAutocomplete === "function") {
-      initYamlAutocomplete(this._editor);
-    }
-  }
+import CodeMirror from 'codemirror';
+import { app } from './app.js';
+import { initYamlAutocomplete, yamlHint } from './yaml-autocomplete.js';
 
-  getValue() {
-    return this._editor.getValue();
-  }
+// Module-level editor state (formerly the class instance fields).
+let _editor = null;
+let _zoomLevel = 1.0;
+let _suppressChange = false;
+let _suppressNextPreviewRefresh = false;
 
-  setValue(str) {
-    this._editor.setValue(str);
-  }
+// ---------------------------------------------------------------------------
+// Public adapter API
+// ---------------------------------------------------------------------------
 
-  setValueSilently(str) {
-    this._suppressChange = true;
-    try {
-      this._editor.setValue(str);
-    } finally {
-      this._suppressChange = false;
-    }
-  }
-
-  setValuePreserveScroll(str) {
-    const scroll = this._editor.getScrollInfo();
-    this._editor.setValue(str);
-    this._editor.scrollTo(scroll.left, scroll.top);
-  }
-
-  getScrollInfo() {
-    return this._editor.getScrollInfo();
-  }
-
-  scrollTo(left, top) {
-    this._editor.scrollTo(left, top);
-  }
-
-  suppressNextPreviewRefresh() {
-    this._suppressNextPreviewRefresh = true;
-  }
-
-  consumeSuppressedPreviewRefresh() {
-    const suppressed = this._suppressNextPreviewRefresh;
-    this._suppressNextPreviewRefresh = false;
-    return suppressed;
-  }
-
-  closeHint() {
-    if (typeof this._editor.closeHint === 'function') {
-      this._editor.closeHint();
-    }
-  }
-
-  clearHistory() {
-    this._editor.clearHistory();
-  }
-
-  onChange(callback) {
-    this._editor.on("change", () => {
-      if (this._suppressChange) return;
-      callback(this.getValue());
-    });
-  }
-
-  onCursorActivity(callback) {
-    this._editor.on("cursorActivity", () => callback(this._editor.getCursor()));
-  }
-
-  getCursor() {
-    return this._editor.getCursor();
-  }
-
-  _applyZoom() {
-    const size = 12.5 * this._zoomLevel;
-    document.documentElement.style.setProperty('--editor-font-size', size + 'px');
-    this._editor.refresh();
-    const el = document.getElementById('editor-zoom-label');
-    if (el) el.textContent = Math.round(this._zoomLevel * 100) + '%';
-  }
-
-  zoomIn()    { this._zoomLevel = Math.min(3.0, this._zoomLevel * 1.1); this._applyZoom(); }
-  zoomOut()   { this._zoomLevel = Math.max(0.5, this._zoomLevel / 1.1); this._applyZoom(); }
-  resetZoom() { this._zoomLevel = 1.0; this._applyZoom(); }
-  getZoomLevel() { return this._zoomLevel; }
+export function getValue() {
+  return _editor.getValue();
 }
+
+export function setValue(str) {
+  _editor.setValue(str);
+}
+
+export function setValueSilently(str) {
+  _suppressChange = true;
+  try {
+    _editor.setValue(str);
+  } finally {
+    _suppressChange = false;
+  }
+}
+
+export function setValuePreserveScroll(str) {
+  const scroll = _editor.getScrollInfo();
+  _editor.setValue(str);
+  _editor.scrollTo(scroll.left, scroll.top);
+}
+
+export function getScrollInfo() {
+  return _editor.getScrollInfo();
+}
+
+export function scrollTo(left, top) {
+  _editor.scrollTo(left, top);
+}
+
+export function suppressNextPreviewRefresh() {
+  _suppressNextPreviewRefresh = true;
+}
+
+export function consumeSuppressedPreviewRefresh() {
+  const suppressed = _suppressNextPreviewRefresh;
+  _suppressNextPreviewRefresh = false;
+  return suppressed;
+}
+
+export function closeHint() {
+  if (_editor && typeof _editor.closeHint === 'function') {
+    _editor.closeHint();
+  }
+}
+
+export function clearHistory() {
+  _editor.clearHistory();
+}
+
+export function onChange(callback) {
+  _editor.on('change', () => {
+    if (_suppressChange) return;
+    callback(getValue());
+  });
+}
+
+export function onCursorActivity(callback) {
+  _editor.on('cursorActivity', () => callback(_editor.getCursor()));
+}
+
+export function getCursor() {
+  return _editor.getCursor();
+}
+
+function _applyZoom() {
+  const size = 12.5 * _zoomLevel;
+  document.documentElement.style.setProperty('--editor-font-size', size + 'px');
+  _editor.refresh();
+  const el = document.getElementById('editor-zoom-label');
+  if (el) el.textContent = Math.round(_zoomLevel * 100) + '%';
+}
+
+export function zoomIn()    { _zoomLevel = Math.min(3.0, _zoomLevel * 1.1); _applyZoom(); }
+export function zoomOut()   { _zoomLevel = Math.max(0.5, _zoomLevel / 1.1); _applyZoom(); }
+export function resetZoom() { _zoomLevel = 1.0; _applyZoom(); }
+export function getZoomLevel() { return _zoomLevel; }
+
+export const editorAdapter = {
+  getValue,
+  setValue,
+  setValueSilently,
+  setValuePreserveScroll,
+  getScrollInfo,
+  scrollTo,
+  suppressNextPreviewRefresh,
+  consumeSuppressedPreviewRefresh,
+  closeHint,
+  clearHistory,
+  onChange,
+  onCursorActivity,
+  getCursor,
+  zoomIn,
+  zoomOut,
+  resetZoom,
+  getZoomLevel,
+};
+
+// ---------------------------------------------------------------------------
+// Editor key handlers (formerly module-level functions; preserved verbatim).
+// ---------------------------------------------------------------------------
 
 // Tab: fast-accept if one candidate, open dropdown if many, else insert 2 spaces.
 // When show-hint menu is open, show-hint's keymap intercepts Tab first — this
 // function only runs when the menu is closed.
 function _tabOrComplete(editor) {
-  const hint = typeof yamlHint === "function" ? yamlHint(editor) : null;
+  const hint = typeof yamlHint === 'function' ? yamlHint(editor) : null;
   if (hint && hint.list.length === 1) {
     // Fast-accept: exactly one candidate
     const completion = hint.list[0];
@@ -120,7 +138,7 @@ function _tabOrComplete(editor) {
     return;
   }
   // No completions available: YAML-safe indent (spaces only, never \t)
-  editor.replaceSelection("  ");
+  editor.replaceSelection('  ');
 }
 
 // Fields whose value is always a list — Enter after these inserts a bullet.
@@ -128,7 +146,9 @@ const YAML_LIST_FIELDS = new Set(['highlights', 'items']);
 
 // Enter: smart indent for YAML — handles empty bullets, colon-terminated lines,
 // key-value list items, string-value bullets, and default indent preservation.
-function _enterSmartIndent(editor) {
+// Exported with `_` prefix to indicate test-only access; production callers go
+// through the editor's `extraKeys.Enter` binding wired up in `initEditorAdapter`.
+export function _enterSmartIndent(editor) {
   const cursor = editor.getCursor();
   const line = editor.getLine(cursor.line);
   const lineIndent = (line.match(/^(\s*)/) || ['', ''])[1].length;
@@ -176,11 +196,11 @@ function _shiftTab(editor) {
   }
   const cursor = editor.getCursor();
   const lineText = editor.getLine(cursor.line);
-  const spaces = (lineText.match(/^ */) || [""])[0].length;
+  const spaces = (lineText.match(/^ */) || [''])[0].length;
   const remove = Math.min(spaces, 2);
   if (remove > 0) {
     editor.replaceRange(
-      "",
+      '',
       { line: cursor.line, ch: 0 },
       { line: cursor.line, ch: remove }
     );
@@ -256,16 +276,36 @@ projects:
       - Helped shorten postmortem prep time and kept cross-functional action items visible after production incidents.
 `;
 
-document.addEventListener("DOMContentLoaded", () => {
-  const editor = new CodeMirrorAdapter(
-    document.getElementById("editor-pane"),
-    INITIAL_YAML
-  );
-  window.editorAdapter = editor;
-  app.setState({ yaml: editor.getValue() });
-  editor.onChange((val) => {
+// ---------------------------------------------------------------------------
+// DOM bootstrap
+// ---------------------------------------------------------------------------
+
+export function initEditorAdapter() {
+  const container = document.getElementById('editor-pane');
+  _editor = CodeMirror(container, {
+    value: INITIAL_YAML,
+    mode: 'yaml',
+    theme: 'material-darker',
+    lineNumbers: true,
+    lineWrapping: true,
+    tabSize: 2,
+    indentWithTabs: false,
+    autofocus: true,
+    extraKeys: {
+      Tab: _tabOrComplete,
+      'Shift-Tab': _shiftTab,
+      Enter: _enterSmartIndent,
+    },
+  });
+
+  if (typeof initYamlAutocomplete === 'function') {
+    initYamlAutocomplete(_editor);
+  }
+
+  app.setState({ yaml: getValue() });
+  onChange((val) => {
     if (!window.settingsSync || window.settingsSync.activeTab === 'resume') {
       app.setState({ yaml: val });
     }
   });
-});
+}
