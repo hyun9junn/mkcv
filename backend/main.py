@@ -25,12 +25,12 @@ from backend.services.preview_session import (
 from backend.templates.meta import load_template_meta
 from backend.renderers.latex import (
     LaTeXRenderer,
-    _build_layout_preamble,
-    _build_xelatex_preamble,
-    _FONT_SIZE,
-    _make_jinja_filters,
-    _make_link_text_fn,
-    _make_contact_helpers,
+    FONT_SIZE,
+    build_layout_preamble,
+    build_xelatex_preamble,
+    make_contact_helpers,
+    make_jinja_filters,
+    make_link_text_fn,
 )
 from backend.models import (
     CVData, PersonalInfo, ExperienceItem, EducationItem, SkillGroup,
@@ -84,9 +84,9 @@ def _validate_template(name: str) -> dict:
             lstrip_blocks=True,
             undefined=jinja2.StrictUndefined,
         )
-        env.filters.update(_make_jinja_filters())
-        env.globals['link_text'] = _make_link_text_fn("label")
-        _cv_fn, _cs_fn = _make_contact_helpers([], "label")
+        env.filters.update(make_jinja_filters())
+        env.globals['link_text'] = make_link_text_fn("label")
+        _cv_fn, _cs_fn = make_contact_helpers([], "label")
         env.globals['contact_visible'] = _cv_fn
         env.globals['contact_link_style'] = _cs_fn
         template = env.get_template("cv.tex.j2")
@@ -96,10 +96,10 @@ def _validate_template(name: str) -> dict:
             cv=_SAMPLE_CV,
             section_order=default_order,
             custom_by_key=custom_by_key,
-            font_size=_FONT_SIZE["normal"],
-            layout_preamble=_build_layout_preamble("balanced"),
+            font_size=FONT_SIZE["normal"],
+            layout_preamble=build_layout_preamble("balanced"),
             section_titles={},
-            xelatex_preamble=_build_xelatex_preamble(TEMPLATES_DIR, name),
+            xelatex_preamble=build_xelatex_preamble(TEMPLATES_DIR, name),
         )
     except jinja2.TemplateSyntaxError as e:
         return {"valid": False, "errors": [f"Jinja2 syntax error: {e}"]}

@@ -1,20 +1,40 @@
-from pathlib import Path
-from dataclasses import dataclass
-from functools import lru_cache
-from typing import Optional, List
+"""LaTeX rendering: the LaTeXRenderer class and its private helpers.
+
+Private to this module:
+- _escape_latex_text
+- _sanitize_for_latex
+- _smart_title_case
+- _transform_builtin_section_title
+- _prepare_section_titles
+- _should_preserve_model_field
+"""
+from __future__ import annotations
+
 import re
-import jinja2
+from pathlib import Path
+from typing import Optional, List
+
 from pydantic import BaseModel
+
 from backend.constants import BUILTIN_SECTION_KEYS
+from backend.models import CVData, CustomBlock, CustomSection
+from backend.renderers.base import BaseRenderer
+from backend.renderers.latex.helpers import (
+    get_template_render_bundle,
+    make_contact_helpers,
+    make_link_text_fn,
+)
+from backend.renderers.latex.preamble import (
+    FONT_SIZE,
+    build_layout_preamble,
+    build_xelatex_preamble,
+)
 from backend.templates.meta import (
     load_template_meta,
     template_default_titles,
     template_render_config,
-    template_xelatex_fonts,
 )
-from backend.models import CVData
-from backend.models import CustomBlock, CustomSection
-from backend.renderers.base import BaseRenderer
+
 
 DEFAULT_SECTION_ORDER = [
     "summary", "experience", "education", "skills", "projects",
@@ -33,168 +53,16 @@ DEFAULT_SECTION_TITLES = {
     "awards":         "Awards",
     "extracurricular":"Extracurricular Activities",
 }
+
 _TITLE_CASE_SMALL_WORDS = {
-    "a",
-    "an",
-    "and",
-    "as",
-    "at",
-    "but",
-    "by",
-    "for",
-    "in",
-    "nor",
-    "of",
-    "on",
-    "or",
-    "the",
-    "to",
-    "via",
-    "with",
+    "a", "an", "and", "as", "at", "but", "by", "for", "in", "nor",
+    "of", "on", "or", "the", "to", "via", "with",
 }
 _TITLE_WORD_RE = re.compile(r"[A-Za-z0-9]+(?:'[A-Za-z0-9]+)?")
-_DEFAULT_XELATEX_FONTS = {
-    "hangul_main_fonts": ["Nanum Myeongjo", "UnBatang"],
-    "hangul_sans_fonts": ["Nanum Gothic", "UnDotum"],
-    "hangul_mono_fonts": ["Nanum Gothic", "UnDotum"],
-}
-
-_FONT_SIZE = {
-    "small":  "10pt",
-    "normal": "11pt",
-    "large":  "12pt",
-}
-
-_DENSITY = {
-    "comfortable": {"vgap": "8pt",  "secbefore": "14pt", "secafter": "7pt",  "itembefore": "4pt"},
-    "balanced":    {"vgap": "4pt",  "secbefore": "12pt", "secafter": "6pt",  "itembefore": "2pt"},
-    "compact":     {"vgap": "2pt",  "secbefore": "8pt",  "secafter": "4pt",  "itembefore": "1pt"},
-}
 _LATEX_ESCAPES = {
-    "&": r"\&",
-    "%": r"\%",
-    "$": r"\$",
-    "#": r"\#",
-    "_": r"\_",
-    "{": r"\{",
-    "}": r"\}",
-    "~": r"\textasciitilde{}",
-    "^": r"\textasciicircum{}",
+    "&": r"\&", "%": r"\%", "$": r"\$", "#": r"\#", "_": r"\_",
+    "{": r"\{", "}": r"\}", "~": r"\textasciitilde{}", "^": r"\textasciicircum{}",
 }
-
-
-@dataclass(frozen=True)
-class _TemplateRenderBundle:
-    env: jinja2.Environment
-    template: jinja2.Template
-
-
-def _build_layout_preamble(density: str) -> str:
-    d = _DENSITY.get(density, _DENSITY["balanced"])
-    return (
-        f"\\newcommand{{\\cvvgap}}{{{d['vgap']}}}\n"
-        f"\\newcommand{{\\cvsecbefore}}{{{d['secbefore']}}}\n"
-        f"\\newcommand{{\\cvsecafter}}{{{d['secafter']}}}\n"
-        f"\\newcommand{{\\cvitembefore}}{{{d['itembefore']}}}"
-    )
-
-
-def _make_link_text_fn(link_display: str):
-    def link_text(url: str, label: str, style: Optional[str] = None) -> str:
-        s = style if style in ('label', 'url', 'both') else link_display
-        if s == "url":
-            return url
-        elif s == "both":
-            return f"{label} ({url})"
-        return label
-    return link_text
-
-
-def _make_contact_helpers(personal_fields: list, link_display: str):
-    field_map = {
-        f['key']: f
-        for f in personal_fields
-        if isinstance(f, dict) and 'key' in f
-    }
-
-    def contact_visible(key: str) -> bool:
-        if key == 'name':
-            return True
-        return field_map.get(key, {}).get('visible', True)
-
-    def contact_link_style(key: str) -> str:
-        override = field_map.get(key, {}).get('link_display')
-        if override in ('label', 'url', 'both'):
-            return override
-        return link_display
-
-    return contact_visible, contact_link_style
-
-
-def _make_jinja_filters() -> dict:
-    def name_size(name: str) -> str:
-        n = len(name.strip())
-        if n <= 22:
-            return r'\Huge\bfseries'
-        if n <= 30:
-            return r'\LARGE\bfseries'
-        return r'\Large\bfseries'
-
-    def name_fontsize(name: str, normal_pt: float = 26.0, skip_ratio: float = 1.15) -> str:
-        n = len(name.strip())
-        if n <= 22:
-            pt = normal_pt
-        elif n <= 30:
-            pt = normal_pt - 3
-        else:
-            pt = normal_pt - 5
-        skip = round(pt * skip_ratio, 1)
-        return rf'\fontsize{{{pt:g}pt}}{{{skip:g}pt}}\selectfont'
-
-    def shrink_if_long(text: str, threshold: int = 48) -> str:
-        return r'\small ' if len(text.strip()) > threshold else ''
-
-    return {
-        'name_size': name_size,
-        'name_fontsize': name_fontsize,
-        'shrink_if_long': shrink_if_long,
-    }
-
-
-@lru_cache(maxsize=None)
-def _get_template_render_bundle(templates_dir: str, template: str) -> _TemplateRenderBundle:
-    env = jinja2.Environment(
-        loader=jinja2.FileSystemLoader(str(Path(templates_dir) / template)),
-        block_start_string="<%",
-        block_end_string="%>",
-        variable_start_string="<<",
-        variable_end_string=">>",
-        comment_start_string="<#",
-        comment_end_string="#>",
-        trim_blocks=True,
-        lstrip_blocks=True,
-    )
-    env.filters.update(_make_jinja_filters())
-    return _TemplateRenderBundle(
-        env=env,
-        template=env.get_template("cv.tex.j2"),
-    )
-
-
-
-def _build_font_fallback_chain(command: str, fonts: list[str], options: str = "") -> str:
-    option_suffix = f"[{options}]" if options else ""
-    lines: list[str] = []
-
-    for index, font_name in enumerate(fonts):
-        command_line = rf"\{command}{{{font_name}}}{option_suffix}"
-        if index < len(fonts) - 1:
-            lines.append(rf"\IfFontExistsTF{{{font_name}}}{{{command_line}}}{{%")
-        else:
-            lines.append(command_line)
-
-    lines.extend("}" for _ in range(max(len(fonts) - 1, 0)))
-    return "\n".join(lines)
 
 
 def _escape_latex_text(value: str) -> str:
@@ -261,20 +129,6 @@ def _sanitize_for_latex(value):
         return sanitized
 
     return value
-
-
-def _build_xelatex_preamble(templates_dir: Path, template: str) -> str:
-    config = template_xelatex_fonts(load_template_meta(str(Path(templates_dir) / template)))
-    font_options = "AutoFakeSlant=0.2"
-
-    return "\n".join([
-        r"\usepackage{fontspec}",
-        r"\usepackage{kotex}",
-        r"\defaultfontfeatures{Ligatures=TeX}",
-        _build_font_fallback_chain("setmainhangulfont", config["hangul_main_fonts"], font_options),
-        _build_font_fallback_chain("setsanshangulfont", config["hangul_sans_fonts"], font_options),
-        _build_font_fallback_chain("setmonohangulfont", config["hangul_mono_fonts"], font_options),
-    ])
 
 
 def _smart_title_case(text: str) -> str:
@@ -352,18 +206,18 @@ class LaTeXRenderer(BaseRenderer):
         if not template_path.exists():
             raise ValueError(f"unknown_template: '{self.template}' not found")
 
-        bundle = _get_template_render_bundle(str(self.templates_dir), self.template)
-        link_text = _make_link_text_fn(self.link_display)
-        contact_visible, contact_link_style = _make_contact_helpers(
+        bundle = get_template_render_bundle(str(self.templates_dir), self.template)
+        link_text = make_link_text_fn(self.link_display)
+        contact_visible, contact_link_style = make_contact_helpers(
             self.personal_fields, self.link_display
         )
         order = section_order if section_order else DEFAULT_SECTION_ORDER
         safe_cv = _sanitize_for_latex(cv)
         custom_by_key = {cs.key: cs for cs in safe_cv.custom_sections}
-        font_size = _FONT_SIZE.get(self.font_scale, _FONT_SIZE["normal"])
-        layout_preamble = _build_layout_preamble(self.density)
+        font_size = FONT_SIZE.get(self.font_scale, FONT_SIZE["normal"])
+        layout_preamble = build_layout_preamble(self.density)
         titles = _prepare_section_titles(self.templates_dir, self.template, section_titles)
-        xelatex_preamble = _build_xelatex_preamble(self.templates_dir, self.template)
+        xelatex_preamble = build_xelatex_preamble(self.templates_dir, self.template)
         return bundle.template.render(
             cv=safe_cv,
             section_order=order,
