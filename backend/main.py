@@ -12,6 +12,7 @@ from fastapi.responses import JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
+from backend.api.errors import error_response
 from backend.parsers.yaml_parser import parse_yaml, YAMLParseError, CVValidationError
 from backend.renderers.markdown import MarkdownRenderer
 from backend.services.pdf_compiler import compile_pdf
@@ -64,13 +65,6 @@ def _strip_internal_keys(meta: dict) -> dict:
     return {k: v for k, v in meta.items() if not k.startswith("_")}
 
 
-def _error(error_type: str, message: str, details: list[str] | None = None, status: int = 422):
-    return JSONResponse(
-        status_code=status,
-        content={"error": error_type, "message": message, "details": details or []},
-    )
-
-
 def _template_exists(template: str) -> bool:
     return (TEMPLATES_DIR / template / "cv.tex.j2").exists()
 
@@ -105,9 +99,9 @@ async def preview(req: CVRequest):
     try:
         cv = parse_yaml(req.yaml)
     except YAMLParseError as e:
-        return _error("invalid_yaml", e.message, e.details)
+        return error_response("invalid_yaml", e.message, e.details)
     except CVValidationError as e:
-        return _error("validation_error", e.message, e.errors)
+        return error_response("validation_error", e.message, e.errors)
 
     return {"markdown": MarkdownRenderer().render(cv, req.section_order)}
 
@@ -117,9 +111,9 @@ async def export_markdown(req: CVRequest):
     try:
         cv = parse_yaml(req.yaml)
     except YAMLParseError as e:
-        return _error("invalid_yaml", e.message, e.details)
+        return error_response("invalid_yaml", e.message, e.details)
     except CVValidationError as e:
-        return _error("validation_error", e.message, e.errors)
+        return error_response("validation_error", e.message, e.errors)
 
     content = MarkdownRenderer().render(cv, req.section_order)
     return Response(
@@ -134,12 +128,12 @@ async def export_latex(req: CVRequest):
     try:
         cv = parse_yaml(req.yaml)
     except YAMLParseError as e:
-        return _error("invalid_yaml", e.message, e.details)
+        return error_response("invalid_yaml", e.message, e.details)
     except CVValidationError as e:
-        return _error("validation_error", e.message, e.errors)
+        return error_response("validation_error", e.message, e.errors)
 
     if not _template_exists(req.template):
-        return _error("unknown_template", f"Template '{req.template}' not found")
+        return error_response("unknown_template", f"Template '{req.template}' not found")
 
     renderer = LaTeXRenderer(
         TEMPLATES_DIR,
@@ -162,12 +156,12 @@ async def export_pdf(req: CVRequest):
     try:
         cv = parse_yaml(req.yaml)
     except YAMLParseError as e:
-        return _error("invalid_yaml", e.message, e.details)
+        return error_response("invalid_yaml", e.message, e.details)
     except CVValidationError as e:
-        return _error("validation_error", e.message, e.errors)
+        return error_response("validation_error", e.message, e.errors)
 
     if not _template_exists(req.template):
-        return _error("unknown_template", f"Template '{req.template}' not found")
+        return error_response("unknown_template", f"Template '{req.template}' not found")
 
     renderer = LaTeXRenderer(
         TEMPLATES_DIR,
@@ -181,7 +175,7 @@ async def export_pdf(req: CVRequest):
 
     pdf_bytes, compile_err = await compile_pdf(latex_content)
     if compile_err is not None:
-        return _error(
+        return error_response(
             compile_err["error"],
             compile_err["message"],
             compile_err["details"],
@@ -211,12 +205,12 @@ async def preview_pdf(req: CVRequest):
 
         cv = parse_yaml(req.yaml)
     except YAMLParseError as e:
-        return _error("invalid_yaml", e.message, e.details)
+        return error_response("invalid_yaml", e.message, e.details)
     except CVValidationError as e:
-        return _error("validation_error", e.message, e.errors)
+        return error_response("validation_error", e.message, e.errors)
 
     if not _template_exists(req.template):
-        return _error("unknown_template", f"Template '{req.template}' not found")
+        return error_response("unknown_template", f"Template '{req.template}' not found")
 
     renderer = LaTeXRenderer(
         TEMPLATES_DIR,
@@ -242,7 +236,7 @@ async def preview_pdf(req: CVRequest):
                     return stale_response
 
                 if compile_err is not None:
-                    return _error(
+                    return error_response(
                         compile_err["error"],
                         compile_err["message"],
                         compile_err["details"],
@@ -254,7 +248,7 @@ async def preview_pdf(req: CVRequest):
         latex_content = renderer.render(cv, req.section_order, req.section_titles)
         pdf_bytes, compile_err = await compile_pdf(latex_content)
         if compile_err is not None:
-            return _error(
+            return error_response(
                 compile_err["error"],
                 compile_err["message"],
                 compile_err["details"],
