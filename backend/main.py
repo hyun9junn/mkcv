@@ -37,6 +37,7 @@ from backend.models import (
     ProjectItem, CertificationItem, PublicationItem, LanguageItem,
     AwardItem, ExtracurricularItem, CustomSection, CustomBlock,
 )
+from backend.services.schema import build_cv_schema
 
 TEMPLATES_DIR = Path(__file__).parent / "templates"
 
@@ -65,7 +66,6 @@ _SAMPLE_CV = CVData(
 
 _template_validation_cache: dict[str, dict] = {}
 _template_meta_cache: dict[str, dict] = {}
-_CV_SCHEMA_CACHE: dict | None = None
 
 
 
@@ -164,71 +164,9 @@ def _template_exists(template: str) -> bool:
 
 
 
-def _build_cv_schema() -> dict:
-    """Derive autocomplete schema from Pydantic models."""
-    from pydantic_core import PydanticUndefinedType
-
-    def _model_info(model_class) -> dict:
-        keys = []
-        required = []
-        list_keys = []
-        for field_name, field_info in model_class.model_fields.items():
-            keys.append(field_name)
-            # Required if no default (default is PydanticUndefined)
-            if isinstance(field_info.default, PydanticUndefinedType):
-                required.append(field_name)
-            # list_keys: fields whose annotation is list[...]
-            ann = field_info.annotation
-            origin = typing.get_origin(ann)
-            if origin is list:
-                list_keys.append(field_name)
-        return {"keys": keys, "required": required, "list_keys": list_keys}
-
-    list_section_map = {
-        "experience[]": ExperienceItem,
-        "education[]": EducationItem,
-        "skills[]": SkillGroup,
-        "projects[]": ProjectItem,
-        "certifications[]": CertificationItem,
-        "publications[]": PublicationItem,
-        "languages[]": LanguageItem,
-        "awards[]": AwardItem,
-        "extracurricular[]": ExtracurricularItem,
-        "custom_sections[]": CustomSection,
-    }
-
-    schema: dict = {}
-
-    # Root level — CVData fields (no list_keys at root; lists are sections, not values)
-    root_info = _model_info(CVData)
-    schema["__root__"] = {
-        "keys": root_info["keys"],
-        "required": root_info["required"],
-        "list_keys": [],  # root list keys are section headers, not block sequences
-    }
-
-    # personal block (scalar mapping, not a list section)
-    schema["personal"] = _model_info(PersonalInfo)
-
-    # Each list section
-    for context_key, model_class in list_section_map.items():
-        schema[context_key] = _model_info(model_class)
-
-    schema["custom_sections[].content[]"] = {
-        "keys": ["type", "value", "items", "pairs"],
-        "required": ["type"],
-        "list_keys": ["items", "pairs"],
-    }
-
-    return schema
-
-
 @app.get("/api/schema")
 async def get_schema():
-    global _CV_SCHEMA_CACHE
-    if _CV_SCHEMA_CACHE is None:
-        _CV_SCHEMA_CACHE = _build_cv_schema()
-    return _CV_SCHEMA_CACHE
+    return build_cv_schema()
 
 
 @app.post("/api/validate")
