@@ -1,4 +1,5 @@
 import asyncio
+import subprocess
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -221,7 +222,7 @@ async def test_preview_pdf_stale_preview_for_older_request_in_same_session(app, 
     allow_first_compile_to_finish = asyncio.Event()
 
     async def fake_to_thread(func, *args, **kwargs):
-        if func is backend_main.subprocess.run:
+        if func is subprocess.run:
             tmpdir = Path(kwargs["cwd"])
             latex_source = (tmpdir / "cv.tex").read_text()
             if "Alice One" in latex_source:
@@ -264,7 +265,7 @@ async def test_preview_pdf_keeps_sessions_isolated(app, monkeypatch):
     allow_first_compile_to_finish = asyncio.Event()
 
     async def fake_to_thread(func, *args, **kwargs):
-        if func is backend_main.subprocess.run:
+        if func is subprocess.run:
             tmpdir = Path(kwargs["cwd"])
             latex_source = (tmpdir / "cv.tex").read_text()
             if "Alpha One" in latex_source:
@@ -315,7 +316,7 @@ async def test_preview_pdf_newer_invalid_request_supersedes_older_inflight_valid
     allow_first_compile_to_finish = asyncio.Event()
 
     async def fake_to_thread(func, *args, **kwargs):
-        if func is backend_main.subprocess.run:
+        if func is subprocess.run:
             tmpdir = Path(kwargs["cwd"])
             latex_source = (tmpdir / "cv.tex").read_text()
             if "Valid First" in latex_source:
@@ -364,7 +365,7 @@ async def test_preview_pdf_stale_preview_wins_over_outdated_compile_failure(app,
     allow_first_compile_to_finish = asyncio.Event()
 
     async def fake_to_thread(func, *args, **kwargs):
-        if func is backend_main.subprocess.run:
+        if func is subprocess.run:
             tmpdir = Path(kwargs["cwd"])
             latex_source = (tmpdir / "cv.tex").read_text()
             if "Failing First" in latex_source:

@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-import subprocess
-import tempfile
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -18,7 +16,7 @@ from pydantic import BaseModel
 
 from backend.parsers.yaml_parser import parse_yaml, YAMLParseError, CVValidationError
 from backend.renderers.markdown import MarkdownRenderer
-from backend.services.pdf_compiler import compile_pdf
+from backend.services.pdf_compiler import compile_pdf, compile_pdf_sync
 from backend.templates.meta import load_template_meta
 from backend.renderers.latex import (
     LaTeXRenderer,
@@ -118,26 +116,10 @@ def _validate_template(name: str) -> dict:
         return {"valid": False, "errors": [f"Jinja2 render error: {e}"]}
 
     # Stage 2: xelatex compilation
-    with tempfile.TemporaryDirectory() as tmpdir:
-        tex_path = Path(tmpdir) / "cv.tex"
-        tex_path.write_text(rendered)
-        try:
-            result = subprocess.run(
-                ["xelatex", "-interaction=nonstopmode", "cv.tex"],
-                cwd=tmpdir,
-                capture_output=True,
-                timeout=30,
-                text=True,
-            )
-        except subprocess.TimeoutExpired:
-            return {"valid": False, "errors": ["xelatex timed out after 30 seconds"]}
-        except FileNotFoundError:
-            return {"valid": False, "errors": ["xelatex not found — install TeX Live or MiKTeX"]}
-
-        if result.returncode != 0:
-            error_lines = [line for line in result.stdout.splitlines() if line.startswith("!")]
-            errors = error_lines or [line for line in result.stderr.splitlines() if line.strip()]
-            return {"valid": False, "errors": errors}
+    _pdf_bytes, compile_err = compile_pdf_sync(rendered)
+    if compile_err is not None:
+        # Validation contract uses a different error shape than the API:
+        return {"valid": False, "errors": compile_err["details"] or [compile_err["message"]]}
 
     return {"valid": True, "errors": []}
 
