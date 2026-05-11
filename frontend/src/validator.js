@@ -1,51 +1,54 @@
-const validator = (() => {
-  const banner = document.getElementById("error-banner");
-  let timer = null;
+import { app } from './app.js';
 
-  function showErrors(errors) {
-    const dot  = document.getElementById("valid-dot");
-    const text = document.getElementById("valid-text");
+// editorAdapter, settingsSync etc. are still IIFE modules
+// referenced via window.* until later phase 2 tasks convert them to ESM.
 
-    if (!errors.length) {
-      banner.style.display = "none";
-      banner.textContent   = "";
-      if (dot)  { dot.className = "status-dot"; }
-      if (text)  text.textContent = "YAML valid";
-      return;
-    }
+let _banner = null;
+let _timer = null;
 
-    banner.style.display = "block";
-    banner.textContent   = errors.join(" · ");
-    if (dot)  { dot.className = "status-dot err"; }
-    if (text)  text.textContent = "YAML errors";
+function _showErrors(errors) {
+  const dot  = document.getElementById("valid-dot");
+  const text = document.getElementById("valid-text");
+
+  if (!errors.length) {
+    _banner.style.display = "none";
+    _banner.textContent   = "";
+    if (dot)  { dot.className = "status-dot"; }
+    if (text)  text.textContent = "YAML valid";
+    return;
   }
 
-  async function validate(yaml, template) {
-    try {
-      const resp = await fetch("/api/validate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ yaml, template }),
-      });
-      const data = await resp.json();
-      showErrors(data.errors || []);
-      return data.valid;
-    } catch {
-      return true;
-    }
-  }
+  _banner.style.display = "block";
+  _banner.textContent   = errors.join(" · ");
+  if (dot)  { dot.className = "status-dot err"; }
+  if (text)  text.textContent = "YAML errors";
+}
 
-  document.addEventListener("DOMContentLoaded", () => {
-    window.editorAdapter.onChange(() => {
-      if (window.settingsSync && window.settingsSync.activeTab === 'settings') return;
-      clearTimeout(timer);
-      timer = setTimeout(() => {
-        validate(app.state.yaml, app.state.template);
-      }, 500);
+export async function validate(yaml, template) {
+  try {
+    const resp = await fetch("/api/validate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ yaml, template }),
     });
+    const data = await resp.json();
+    _showErrors(data.errors || []);
+    return data.valid;
+  } catch {
+    return true;
+  }
+}
+
+export const validator = { validate };
+
+export function initValidator() {
+  _banner = document.getElementById("error-banner");
+
+  window.editorAdapter.onChange(() => {
+    if (window.settingsSync && window.settingsSync.activeTab === 'settings') return;
+    clearTimeout(_timer);
+    _timer = setTimeout(() => {
+      validate(app.state.yaml, app.state.template);
+    }, 500);
   });
-
-  return { validate };
-})();
-
-window.validator = validator;
+}

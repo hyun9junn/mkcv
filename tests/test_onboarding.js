@@ -1,66 +1,48 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const fs = require('node:fs');
 const vm = require('node:vm');
+const fs = require('node:fs');
 
-function makeAppCtx(langVal = null) {
-  const storage = {};
-  if (langVal !== null) storage['mkcv_lang'] = langVal;
+// ── app module tests ─────────────────────────────────────────────────────────
+
+test.afterEach(() => {
+  document.body.innerHTML = '';
+  if (globalThis.localStorage) localStorage.clear();
+});
+
+test('app.state.lang defaults to ko', async () => {
+  localStorage.clear();
+  const { app } = await import('../frontend/src/app.js');
+  assert.equal(app.state.lang, 'ko');
+});
+
+test('setLang updates state.lang', async () => {
+  const { app } = await import('../frontend/src/app.js');
+  app.setLang('en');
+  assert.equal(app.state.lang, 'en');
+});
+
+test('app.setLang() updates state and localStorage', async () => {
+  const { app } = await import('../frontend/src/app.js');
+  app.setLang('en');
+  assert.equal(app.state.lang, 'en');
+  assert.equal(localStorage.getItem('mkcv_lang'), 'en');
+});
+
+test('app.setLang() dispatches langchange event with lang detail', async () => {
+  const { app } = await import('../frontend/src/app.js');
   const dispatched = [];
-  const ctx = vm.createContext({
-    window: {},
-    localStorage: {
-      getItem: (k) => storage[k] ?? null,
-      setItem: (k, v) => { storage[k] = v; },
-    },
-    document: {
-      addEventListener() {},
-      documentElement: { lang: 'ko' },
-      dispatchEvent: (e) => dispatched.push(e),
-    },
-    CustomEvent: class CustomEvent {
-      constructor(type, init) { this.type = type; this.detail = init?.detail; }
-    },
-    _storage: storage,
-    _dispatched: dispatched,
-  });
-  return ctx;
-}
-
-test('app.state.lang defaults to ko', () => {
-  const ctx = makeAppCtx();
-  vm.runInContext(fs.readFileSync('frontend/src/app.js', 'utf8'), ctx);
-  assert.equal(ctx.window.app.state.lang, 'ko');
+  document.addEventListener('langchange', (e) => dispatched.push(e));
+  app.setLang('en');
+  assert.equal(dispatched.length, 1);
+  assert.equal(dispatched[0].type, 'langchange');
+  assert.equal(dispatched[0].detail.lang, 'en');
 });
 
-test('app.state.lang reads en from localStorage', () => {
-  const ctx = makeAppCtx('en');
-  vm.runInContext(fs.readFileSync('frontend/src/app.js', 'utf8'), ctx);
-  assert.equal(ctx.window.app.state.lang, 'en');
-});
-
-test('app.setLang() updates state and localStorage', () => {
-  const ctx = makeAppCtx();
-  vm.runInContext(fs.readFileSync('frontend/src/app.js', 'utf8'), ctx);
-  ctx.window.app.setLang('en');
-  assert.equal(ctx.window.app.state.lang, 'en');
-  assert.equal(ctx._storage['mkcv_lang'], 'en');
-});
-
-test('app.setLang() dispatches langchange event with lang detail', () => {
-  const ctx = makeAppCtx();
-  vm.runInContext(fs.readFileSync('frontend/src/app.js', 'utf8'), ctx);
-  ctx.window.app.setLang('en');
-  assert.equal(ctx._dispatched.length, 1);
-  assert.equal(ctx._dispatched[0].type, 'langchange');
-  assert.equal(ctx._dispatched[0].detail.lang, 'en');
-});
-
-test('app.setLang() updates document.documentElement.lang', () => {
-  const ctx = makeAppCtx();
-  vm.runInContext(fs.readFileSync('frontend/src/app.js', 'utf8'), ctx);
-  ctx.window.app.setLang('en');
-  assert.equal(ctx.document.documentElement.lang, 'en');
+test('app.setLang() updates document.documentElement.lang', async () => {
+  const { app } = await import('../frontend/src/app.js');
+  app.setLang('en');
+  assert.equal(document.documentElement.lang, 'en');
 });
 
 // ── onboarding module tests ──────────────────────────────────────────────────
