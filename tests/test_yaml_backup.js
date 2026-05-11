@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 
 test('settingsSync exposes setYaml', () => {
-  const src = fs.readFileSync('frontend/settings-sync.js', 'utf8');
+  const src = fs.readFileSync('frontend/src/settings-sync.js', 'utf8');
   const ctx = vm.createContext({
     document: {
       addEventListener() {},
@@ -112,7 +112,7 @@ function makeJSZipStub({ files = {}, throwOnLoad = false } = {}) {
 }
 
 function loadBackup(ctx) {
-  const src = require('fs').readFileSync('frontend/yaml-backup.js', 'utf8');
+  const src = require('fs').readFileSync('frontend/src/yaml-backup.js', 'utf8');
   require('vm').runInContext(src, ctx);
 }
 

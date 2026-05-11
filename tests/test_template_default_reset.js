@@ -270,8 +270,8 @@ function createContext(options = {}) {
 }
 
 async function bootSettingsSync(context, domReadyCallbacks) {
-  const source = fs.readFileSync('frontend/settings-sync.js', 'utf8');
-  vm.runInNewContext(source, context, { filename: 'frontend/settings-sync.js' });
+  const source = fs.readFileSync('frontend/src/settings-sync.js', 'utf8');
+  vm.runInNewContext(source, context, { filename: 'frontend/src/settings-sync.js' });
   for (const callback of domReadyCallbacks) {
     await callback();
   }
@@ -283,8 +283,8 @@ function loadSettingsHelpers() {
     jsyaml,
   };
   context.window = context;
-  const source = fs.readFileSync('frontend/settings-engine.js', 'utf8');
-  vm.runInNewContext(source, context, { filename: 'frontend/settings-engine.js' });
+  const source = fs.readFileSync('frontend/src/settings-engine.js', 'utf8');
+  vm.runInNewContext(source, context, { filename: 'frontend/src/settings-engine.js' });
   return context.window.SETTINGS_HELPERS;
 }
 

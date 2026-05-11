@@ -254,8 +254,8 @@ function createContext() {
 }
 
 async function bootContactUI(context, domReadyCallbacks) {
-  const source = fs.readFileSync('frontend/contact-ui.js', 'utf8');
-  vm.runInNewContext(source, context, { filename: 'frontend/contact-ui.js' });
+  const source = fs.readFileSync('frontend/src/contact-ui.js', 'utf8');
+  vm.runInNewContext(source, context, { filename: 'frontend/src/contact-ui.js' });
   for (const callback of domReadyCallbacks) {
     await callback();
   }

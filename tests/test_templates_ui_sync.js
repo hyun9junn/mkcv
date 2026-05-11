@@ -214,8 +214,8 @@ function createContext() {
 }
 
 async function bootTemplates(context, domReadyCallbacks) {
-  const source = fs.readFileSync('frontend/templates.js', 'utf8');
-  vm.runInNewContext(source, context, { filename: 'frontend/templates.js' });
+  const source = fs.readFileSync('frontend/src/templates.js', 'utf8');
+  vm.runInNewContext(source, context, { filename: 'frontend/src/templates.js' });
   for (const callback of domReadyCallbacks) {
     await callback();
   }

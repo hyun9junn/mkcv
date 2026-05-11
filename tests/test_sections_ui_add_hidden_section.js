@@ -266,7 +266,7 @@ function loadScript(filename, context) {
 test('education default section scaffold uses start and end dates', () => {
   const { context } = createContext();
 
-  loadScript('frontend/sections-state.js', context);
+  loadScript('frontend/src/sections-state.js', context);
 
   assert.match(context.window.sectionsState.SECTION_DEFS.education.yaml, /start_date: "2020"/);
   assert.match(context.window.sectionsState.SECTION_DEFS.education.yaml, /end_date: "2024"/);
@@ -276,7 +276,7 @@ test('education default section scaffold uses start and end dates', () => {
 test('skills default section scaffold uses block-list items without forced quotes', () => {
   const { context } = createContext();
 
-  loadScript('frontend/sections-state.js', context);
+  loadScript('frontend/src/sections-state.js', context);
 
   assert.match(context.window.sectionsState.SECTION_DEFS.skills.yaml, /category: Languages/);
   assert.match(context.window.sectionsState.SECTION_DEFS.skills.yaml, /items:\n\s+- Python\n\s+- JavaScript/);
@@ -319,8 +319,8 @@ test('clicking an absent hidden built-in section adds it as visible content', ()
     return originalSetValuePreserveScroll(value);
   };
 
-  loadScript('frontend/sections-state.js', context);
-  loadScript('frontend/sections-ui.js', context);
+  loadScript('frontend/src/sections-state.js', context);
+  loadScript('frontend/src/sections-ui.js', context);
 
   context.window.sectionsUI.buildPanel();
 
@@ -378,8 +378,8 @@ test('clicking an absent visible built-in section inserts it by chip order inste
     ],
   });
 
-  loadScript('frontend/sections-state.js', context);
-  loadScript('frontend/sections-ui.js', context);
+  loadScript('frontend/src/sections-state.js', context);
+  loadScript('frontend/src/sections-ui.js', context);
 
   context.window.sectionsUI.buildPanel();
 
@@ -422,8 +422,8 @@ test('sections below the invisible marker render as hidden chips, not absent chi
     '',
   ].join('\n');
 
-  loadScript('frontend/sections-state.js', context);
-  loadScript('frontend/sections-ui.js', context);
+  loadScript('frontend/src/sections-state.js', context);
+  loadScript('frontend/src/sections-ui.js', context);
 
   context.window.sectionsUI.buildPanel();
 

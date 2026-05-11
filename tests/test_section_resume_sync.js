@@ -275,7 +275,7 @@ function loadScript(filename, context) {
 async function boot(options = {}) {
   const { context, domReadyCallbacks, localStorageData } = createContext(options);
 
-  loadScript('frontend/settings-engine.js', context);
+  loadScript('frontend/src/settings-engine.js', context);
 
   const helpers = context.window.SETTINGS_HELPERS;
   const initialSettings = clone(options.initialSettings || helpers.DEFAULT_SETTINGS);
@@ -294,10 +294,10 @@ async function boot(options = {}) {
     );
   }
 
-  loadScript('frontend/sections-state.js', context);
-  loadScript('frontend/settings-sync.js', context);
+  loadScript('frontend/src/sections-state.js', context);
+  loadScript('frontend/src/settings-sync.js', context);
   if (options.loadSectionsUI) {
-    loadScript('frontend/sections-ui.js', context);
+    loadScript('frontend/src/sections-ui.js', context);
   }
 
   for (const callback of domReadyCallbacks) {

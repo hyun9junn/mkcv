@@ -40,7 +40,7 @@ function loadScript(filename, context) {
 
 test('same resume yaml reuses one parse internally while public reads stay isolated', () => {
   const { context, getLoadCalls } = createContext();
-  loadScript('frontend/sections-state.js', context);
+  loadScript('frontend/src/sections-state.js', context);
 
   const resumeYaml = [
     'personal:',

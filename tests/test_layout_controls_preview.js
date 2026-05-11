@@ -98,8 +98,8 @@ function createContext() {
 }
 
 async function bootLayoutControls(context, domReadyCallbacks) {
-  const source = fs.readFileSync('frontend/layout-controls.js', 'utf8');
-  vm.runInNewContext(source, context, { filename: 'frontend/layout-controls.js' });
+  const source = fs.readFileSync('frontend/src/layout-controls.js', 'utf8');
+  vm.runInNewContext(source, context, { filename: 'frontend/src/layout-controls.js' });
   for (const callback of domReadyCallbacks) {
     await callback();
   }

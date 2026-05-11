@@ -5,7 +5,7 @@ const vm = require('node:vm');
 const jsyaml = require('js-yaml');
 
 function loadSettingsHelpers() {
-  const source = fs.readFileSync('frontend/settings-engine.js', 'utf8');
+  const source = fs.readFileSync('frontend/src/settings-engine.js', 'utf8');
   const context = { jsyaml, window: {} };
   vm.runInNewContext(source, context);
   return context.window.SETTINGS_HELPERS;

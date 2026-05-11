@@ -81,8 +81,8 @@ function bootEditorAdapter() {
   };
   context.window = context;
 
-  const source = fs.readFileSync('frontend/editor-adapter.js', 'utf8');
-  vm.runInNewContext(source, context, { filename: 'frontend/editor-adapter.js' });
+  const source = fs.readFileSync('frontend/src/editor-adapter.js', 'utf8');
+  vm.runInNewContext(source, context, { filename: 'frontend/src/editor-adapter.js' });
   for (const callback of domReadyCallbacks) callback();
   context.__codeMirrorEditor = codeMirrorEditor;
   return context;

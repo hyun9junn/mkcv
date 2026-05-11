@@ -20,8 +20,8 @@ function bootAutocomplete(activeTab) {
     settingsSync: { activeTab },
   };
   context.window = context;
-  const source = fs.readFileSync('frontend/yaml-autocomplete.js', 'utf8');
-  vm.runInNewContext(source, context, { filename: 'frontend/yaml-autocomplete.js' });
+  const source = fs.readFileSync('frontend/src/yaml-autocomplete.js', 'utf8');
+  vm.runInNewContext(source, context, { filename: 'frontend/src/yaml-autocomplete.js' });
   return context;
 }
 

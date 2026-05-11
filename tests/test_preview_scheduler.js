@@ -230,8 +230,8 @@ function createHarness({ search = '', getVisibleOrder, getOrderedFilteredYaml } 
   context.window = context;
 
   function boot() {
-    const source = fs.readFileSync('frontend/preview.js', 'utf8');
-    vm.runInNewContext(source, context, { filename: 'frontend/preview.js' });
+    const source = fs.readFileSync('frontend/src/preview.js', 'utf8');
+    vm.runInNewContext(source, context, { filename: 'frontend/src/preview.js' });
     for (const callback of domReadyCallbacks) {
       callback();
     }

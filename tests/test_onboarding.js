@@ -29,19 +29,19 @@ function makeAppCtx(langVal = null) {
 
 test('app.state.lang defaults to ko', () => {
   const ctx = makeAppCtx();
-  vm.runInContext(fs.readFileSync('frontend/app.js', 'utf8'), ctx);
+  vm.runInContext(fs.readFileSync('frontend/src/app.js', 'utf8'), ctx);
   assert.equal(ctx.window.app.state.lang, 'ko');
 });
 
 test('app.state.lang reads en from localStorage', () => {
   const ctx = makeAppCtx('en');
-  vm.runInContext(fs.readFileSync('frontend/app.js', 'utf8'), ctx);
+  vm.runInContext(fs.readFileSync('frontend/src/app.js', 'utf8'), ctx);
   assert.equal(ctx.window.app.state.lang, 'en');
 });
 
 test('app.setLang() updates state and localStorage', () => {
   const ctx = makeAppCtx();
-  vm.runInContext(fs.readFileSync('frontend/app.js', 'utf8'), ctx);
+  vm.runInContext(fs.readFileSync('frontend/src/app.js', 'utf8'), ctx);
   ctx.window.app.setLang('en');
   assert.equal(ctx.window.app.state.lang, 'en');
   assert.equal(ctx._storage['mkcv_lang'], 'en');
@@ -49,7 +49,7 @@ test('app.setLang() updates state and localStorage', () => {
 
 test('app.setLang() dispatches langchange event with lang detail', () => {
   const ctx = makeAppCtx();
-  vm.runInContext(fs.readFileSync('frontend/app.js', 'utf8'), ctx);
+  vm.runInContext(fs.readFileSync('frontend/src/app.js', 'utf8'), ctx);
   ctx.window.app.setLang('en');
   assert.equal(ctx._dispatched.length, 1);
   assert.equal(ctx._dispatched[0].type, 'langchange');
@@ -58,7 +58,7 @@ test('app.setLang() dispatches langchange event with lang detail', () => {
 
 test('app.setLang() updates document.documentElement.lang', () => {
   const ctx = makeAppCtx();
-  vm.runInContext(fs.readFileSync('frontend/app.js', 'utf8'), ctx);
+  vm.runInContext(fs.readFileSync('frontend/src/app.js', 'utf8'), ctx);
   ctx.window.app.setLang('en');
   assert.equal(ctx.document.documentElement.lang, 'en');
 });
@@ -115,7 +115,7 @@ function makeObCtx({ seen = null, lang = 'ko' } = {}) {
 
 function loadOnboarding(ctx) {
   // ctx.app is already set as a stub in makeObCtx — no need to run app.js
-  vm.runInContext(fs.readFileSync('frontend/onboarding.js', 'utf8'), ctx);
+  vm.runInContext(fs.readFileSync('frontend/src/onboarding.js', 'utf8'), ctx);
 }
 
 test('onboarding.init() shows overlay on first visit', () => {

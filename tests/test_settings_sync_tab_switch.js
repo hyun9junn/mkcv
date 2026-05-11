@@ -286,8 +286,8 @@ function createContext(options = {}) {
 }
 
 async function bootSettingsSync(context, domReadyCallbacks) {
-  const source = fs.readFileSync('frontend/settings-sync.js', 'utf8');
-  vm.runInNewContext(source, context, { filename: 'frontend/settings-sync.js' });
+  const source = fs.readFileSync('frontend/src/settings-sync.js', 'utf8');
+  vm.runInNewContext(source, context, { filename: 'frontend/src/settings-sync.js' });
 
   for (const callback of domReadyCallbacks) {
     await callback();
