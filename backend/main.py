@@ -7,7 +7,6 @@ import time
 from typing import Literal, Optional, List
 import typing
 
-import jinja2
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
@@ -15,7 +14,7 @@ from pydantic import BaseModel
 
 from backend.parsers.yaml_parser import parse_yaml, YAMLParseError, CVValidationError
 from backend.renderers.markdown import MarkdownRenderer
-from backend.services.pdf_compiler import compile_pdf, compile_pdf_sync
+from backend.services.pdf_compiler import compile_pdf
 from backend.services.preview_session import (
     PreviewSessionState,
     record_preview_request,
@@ -23,98 +22,14 @@ from backend.services.preview_session import (
     touch_preview_session_state,
 )
 from backend.templates.meta import load_template_meta
-from backend.renderers.latex import (
-    LaTeXRenderer,
-    FONT_SIZE,
-    build_layout_preamble,
-    build_xelatex_preamble,
-    make_contact_helpers,
-    make_jinja_filters,
-    make_link_text_fn,
-)
-from backend.models import (
-    CVData, PersonalInfo, ExperienceItem, EducationItem, SkillGroup,
-    ProjectItem, CertificationItem, PublicationItem, LanguageItem,
-    AwardItem, ExtracurricularItem, CustomSection, CustomBlock,
-)
+from backend.renderers.latex import LaTeXRenderer
 from backend.services.schema import build_cv_schema
+from backend.templates.validation import validate_template
 
 TEMPLATES_DIR = Path(__file__).parent / "templates"
 
-_SAMPLE_CV = CVData(
-    personal=PersonalInfo(name="Test User", email="test@example.com", phone="+1-000-0000", location="City, Country"),
-    summary="A brief summary.",
-    experience=[ExperienceItem(title="Engineer", company="Corp", start_date="2020", end_date="2023", highlights=["Did things"])],
-    education=[EducationItem(degree="B.S. CS", institution="University", year="2020")],
-    skills=[SkillGroup(category="Languages", items=["Python"])],
-    projects=[ProjectItem(name="Project", description="A project", highlights=["Feature"])],
-    certifications=[CertificationItem(name="Cert", issuer="Org", date="2022")],
-    publications=[PublicationItem(title="Paper", venue="Journal", date="2023")],
-    languages=[LanguageItem(language="English", proficiency="Native")],
-    awards=[AwardItem(name="Award", issuer="Org", date="2023")],
-    extracurricular=[ExtracurricularItem(title="Club", organization="Org", highlights=["Led team"])],
-    custom_sections=[
-        CustomSection(
-            key="custom-sample",
-            title="Sample Custom Section",
-            content=[
-                CustomBlock(type="bullets", items=["Item one", "Item two"]),
-            ],
-        )
-    ],
-)
-
 _template_validation_cache: dict[str, dict] = {}
 _template_meta_cache: dict[str, dict] = {}
-
-
-
-def _validate_template(name: str) -> dict:
-    # Stage 1: Jinja2 render with StrictUndefined
-    try:
-        env = jinja2.Environment(
-            loader=jinja2.FileSystemLoader(str(TEMPLATES_DIR / name)),
-            block_start_string="<%",
-            block_end_string="%>",
-            variable_start_string="<<",
-            variable_end_string=">>",
-            comment_start_string="<#",
-            comment_end_string="#>",
-            trim_blocks=True,
-            lstrip_blocks=True,
-            undefined=jinja2.StrictUndefined,
-        )
-        env.filters.update(make_jinja_filters())
-        env.globals['link_text'] = make_link_text_fn("label")
-        _cv_fn, _cs_fn = make_contact_helpers([], "label")
-        env.globals['contact_visible'] = _cv_fn
-        env.globals['contact_link_style'] = _cs_fn
-        template = env.get_template("cv.tex.j2")
-        default_order = ["summary", "experience", "education", "skills", "projects", "certifications", "publications", "languages", "awards", "extracurricular", "custom-sample"]
-        custom_by_key = {cs.key: cs for cs in _SAMPLE_CV.custom_sections}
-        rendered = template.render(
-            cv=_SAMPLE_CV,
-            section_order=default_order,
-            custom_by_key=custom_by_key,
-            font_size=FONT_SIZE["normal"],
-            layout_preamble=build_layout_preamble("balanced"),
-            section_titles={},
-            xelatex_preamble=build_xelatex_preamble(TEMPLATES_DIR, name),
-        )
-    except jinja2.TemplateSyntaxError as e:
-        return {"valid": False, "errors": [f"Jinja2 syntax error: {e}"]}
-    except jinja2.UndefinedError as e:
-        return {"valid": False, "errors": [f"Jinja2 undefined variable: {e}"]}
-    except Exception as e:
-        return {"valid": False, "errors": [f"Jinja2 render error: {e}"]}
-
-    # Stage 2: xelatex compilation
-    _pdf_bytes, compile_err = compile_pdf_sync(rendered)
-    if compile_err is not None:
-        # Validation contract uses a different error shape than the API:
-        return {"valid": False, "errors": compile_err["details"] or [compile_err["message"]]}
-
-    return {"valid": True, "errors": []}
 
 
 @asynccontextmanager
@@ -122,7 +37,7 @@ async def lifespan(app: FastAPI):
     for template_dir in sorted(TEMPLATES_DIR.iterdir()):
         if template_dir.is_dir():
             if (template_dir / "cv.tex.j2").exists():
-                _template_validation_cache[template_dir.name] = await asyncio.to_thread(_validate_template, template_dir.name)
+                _template_validation_cache[template_dir.name] = await asyncio.to_thread(validate_template, template_dir.name, TEMPLATES_DIR)
             if (template_dir / "cv.tex.j2").exists() or (template_dir / "meta.yaml").exists():
                 _template_meta_cache[template_dir.name] = load_template_meta(str(template_dir))
     yield
@@ -379,10 +294,10 @@ async def list_templates():
 
 
 @app.post("/api/templates/{name}/validate")
-async def validate_template(name: str):
+async def validate_template_route(name: str):
     if not _template_exists(name):
         return JSONResponse(status_code=404, content={"error": "not_found", "message": f"Template '{name}' not found"})
-    result = await asyncio.to_thread(_validate_template, name)
+    result = await asyncio.to_thread(validate_template, name, TEMPLATES_DIR)
     _template_validation_cache[name] = result
     return result
 
