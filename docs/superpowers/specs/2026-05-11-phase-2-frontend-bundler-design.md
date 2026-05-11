@@ -1,10 +1,10 @@
 # Phase 2 — Frontend Bundler & ESM Conversion
 
-Part of the multi-phase mkcv refactor (see `2026-05-10-refactor-roadmap.md`). Phase 2 introduces a real bundler (Vite), converts the 17 IIFE/global JS files in `frontend/` to ES modules, vendors 5 CDN libraries as npm packages, extracts the inline `<style>` block from `index.html`, and rewrites JS tests to import ESMs directly.
+Part of the multi-phase mkcv refactor (see `2026-05-10-refactor-roadmap.md`). Phase 2 introduces a real bundler (Vite), converts the 16 IIFE/global JS files in `frontend/` to ES modules, vendors 5 CDN libraries as npm packages, extracts the inline `<style>` block from `index.html`, and rewrites JS tests to import ESMs directly.
 
 ## Why this comes next
 
-Phase 1 split the backend into focused subpackages. The frontend now has the opposite shape: 17 files exist as separate files but communicate exclusively through `window.*` globals because there is no module system. `frontend/index.html` is 1645 lines with 23 `<script>` tags and one giant inline `<style>` block.
+Phase 1 split the backend into focused subpackages. The frontend now has the opposite shape: 16 files exist as separate files but communicate exclusively through `window.*` globals because there is no module system. `frontend/index.html` is 1645 lines with 23 `<script>` tags and one giant inline `<style>` block.
 
 Concrete pain points today:
 
