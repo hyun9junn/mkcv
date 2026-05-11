@@ -275,26 +275,35 @@ function loadScript(filename, context) {
 async function boot(options = {}) {
   const { context, domReadyCallbacks, localStorageData } = createContext(options);
 
-  loadScript('frontend/src/settings-engine.js', context);
+  // Import ESM modules for settings-engine and sections-state.
+  const { SETTINGS_HELPERS, DEFAULT_SETTINGS, settingsToYaml } = await import('../frontend/src/settings-engine.js');
+  const { sectionsState, _resetParseCache, _setStorage } = await import('../frontend/src/sections-state.js');
 
-  const helpers = context.window.SETTINGS_HELPERS;
-  const initialSettings = clone(options.initialSettings || helpers.DEFAULT_SETTINGS);
-  localStorageData.set(
-    'mkcv:default:settings.yaml',
-    helpers.settingsToYaml(initialSettings)
-  );
+  // Reset sections-state parse cache so each test starts clean.
+  _resetParseCache();
+
+  // Point the ESM module at the vm context's localStorage stub so that
+  // settings-sync.js (IIFE, writes mkcv_sections_state to context.localStorage)
+  // and sectionsState (ESM, reads/writes via _storage) share the same storage.
+  _setStorage(context.localStorage);
+
+  context.window.SETTINGS_HELPERS = SETTINGS_HELPERS;
+  context.window.sectionsState = sectionsState;
+
+  const helpers = SETTINGS_HELPERS;
+  const initialSettings = clone(options.initialSettings || DEFAULT_SETTINGS);
+  const settingsYaml = settingsToYaml(initialSettings);
+
+  localStorageData.set('mkcv:default:settings.yaml', settingsYaml);
 
   if (Array.isArray(options.initialSectionState?.order) || Array.isArray(options.initialSectionState?.hidden)) {
-    localStorageData.set(
-      'mkcv_sections_state',
-      JSON.stringify({
-        order: options.initialSectionState.order || helpers.DEFAULT_SETTINGS.sections.map((section) => section.key),
-        hidden: options.initialSectionState.hidden || [],
-      })
-    );
+    const sectionState = JSON.stringify({
+      order: options.initialSectionState.order || DEFAULT_SETTINGS.sections.map((section) => section.key),
+      hidden: options.initialSectionState.hidden || [],
+    });
+    localStorageData.set('mkcv_sections_state', sectionState);
   }
 
-  loadScript('frontend/src/sections-state.js', context);
   loadScript('frontend/src/settings-sync.js', context);
   if (options.loadSectionsUI) {
     loadScript('frontend/src/sections-ui.js', context);
@@ -306,6 +315,14 @@ async function boot(options = {}) {
 
   return { context, helpers };
 }
+
+test.afterEach(async () => {
+  if (globalThis.localStorage) localStorage.clear();
+  const { _resetParseCache, _setStorage } = await import('../frontend/src/sections-state.js');
+  _resetParseCache();
+  // Restore globalThis.localStorage as the default storage after each test.
+  _setStorage(globalThis.localStorage);
+});
 
 test('settings.yaml can hide a present section by moving it below the invisible marker', async () => {
   const { context, helpers } = await boot({

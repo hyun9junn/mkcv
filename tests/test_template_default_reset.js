@@ -277,19 +277,8 @@ async function bootSettingsSync(context, domReadyCallbacks) {
   }
 }
 
-function loadSettingsHelpers() {
-  const context = {
-    console,
-    jsyaml,
-  };
-  context.window = context;
-  const source = fs.readFileSync('frontend/src/settings-engine.js', 'utf8');
-  vm.runInNewContext(source, context, { filename: 'frontend/src/settings-engine.js' });
-  return context.window.SETTINGS_HELPERS;
-}
-
-test('settings helpers normalize template defaults and accept current template names', () => {
-  const helpers = loadSettingsHelpers();
+test('settings helpers normalize template defaults and accept current template names', async () => {
+  const { SETTINGS_HELPERS: helpers } = await import('../frontend/src/settings-engine.js');
 
   assert.equal(typeof helpers.normalizeTemplateDefaults, 'function');
   assert.equal(helpers.VALID_TPL.includes('ats-signal'), true);
@@ -326,8 +315,8 @@ test('settings helpers normalize template defaults and accept current template n
   assert.deepEqual(JSON.parse(JSON.stringify(normalized.sections[0])), { key: 'projects', title: 'Selected Work', visible: true });
 });
 
-test('settings helpers fall back invalid template values to classic with a warning', () => {
-  const helpers = loadSettingsHelpers();
+test('settings helpers fall back invalid template values to classic with a warning', async () => {
+  const { SETTINGS_HELPERS: helpers } = await import('../frontend/src/settings-engine.js');
   const parsed = helpers.parseSettings('template: resume-tech\n');
 
   assert.equal(parsed.value.template, 'classic');

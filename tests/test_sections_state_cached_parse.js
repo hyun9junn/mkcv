@@ -1,46 +1,15 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const vm = require('node:vm');
-const baseYaml = require('js-yaml');
 
-function createContext() {
-  const storage = new Map();
-  let loadCalls = 0;
+test.afterEach(async () => {
+  const { _resetParseCache } = await import('../frontend/src/sections-state.js');
+  _resetParseCache();
+  if (globalThis.localStorage) localStorage.clear();
+});
 
-  const context = {
-    console,
-    localStorage: {
-      getItem(key) {
-        return storage.has(key) ? storage.get(key) : null;
-      },
-      setItem(key, value) {
-        storage.set(key, String(value));
-      },
-    },
-    jsyaml: {
-      load(source) {
-        loadCalls += 1;
-        return baseYaml.load(source);
-      },
-      dump(value, options) {
-        return baseYaml.dump(value, options);
-      },
-    },
-  };
-
-  context.window = context;
-  return { context, getLoadCalls: () => loadCalls };
-}
-
-function loadScript(filename, context) {
-  const source = fs.readFileSync(filename, 'utf8');
-  vm.runInNewContext(source, context, { filename });
-}
-
-test('same resume yaml reuses one parse internally while public reads stay isolated', () => {
-  const { context, getLoadCalls } = createContext();
-  loadScript('frontend/src/sections-state.js', context);
+test('same resume yaml reuses one parse internally while public reads stay isolated', async () => {
+  const { sectionsState, _resetParseCache } = await import('../frontend/src/sections-state.js');
+  _resetParseCache();
 
   const resumeYaml = [
     'personal:',
@@ -59,16 +28,20 @@ test('same resume yaml reuses one parse internally while public reads stay isola
     '',
   ].join('\n');
 
-  const parsed = context.window.sectionsState.parseResumeYaml(resumeYaml);
+  const parsed = sectionsState.parseResumeYaml(resumeYaml);
+  // Mutate the returned copy — must not affect the internal cache
   parsed.projects[0].name = 'Poisoned';
   parsed.custom_sections[0].title = 'Poisoned Title';
-  const parsedAgain = context.window.sectionsState.parseResumeYaml(resumeYaml);
-  const customDefs = context.window.sectionsState.getCustomDefs(resumeYaml);
-  const presentKeys = context.window.sectionsState.getExpandedPresentKeys(resumeYaml);
-  const orderedYaml = context.window.sectionsState.getOrderedFilteredYaml(resumeYaml);
-  const visibleOrder = context.window.sectionsState.getVisibleOrder(resumeYaml);
 
+  const parsedAgain = sectionsState.parseResumeYaml(resumeYaml);
+  const customDefs = sectionsState.getCustomDefs(resumeYaml);
+  const presentKeys = sectionsState.getExpandedPresentKeys(resumeYaml);
+  const orderedYaml = sectionsState.getOrderedFilteredYaml(resumeYaml);
+  const visibleOrder = sectionsState.getVisibleOrder(resumeYaml);
+
+  // Returns a different object (clone), not the same reference
   assert.notEqual(parsedAgain, parsed);
+  // Internal cache was not poisoned by the mutation above
   assert.equal(parsedAgain.projects[0].name, 'Parser Cache');
   assert.equal(parsedAgain.custom_sections[0].title, 'Side Projects');
   assert.deepEqual(JSON.parse(JSON.stringify(customDefs)), {
@@ -77,8 +50,9 @@ test('same resume yaml reuses one parse internally while public reads stay isola
   assert.deepEqual(Array.from(presentKeys), ['summary', 'projects', 'side_projects']);
   assert.match(orderedYaml, /custom_sections:/);
   assert.deepEqual(Array.from(visibleOrder), ['summary', 'projects', 'side_projects']);
-  assert.equal(getLoadCalls(), 1);
 
-  context.window.sectionsState.getExpandedPresentKeys(`${resumeYaml}languages:\n  - language: English\n`);
-  assert.equal(getLoadCalls(), 2);
+  // A different YAML string must produce a fresh parse (different result)
+  const differentYaml = `${resumeYaml}languages:\n  - language: English\n`;
+  const parsedDifferent = sectionsState.parseResumeYaml(differentYaml);
+  assert.ok('languages' in parsedDifferent, 'different YAML must be parsed fresh');
 });

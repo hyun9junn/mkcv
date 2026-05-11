@@ -156,13 +156,13 @@ function createContext(options = {}) {
 
   const initialOrder = options.initialOrder || ['summary', 'experience', 'education', 'skills', 'projects', 'certifications'];
   const initialHidden = options.initialHidden || ['certifications'];
-  storage.set(
-    'mkcv_sections_state',
-    JSON.stringify({
-      hidden: initialHidden,
-      order: initialOrder,
-    })
-  );
+  const sectionStateJson = JSON.stringify({
+    hidden: initialHidden,
+    order: initialOrder,
+  });
+  storage.set('mkcv_sections_state', sectionStateJson);
+  // Also set on globalThis.localStorage for the ESM sections-state module.
+  if (globalThis.localStorage) globalThis.localStorage.setItem('mkcv_sections_state', sectionStateJson);
 
   const settingsSections = options.settingsSections || [
     { key: 'summary', title: 'SUMMARY', visible: true },
@@ -263,27 +263,44 @@ function loadScript(filename, context) {
   vm.runInNewContext(source, context, { filename });
 }
 
-test('education default section scaffold uses start and end dates', () => {
+async function loadSectionsState(context) {
+  const { sectionsState, _resetParseCache, _setStorage } = await import('../frontend/src/sections-state.js');
+  _resetParseCache();
+  // Point the ESM module at the vm context's localStorage stub so that
+  // sections-ui.js (IIFE) and sectionsState (ESM) share the same storage.
+  _setStorage(context.localStorage);
+  context.window.sectionsState = sectionsState;
+}
+
+test.afterEach(async () => {
+  if (globalThis.localStorage) localStorage.clear();
+  const { _resetParseCache, _setStorage } = await import('../frontend/src/sections-state.js');
+  _resetParseCache();
+  // Restore globalThis.localStorage as the default storage after each test.
+  _setStorage(globalThis.localStorage);
+});
+
+test('education default section scaffold uses start and end dates', async () => {
   const { context } = createContext();
 
-  loadScript('frontend/src/sections-state.js', context);
+  await loadSectionsState(context);
 
   assert.match(context.window.sectionsState.SECTION_DEFS.education.yaml, /start_date: "2020"/);
   assert.match(context.window.sectionsState.SECTION_DEFS.education.yaml, /end_date: "2024"/);
   assert.doesNotMatch(context.window.sectionsState.SECTION_DEFS.education.yaml, /\byear:/);
 });
 
-test('skills default section scaffold uses block-list items without forced quotes', () => {
+test('skills default section scaffold uses block-list items without forced quotes', async () => {
   const { context } = createContext();
 
-  loadScript('frontend/src/sections-state.js', context);
+  await loadSectionsState(context);
 
   assert.match(context.window.sectionsState.SECTION_DEFS.skills.yaml, /category: Languages/);
   assert.match(context.window.sectionsState.SECTION_DEFS.skills.yaml, /items:\n\s+- Python\n\s+- JavaScript/);
   assert.doesNotMatch(context.window.sectionsState.SECTION_DEFS.skills.yaml, /items: \[/);
 });
 
-test('clicking an absent hidden built-in section adds it as visible content', () => {
+test('clicking an absent hidden built-in section adds it as visible content', async () => {
   const { context, elements } = createContext({
     initialYaml: [
       'personal:',
@@ -319,7 +336,7 @@ test('clicking an absent hidden built-in section adds it as visible content', ()
     return originalSetValuePreserveScroll(value);
   };
 
-  loadScript('frontend/src/sections-state.js', context);
+  await loadSectionsState(context);
   loadScript('frontend/src/sections-ui.js', context);
 
   context.window.sectionsUI.buildPanel();
@@ -355,7 +372,7 @@ test('clicking an absent hidden built-in section adds it as visible content', ()
   assert.match(refreshedCertificationsChip.className, /\bon\b/, 'added section should render as visible');
 });
 
-test('clicking an absent visible built-in section inserts it by chip order instead of appending to the bottom', () => {
+test('clicking an absent visible built-in section inserts it by chip order instead of appending to the bottom', async () => {
   const { context, elements } = createContext({
     initialYaml: [
       'personal:',
@@ -378,7 +395,7 @@ test('clicking an absent visible built-in section inserts it by chip order inste
     ],
   });
 
-  loadScript('frontend/src/sections-state.js', context);
+  await loadSectionsState(context);
   loadScript('frontend/src/sections-ui.js', context);
 
   context.window.sectionsUI.buildPanel();
@@ -403,7 +420,7 @@ test('clicking an absent visible built-in section inserts it by chip order inste
   );
 });
 
-test('sections below the invisible marker render as hidden chips, not absent chips', () => {
+test('sections below the invisible marker render as hidden chips, not absent chips', async () => {
   const { context, elements } = createContext();
 
   context.app.state.yaml = [
@@ -422,7 +439,7 @@ test('sections below the invisible marker render as hidden chips, not absent chi
     '',
   ].join('\n');
 
-  loadScript('frontend/src/sections-state.js', context);
+  await loadSectionsState(context);
   loadScript('frontend/src/sections-ui.js', context);
 
   context.window.sectionsUI.buildPanel();

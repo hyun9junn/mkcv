@@ -1,26 +1,20 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const vm = require('node:vm');
-const jsyaml = require('js-yaml');
 
-function loadSettingsHelpers() {
-  const source = fs.readFileSync('frontend/src/settings-engine.js', 'utf8');
-  const context = { jsyaml, window: {} };
-  vm.runInNewContext(source, context);
-  return context.window.SETTINGS_HELPERS;
-}
+test.afterEach(() => {
+  if (globalThis.localStorage) localStorage.clear();
+});
 
-test('PERSONAL_FIELD_CATALOG exported with 8 entries in canonical order', () => {
-  const { PERSONAL_FIELD_CATALOG } = loadSettingsHelpers();
+test('PERSONAL_FIELD_CATALOG exported with 8 entries in canonical order', async () => {
+  const { PERSONAL_FIELD_CATALOG } = await import('../frontend/src/settings-engine.js');
   assert.equal(PERSONAL_FIELD_CATALOG.length, 8);
   assert.equal(PERSONAL_FIELD_CATALOG[0].key, 'name');
   assert.equal(PERSONAL_FIELD_CATALOG[0].locked, true);
   assert.equal(PERSONAL_FIELD_CATALOG[0].isLink, false);
 });
 
-test('LINK_FIELDS contains exactly website linkedin github huggingface', () => {
-  const { LINK_FIELDS } = loadSettingsHelpers();
+test('LINK_FIELDS contains exactly website linkedin github huggingface', async () => {
+  const { LINK_FIELDS } = await import('../frontend/src/settings-engine.js');
   assert.ok(LINK_FIELDS.has('linkedin'));
   assert.ok(LINK_FIELDS.has('github'));
   assert.ok(LINK_FIELDS.has('huggingface'));
@@ -30,8 +24,8 @@ test('LINK_FIELDS contains exactly website linkedin github huggingface', () => {
   assert.ok(!LINK_FIELDS.has('name'));
 });
 
-test('DEFAULT_SETTINGS uses default_link_display and explicit default for link fields', () => {
-  const { DEFAULT_SETTINGS, LINK_FIELDS } = loadSettingsHelpers();
+test('DEFAULT_SETTINGS uses default_link_display and explicit default for link fields', async () => {
+  const { DEFAULT_SETTINGS, LINK_FIELDS } = await import('../frontend/src/settings-engine.js');
   assert.equal(DEFAULT_SETTINGS.personal.default_link_display, 'label');
 
   for (const field of DEFAULT_SETTINGS.personal.fields) {
@@ -43,8 +37,8 @@ test('DEFAULT_SETTINGS uses default_link_display and explicit default for link f
   }
 });
 
-test('parseSettings accepts legacy personal.link_display and normalizes missing link-field styles', () => {
-  const { parseSettings } = loadSettingsHelpers();
+test('parseSettings accepts legacy personal.link_display and normalizes missing link-field styles', async () => {
+  const { parseSettings } = await import('../frontend/src/settings-engine.js');
   const yaml = [
     'template: classic',
     'layout:',
@@ -68,8 +62,8 @@ test('parseSettings accepts legacy personal.link_display and normalizes missing 
   assert.equal(result.value.personal.fields.find((field) => field.key === 'github').link_display, 'url');
 });
 
-test('settingsToYaml emits default_link_display and explicit link_display for every link field', () => {
-  const { settingsToYaml, DEFAULT_SETTINGS } = loadSettingsHelpers();
+test('settingsToYaml emits default_link_display and explicit link_display for every link field', async () => {
+  const { settingsToYaml, DEFAULT_SETTINGS } = await import('../frontend/src/settings-engine.js');
   const yaml = settingsToYaml(DEFAULT_SETTINGS);
 
   assert.match(yaml, /default_link_display: label/);
