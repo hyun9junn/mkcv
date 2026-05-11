@@ -129,3 +129,11 @@ xelatex --version
 
 - 전체 기능 설명: [README.md](./README.md)
 - 커스텀 템플릿 작성법: [backend/templates/README.md](./backend/templates/README.md)
+
+---
+
+## 라이선스
+
+Copyright (c) 2026 Hyun9junn. All rights reserved.
+
+이 프로젝트는 독점 소프트웨어이며, 공개 재사용 권한을 부여하지 않습니다. 자세한 내용은 [LICENSE](./LICENSE)를 참고하세요.

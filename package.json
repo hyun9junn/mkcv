@@ -16,7 +16,8 @@
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
+  "private": true,
+  "license": "UNLICENSED",
   "type": "commonjs",
   "bugs": {
     "url": "https://github.com/hyun9junn/mkcv/issues"

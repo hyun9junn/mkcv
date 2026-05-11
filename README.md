@@ -435,3 +435,11 @@ All error responses share a common shape:
 - **Frontend:** Vanilla JS, CodeMirror 5, js-yaml, PDF.js, JSZip
 - **PDF:** xelatex (TeX Live / MiKTeX) with template-specific Hangul font stacks
 - **Tests:** pytest, pytest-asyncio, httpx
+
+---
+
+## License
+
+Copyright (c) 2026 Hyun9junn. All rights reserved.
+
+This project is proprietary and is not licensed for public reuse. See [LICENSE](./LICENSE).
