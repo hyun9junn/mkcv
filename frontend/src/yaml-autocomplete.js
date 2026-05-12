@@ -1,17 +1,10 @@
 // Schema-aware YAML key completion for CodeMirror 5.
-//
-// Cross-module references:
-//   - sectionsState, SETTINGS_HELPERS (converted to ESM): imported directly.
-//   - settingsSync (still IIFE-on-window during phase 2): read via window.* —
-//     replace once that module converts.
 
 import { sectionsState } from './sections-state.js';
 import { SETTINGS_HELPERS } from './settings-engine.js';
-
-const LIST_SECTIONS = new Set([
-  "experience", "education", "skills", "projects",
-  "certifications", "publications", "languages", "awards", "extracurricular",
-]);
+import { detectContext, detectValueContext, getValueToken, findParentKeyAt as _findParentKeyAt, LIST_SECTIONS } from './yaml/context.js';
+import { getValueSuggestions } from './yaml/value-suggestions.js';
+import { SECTION_TEMPLATES } from './yaml/section-templates.js';
 
 let _schema = null; // null = silently disabled
 
@@ -26,163 +19,6 @@ async function _fetchSchema() {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Context detection
-// ---------------------------------------------------------------------------
-
-// Returns the schema context key for the cursor position, or null.
-// Never throws — catches all errors and returns null.
-function _detectContext(editor) {
-  try {
-    const cursor = editor.getCursor();
-    const lineText = editor.getLine(cursor.line);
-    const indent = (lineText.match(/^(\s*)/) || ["", ""])[1].length;
-
-    // If cursor is after "key: " (value position), no completions
-    const textBeforeCursor = lineText.slice(0, cursor.ch);
-    const leadingMatch = textBeforeCursor.match(/^(\s*(?:-\s+)?)/);
-    const tokenStart = leadingMatch ? leadingMatch[0].length : 0;
-    if (textBeforeCursor.slice(tokenStart).includes(":")) return null;
-
-    // Root level (indent 0)
-    if (indent === 0) return "__root__";
-
-    // Indent 2: direct child of a root key
-    if (indent === 2) {
-      const parentKey = _findParentKeyAt(editor, cursor.line, 0);
-      if (!parentKey) return null;
-      if (parentKey === "personal") return "personal";
-      if (LIST_SECTIONS.has(parentKey)) return parentKey + "[]";
-      return null;
-    }
-
-    // Indent 4+: inside a list item (e.g. experience[])
-    if (indent >= 4) {
-      // Nested bullet lines (e.g. '      - ' inside highlights) are not field positions
-      if (lineText.trimStart().startsWith('- ') || /^\s*-\s*$/.test(lineText)) return null;
-      const sectionKey = _findListItemSection(editor, cursor.line);
-      if (sectionKey) return sectionKey + "[]";
-      return null;
-    }
-
-    return null;
-  } catch (_) {
-    return null;
-  }
-}
-
-// Scan upward from fromLine to find the nearest key at targetIndent.
-function _findParentKeyAt(editor, fromLine, targetIndent) {
-  for (let i = fromLine - 1; i >= 0; i--) {
-    const text = editor.getLine(i);
-    if (!text.trim()) continue;
-    const lineIndent = (text.match(/^(\s*)/) || ["", ""])[1].length;
-    if (lineIndent === targetIndent) {
-      const m = text.match(/^(\s*)(\w[\w_]*):/);
-      if (m) return m[2];
-    }
-    if (lineIndent < targetIndent) break;
-  }
-  return null;
-}
-
-// For lines at indent >= 4, find which list section they belong to.
-function _findListItemSection(editor, fromLine) {
-  for (let i = fromLine - 1; i >= 0; i--) {
-    const text = editor.getLine(i);
-    if (!text.trim()) continue;
-    const lineIndent = (text.match(/^(\s*)/) || ["", ""])[1].length;
-    // List item marker is at indent 2
-    if (lineIndent === 2 && text.trimStart().startsWith("- ")) {
-      return _findParentKeyAt(editor, i, 0);
-    }
-    if (lineIndent < 2) break;
-  }
-  return null;
-}
-
-// ---------------------------------------------------------------------------
-// Value context detection
-// ---------------------------------------------------------------------------
-
-const VALUE_FIELDS = new Set(['start_date', 'end_date', 'date', 'proficiency']);
-
-// Returns the field name if cursor is in value position for a known value field, else null.
-// Handles empty value (key: |) and partially typed values including quoted (key: "Pre|).
-function _detectValueContext(editor) {
-  try {
-    const cursor = editor.getCursor();
-    const lineText = editor.getLine(cursor.line);
-    const textBeforeCursor = lineText.slice(0, cursor.ch);
-    // Matches: optional indent + key + ': ' + optional opening quote + partial word/date
-    const m = textBeforeCursor.match(/^\s*(?:-\s+)?(\w[\w_]*):\s*["']?([\w.-]*)$/);
-    if (!m) return null;
-    const field = m[1];
-    return VALUE_FIELDS.has(field) ? field : null;
-  } catch (_) {
-    return null;
-  }
-}
-
-// Returns {from, to} covering the value token including any opening quote.
-// Accepting a suggestion replaces from the opening quote to the cursor — no doubled quotes.
-function _getValueToken(editor) {
-  try {
-    const cursor = editor.getCursor();
-    const lineText = editor.getLine(cursor.line);
-    const textBeforeCursor = lineText.slice(0, cursor.ch);
-    const keyColonMatch = textBeforeCursor.match(/^\s*(?:-\s+)?\w[\w_]*:\s*/);
-    if (!keyColonMatch) return null;
-    return {
-      from: { line: cursor.line, ch: keyColonMatch[0].length },
-      to:   { line: cursor.line, ch: cursor.ch },
-    };
-  } catch (_) {
-    return null;
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Value suggestions
-// ---------------------------------------------------------------------------
-
-function _generateDateSuggestions(field) {
-  const now   = new Date();
-  const year  = now.getFullYear();
-  const month = now.getMonth() + 1; // 1–12
-  const months = [];
-  for (let i = 0; i < 6; i++) {
-    let m = month - i;
-    let y = year;
-    if (m <= 0) { m += 12; y -= 1; }
-    months.push(`"${y}.${String(m).padStart(2, '0')}"`);
-  }
-  if (field === 'end_date')   return ['"Present"', ...months, `"${year}"`];
-  if (field === 'start_date') return [...months, `"${year}"`];
-  if (field === 'date')       return [`"${year}"`, `"${year-1}"`, `"${year-2}"`, `"${year-3}"`, `"${year-4}"`];
-  return [];
-}
-
-function _getValueSuggestions(field) {
-  if (field === 'proficiency') return ['"Native"', '"Fluent"', '"Intermediate"', '"Basic"'];
-  return _generateDateSuggestions(field);
-}
-
-// ---------------------------------------------------------------------------
-// Section templates
-// ---------------------------------------------------------------------------
-
-const SECTION_TEMPLATES = {
-  experience:     { fields: ['title', 'company', 'start_date', 'end_date', 'location', 'highlights'], listFields: ['highlights'] },
-  education:      { fields: ['degree', 'institution', 'start_date', 'end_date', 'gpa'],              listFields: [] },
-  skills:         { fields: ['category', 'items'],                                                    listFields: ['items'] },
-  projects:       { fields: ['name', 'description', 'url', 'highlights'],                            listFields: ['highlights'] },
-  certifications: { fields: ['name', 'issuer', 'date'],                                              listFields: [] },
-  publications:   { fields: ['title', 'venue', 'date', 'url'],                                       listFields: [] },
-  languages:      { fields: ['language', 'proficiency'],                                              listFields: [] },
-  awards:         { fields: ['name', 'issuer', 'date'],                                              listFields: [] },
-  extracurricular:{ fields: ['title', 'organization', 'date', 'highlights'],                         listFields: ['highlights'] },
-};
 
 // Returns the SECTION_DEFS yaml string for name, trimmed, or null if unavailable.
 function _sectionDefYaml(name) {
@@ -393,7 +229,7 @@ function _detectSettingsValueContext(editor) {
 
     const field = match[1];
     const indent = (lineText.match(/^(\s*)/) || ['', ''])[1].length;
-    const valueToken = _getValueToken(editor);
+    const valueToken = getValueToken(editor);
     if (!valueToken) return null;
 
     // template: classic
@@ -480,7 +316,7 @@ function _settingsYamlHint(editor) {
 function _resumeYamlHint(editor) {
   if (!_isResumeTab()) return null;
   // --- Key completion ---
-  const contextKey = _detectContext(editor);
+  const contextKey = detectContext(editor);
   if (contextKey) {
     const token    = _getToken(editor);
     const cursor   = editor.getCursor();
@@ -577,11 +413,11 @@ function _resumeYamlHint(editor) {
   }
 
   // --- Value completion fallback ---
-  const valueField = _detectValueContext(editor);
+  const valueField = detectValueContext(editor);
   if (!valueField) return null;
-  const suggestions = _getValueSuggestions(valueField);
+  const suggestions = getValueSuggestions(valueField);
   if (!suggestions.length) return null;
-  const valueToken = _getValueToken(editor);
+  const valueToken = getValueToken(editor);
   if (!valueToken) return null;
 
   const typed = editor.getLine(editor.getCursor().line)
