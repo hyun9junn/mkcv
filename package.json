@@ -12,7 +12,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "npm run test:js && npm run test:py",
-    "test:js": "node --test --import ./tests/setup-dom.mjs \"tests/test_*.js\" \"tests/*.test.mjs\"",
+    "test:js": "node --test --import ./tests/setup-dom.mjs tests/test_*.js tests/*.test.mjs",
     "test:py": "pytest"
   },
   "repository": {
