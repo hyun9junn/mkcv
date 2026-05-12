@@ -283,7 +283,7 @@ async function createHarness(options = {}) {
     delete window.settingsSync;
   }
 
-  return {
+  const harness = {
     sectionsState,
     sectionsUI,
     panel,
@@ -294,14 +294,21 @@ async function createHarness(options = {}) {
     get setValuePreserveScrollCalls() { return setValuePreserveScrollCalls; },
     restore,
   };
+  _currentHarness = harness;
+  return harness;
 }
 
+// Track harness per-test so afterEach can always restore globalThis.document.
+let _currentHarness = null;
+
 test.afterEach(async () => {
+  if (_currentHarness) {
+    _currentHarness.restore();
+    _currentHarness = null;
+  }
   const { _resetParseCache, _setStorage } = await import('../frontend/src/sections-state.js');
   _resetParseCache();
   _setStorage(globalThis.localStorage);
-  delete window.editorAdapter;
-  delete window.settingsSync;
 });
 
 test('education default section scaffold uses start and end dates', async () => {

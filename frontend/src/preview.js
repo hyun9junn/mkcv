@@ -3,18 +3,18 @@
 // preserves the shape the previous `window.preview` object had so still-IIFE
 // callers continue to work via the `window.preview = preview` shim in main.js.
 
-import * as pdfjsLibReal from 'pdfjs-dist';
+import * as pdfjsLib from 'pdfjs-dist';
 import { app } from './app.js';
 import { sectionsState } from './sections-state.js';
 
 // `_pdfjsLib` is a module-private reference so tests can substitute the
 // `getDocument` implementation via `_setPdfjsLibForTesting()`. Production code
 // always uses the real `pdfjs-dist` import.
-let _pdfjsLib = pdfjsLibReal;
+let _pdfjsLib = pdfjsLib;
 
 // Test-only hook — replace the bound `pdfjs-dist` namespace.
 export function _setPdfjsLibForTesting(lib) {
-  _pdfjsLib = lib || pdfjsLibReal;
+  _pdfjsLib = lib || pdfjsLib;
 }
 
 // Test-only hook — reset every module-private state variable so tests start
@@ -37,7 +37,7 @@ export function _resetForTesting() {
   _activeRequestSignature = null;
   _lastAppliedRequestSignature = null;
   _previewRequestSeq = 0;
-  _pdfjsLib = pdfjsLibReal;
+  _pdfjsLib = pdfjsLib;
 }
 
 const DEFAULT_PREVIEW_DEBOUNCE_MS = 900;

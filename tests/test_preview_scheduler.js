@@ -9,6 +9,9 @@ const assert = require('node:assert/strict');
 // `clearTimeout` are swapped for a synthetic timer harness, and `pdfjsLib` is
 // substituted via the module's `_setPdfjsLibForTesting` hook.
 
+// Track harness per-test so afterEach can always restore globals on failure.
+let _currentHarness = null;
+
 function createDeferred() {
   let resolve;
   let reject;
@@ -231,7 +234,7 @@ async function createHarness({ search = '', getVisibleOrder, getOrderedFilteredY
     previewMod._resetForTesting();
   }
 
-  return {
+  const harness = {
     context: {
       app,
       preview: previewMod.preview,
@@ -248,6 +251,8 @@ async function createHarness({ search = '', getVisibleOrder, getOrderedFilteredY
     boot,
     restore,
   };
+  _currentHarness = harness;
+  return harness;
 }
 
 async function settleRequest(fetchCall, response) {
@@ -256,6 +261,10 @@ async function settleRequest(fetchCall, response) {
 }
 
 test.afterEach(() => {
+  if (_currentHarness) {
+    _currentHarness.restore();
+    _currentHarness = null;
+  }
   document.body.innerHTML = '';
   delete window.editorAdapter;
   delete window.settingsSync;
