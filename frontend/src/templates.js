@@ -273,7 +273,7 @@ export async function initTemplates() {
             portal.style.right = "";
           }
           portal.hidden = false;
-        }, 400);
+        }, 150);
       });
       card.addEventListener("mouseleave", () => {
         clearTimeout(hoverTimer);

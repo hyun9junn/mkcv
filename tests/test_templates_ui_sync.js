@@ -181,7 +181,7 @@ test('template picker shows badge from template metadata', async (t) => {
   const signatureCard = Array.from(cards).find((child) => child.dataset.name === 'signature-split');
 
   signatureCard.dispatchEvent(new Event('mouseenter'));
-  t.mock.timers.tick(400);
+  t.mock.timers.tick(150);
 
   assert.match(portal.innerHTML, /Popular/);
 
@@ -213,7 +213,7 @@ test('hovering a card shows description and badge in portal', async (t) => {
   assert.ok(sigCard.classList.contains('col-2'), 'second card is col-2');
 
   sigCard.dispatchEvent(new Event('mouseenter'));
-  t.mock.timers.tick(400);
+  t.mock.timers.tick(150);
 
   assert.match(portal.innerHTML, /Creative direction/);
   assert.match(portal.innerHTML, /Popular/);
@@ -258,7 +258,7 @@ test('hovering a card shows portal with image src, metadata, and use button', as
   assert.ok(sigCard, 'signature-split card found');
 
   sigCard.dispatchEvent(new Event('mouseenter'));
-  t.mock.timers.tick(400);
+  t.mock.timers.tick(150);
 
   assert.ok(!portal.hidden, 'portal is visible after hover delay');
   assert.match(portal.innerHTML, /template-previews\/signature-split\.png/, 'portal has preview image src');
@@ -279,7 +279,7 @@ test('clicking Use this template in portal applies the template', async (t) => {
   const sigCard = cards.find(c => c.dataset.name === 'signature-split');
 
   sigCard.dispatchEvent(new Event('mouseenter'));
-  t.mock.timers.tick(400);
+  t.mock.timers.tick(150);
 
   const useBtn = portal.querySelector('.tpl-use-btn');
   assert.ok(useBtn, 'use button exists in portal');
