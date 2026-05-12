@@ -198,16 +198,48 @@
 
     #tpl-popover-portal {
       position: absolute;
-      width: 164px;
+      width: 220px;
       background: var(--paper);
       border: 1px solid var(--rule);
       border-radius: 10px;
       padding: 12px;
       box-shadow: var(--shadow-md);
       z-index: 9999;
-      pointer-events: none;
     }
     #tpl-popover-portal[hidden] { display: none; }
+
+    .tpl-preview-img {
+      width: 100%;
+      aspect-ratio: 1 / 1.414;
+      object-fit: cover;
+      object-position: top;
+      border-radius: 6px;
+      display: block;
+      margin-bottom: 10px;
+    }
+    .tpl-preview-img-fallback {
+      width: 100%;
+      aspect-ratio: 1 / 1.414;
+      border-radius: 6px;
+      display: block;
+      margin-bottom: 10px;
+    }
+    .tpl-use-btn {
+      display: block;
+      width: 100%;
+      margin-top: 10px;
+      padding: 7px 0;
+      background: var(--accent);
+      color: var(--paper);
+      border: none;
+      border-radius: 6px;
+      font-family: var(--font-sans);
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      letter-spacing: 0.01em;
+    }
+    .tpl-use-btn:hover { opacity: 0.88; }
 
     .popover-name {
       font-family: var(--font-serif);
