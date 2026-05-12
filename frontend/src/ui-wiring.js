@@ -249,7 +249,4 @@ export function initUIWiring() {
   // ── Onboarding help button ────────────────────────────────────────────────
   const helpBtn = document.getElementById('onboarding-help-btn');
   if (helpBtn) helpBtn.addEventListener('click', () => onboarding.show());
-
-  // ── Init onboarding ───────────────────────────────────────────────────────
-  onboarding.init();
 }
