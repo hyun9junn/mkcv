@@ -218,6 +218,7 @@
       margin-bottom: 10px;
     }
     .tpl-preview-img-fallback {
+      background: var(--rule);
       width: 100%;
       aspect-ratio: 1 / 1.414;
       border-radius: 6px;

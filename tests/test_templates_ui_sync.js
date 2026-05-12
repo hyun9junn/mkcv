@@ -171,13 +171,21 @@ test('template selection syncs settings.yaml and applies template defaults', asy
   assert.deepEqual(JSON.parse(JSON.stringify(defaultApplications.at(-1))), signatureDefaults);
 });
 
-test('template picker shows badge from template metadata', async () => {
+test('template picker shows badge from template metadata', async (t) => {
+  t.mock.timers.enable(['setTimeout']);
+
   const { elements } = await createContext();
 
+  const portal = elements.get('tpl-popover-portal');
   const cards = elements.get('template-grid').children;
   const signatureCard = Array.from(cards).find((child) => child.dataset.name === 'signature-split');
 
-  assert.match(signatureCard.innerHTML, /Popular/);
+  signatureCard.dispatchEvent(new Event('mouseenter'));
+  t.mock.timers.tick(400);
+
+  assert.match(portal.innerHTML, /Popular/);
+
+  t.mock.timers.reset();
 });
 
 test('template picker renders tpl-card elements with thumbnail img src', async () => {
@@ -193,15 +201,24 @@ test('template picker renders tpl-card elements with thumbnail img src', async (
   assert.match(classicCard.innerHTML, /\/assets\/template-previews\/classic\.png/);
 });
 
-test('template picker popover contains description text', async () => {
+test('hovering a card shows description and badge in portal', async (t) => {
+  t.mock.timers.enable(['setTimeout']);
+
   const { elements } = await createContext();
 
+  const portal = elements.get('tpl-popover-portal');
   const cards = Array.from(elements.get('template-grid').children);
   const sigCard = cards.find((c) => c.dataset.name === 'signature-split');
   assert.ok(sigCard, 'signature-split card exists');
   assert.ok(sigCard.classList.contains('col-2'), 'second card is col-2');
-  assert.match(sigCard.innerHTML, /Creative direction/);
-  assert.match(sigCard.innerHTML, /Popular/);
+
+  sigCard.dispatchEvent(new Event('mouseenter'));
+  t.mock.timers.tick(400);
+
+  assert.match(portal.innerHTML, /Creative direction/);
+  assert.match(portal.innerHTML, /Popular/);
+
+  t.mock.timers.reset();
 });
 
 test('syncSelectedOption updates tpl-card selected class', async () => {

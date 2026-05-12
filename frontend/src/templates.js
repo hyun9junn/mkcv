@@ -234,12 +234,6 @@ export async function initTemplates() {
           <div class="tpl-thumb tpl-thumb-${name}" style="display:none"></div>
         </div>
         <div class="tpl-label">${displayName}</div>
-        <div class="tpl-popover">
-          <div class="popover-name">${displayName}</div>
-          ${audience ? `<span class="popover-audience">${audience}</span>` : ""}
-          ${badge    ? `<span class="popover-badge">${badge}</span>`       : ""}
-          ${description ? `<div class="popover-desc">${description}</div>` : ""}
-        </div>
       `;
 
       if (isFirst && nameDisplay) nameDisplay.textContent = displayName;
@@ -263,7 +257,7 @@ export async function initTemplates() {
             ${audience ? `<span class="popover-audience">${audience}</span>` : ""}
             ${badge    ? `<span class="popover-badge">${badge}</span>`       : ""}
             ${description ? `<div class="popover-desc">${description}</div>` : ""}
-            <button class="tpl-use-btn">Use this template</button>
+            <button class="tpl-use-btn" aria-label="Use ${displayName}">Use this template</button>
           `;
           portal.querySelector(".tpl-use-btn").addEventListener("click", (e) => {
             e.stopPropagation();
@@ -295,7 +289,9 @@ export async function initTemplates() {
     if (portal && !portal.dataset.listenersBound) {
       portal.dataset.listenersBound = "1";
       portal.addEventListener("mouseenter", () => clearTimeout(hideTimer));
-      portal.addEventListener("mouseleave", () => { if (portal) portal.hidden = true; });
+      portal.addEventListener("mouseleave", () => {
+        hideTimer = setTimeout(() => { if (portal) portal.hidden = true; }, 120);
+      });
     }
 
   } catch {
