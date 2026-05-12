@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 import yaml
 
-from backend.main import _load_template_meta
+from backend.templates.meta import load_template_meta
 
 TEMPLATES_DIR = Path("backend/templates")
 EXPECTED_KEYS = {
@@ -208,7 +208,7 @@ def test_load_template_meta_missing_file_returns_empty_defaults(tmp_path):
     template_dir = tmp_path / "missing-meta"
     template_dir.mkdir()
 
-    meta = _load_template_meta(template_dir)
+    meta = load_template_meta(str(template_dir))
 
     assert meta["display_name"] == "Missing Meta"
     assert meta["ui"] == {"badge": ""}
@@ -221,7 +221,7 @@ def test_load_template_meta_non_mapping_returns_empty_defaults(tmp_path):
     template_dir.mkdir()
     (template_dir / "meta.yaml").write_text("- not\n- a\n- mapping\n")
 
-    meta = _load_template_meta(template_dir)
+    meta = load_template_meta(str(template_dir))
 
     assert meta["display_name"] == "bad-meta"
     assert meta["ui"] == {"badge": ""}
@@ -234,7 +234,7 @@ def test_load_template_meta_invalid_yaml_syntax_returns_empty_defaults(tmp_path)
     template_dir.mkdir()
     (template_dir / "meta.yaml").write_text("display_name: [broken\n")
 
-    meta = _load_template_meta(template_dir)
+    meta = load_template_meta(str(template_dir))
 
     assert meta["display_name"] == "invalid-yaml"
     assert meta["description"] == ""
@@ -253,7 +253,7 @@ def test_load_template_meta_malformed_defaults_returns_empty_defaults(tmp_path):
         "  - not-a-mapping\n"
     )
 
-    meta = _load_template_meta(template_dir)
+    meta = load_template_meta(str(template_dir))
 
     assert meta["display_name"] == "Bad Defaults"
     assert meta["ui"] == {"badge": ""}
@@ -272,7 +272,7 @@ def test_load_template_meta_normalizes_optional_badge_and_section_title_case(tmp
         "  section_title_case: lower\n"
     )
 
-    meta = _load_template_meta(template_dir)
+    meta = load_template_meta(str(template_dir))
 
     assert meta["ui"] == {"badge": "Popular"}
     assert meta["render"] == {"section_title_case": "lower"}
@@ -288,7 +288,7 @@ def test_load_template_meta_invalid_optional_badge_and_casing_fall_back_safely(t
         "  section_title_case: loud\n"
     )
 
-    meta = _load_template_meta(template_dir)
+    meta = load_template_meta(str(template_dir))
 
     assert meta["ui"] == {"badge": ""}
     assert meta["render"] == {"section_title_case": "title"}
@@ -396,7 +396,7 @@ def test_load_template_meta_invalid_partial_defaults_return_empty_defaults(tmp_p
         f"{defaults_yaml}"
     )
 
-    meta = _load_template_meta(template_dir)
+    meta = load_template_meta(str(template_dir))
 
     assert meta["display_name"] == "Invalid Defaults"
     assert meta["defaults"] == {}

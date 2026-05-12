@@ -2,7 +2,7 @@ import pytest
 import subprocess
 from pathlib import Path
 from backend.models import CVData, PersonalInfo
-from backend.renderers.latex import LaTeXRenderer, _build_layout_preamble, _FONT_SIZE, _make_jinja_filters, _make_contact_helpers, _make_link_text_fn
+from backend.renderers.latex import LaTeXRenderer, build_layout_preamble, FONT_SIZE, make_jinja_filters, make_contact_helpers, make_link_text_fn
 from tests.conftest import xelatex_available
 
 TEMPLATES_DIR = Path("backend/templates")
@@ -305,13 +305,13 @@ def test_renderer_preserves_existing_manual_latex_escapes():
 
 
 def test_font_size_map():
-    assert _FONT_SIZE["small"] == "10pt"
-    assert _FONT_SIZE["normal"] == "11pt"
-    assert _FONT_SIZE["large"] == "12pt"
+    assert FONT_SIZE["small"] == "10pt"
+    assert FONT_SIZE["normal"] == "11pt"
+    assert FONT_SIZE["large"] == "12pt"
 
 
 def test_layout_preamble_balanced():
-    p = _build_layout_preamble("balanced")
+    p = build_layout_preamble("balanced")
     assert "\\newcommand{\\cvvgap}{4pt}" in p
     assert "\\newcommand{\\cvsecbefore}{12pt}" in p
     assert "\\newcommand{\\cvsecafter}{6pt}" in p
@@ -319,7 +319,7 @@ def test_layout_preamble_balanced():
 
 
 def test_layout_preamble_compact():
-    p = _build_layout_preamble("compact")
+    p = build_layout_preamble("compact")
     assert "\\newcommand{\\cvvgap}{2pt}" in p
     assert "\\newcommand{\\cvsecbefore}{8pt}" in p
     assert "\\newcommand{\\cvsecafter}{4pt}" in p
@@ -327,7 +327,7 @@ def test_layout_preamble_compact():
 
 
 def test_layout_preamble_comfortable():
-    p = _build_layout_preamble("comfortable")
+    p = build_layout_preamble("comfortable")
     assert "\\newcommand{\\cvvgap}{8pt}" in p
     assert "\\newcommand{\\cvsecbefore}{14pt}" in p
     assert "\\newcommand{\\cvsecafter}{7pt}" in p
@@ -335,7 +335,7 @@ def test_layout_preamble_comfortable():
 
 
 def test_layout_preamble_unknown_falls_back_to_balanced():
-    p = _build_layout_preamble("airy")
+    p = build_layout_preamble("airy")
     assert "\\newcommand{\\cvvgap}{4pt}" in p
 
 
@@ -530,64 +530,64 @@ def test_link_display_changes_personal_github_text_across_templates(template, li
 
 
 def test_name_size_short():
-    f = _make_jinja_filters()
+    f = make_jinja_filters()
     # "Jane Smith" = 10 chars → ≤ 22 → Huge
     assert f['name_size']('Jane Smith') == r'\Huge\bfseries'
 
 
 def test_name_size_medium():
-    f = _make_jinja_filters()
+    f = make_jinja_filters()
     # "Alexander James Thompson" = 24 chars → 23-30 → LARGE
     assert f['name_size']('Alexander James Thompson') == r'\LARGE\bfseries'
 
 
 def test_name_size_long():
-    f = _make_jinja_filters()
+    f = make_jinja_filters()
     # "Alexander James Montgomery-Williams" = 35 chars → > 30 → Large
     assert f['name_size']('Alexander James Montgomery-Williams') == r'\Large\bfseries'
 
 
 def test_name_fontsize_short():
-    f = _make_jinja_filters()
+    f = make_jinja_filters()
     result = f['name_fontsize']('Jane Smith', 26.0, 1.15)
     assert r'\fontsize{26pt}' in result
     assert r'\selectfont' in result
 
 
 def test_name_fontsize_medium():
-    f = _make_jinja_filters()
+    f = make_jinja_filters()
     # 24 chars → normal_pt - 3 = 23
     result = f['name_fontsize']('Alexander James Thompson', 26.0, 1.15)
     assert r'\fontsize{23pt}' in result
 
 
 def test_name_fontsize_long():
-    f = _make_jinja_filters()
+    f = make_jinja_filters()
     # 35 chars → normal_pt - 5 = 21
     result = f['name_fontsize']('Alexander James Montgomery-Williams', 26.0, 1.15)
     assert r'\fontsize{21pt}' in result
 
 
 def test_name_fontsize_preserves_ratio():
-    f = _make_jinja_filters()
+    f = make_jinja_filters()
     # scholar-index: 22pt base, 1.18 ratio → short name → 22pt/26pt (same as original)
     result = f['name_fontsize']('Jane Smith', 22.0, 1.18)
     assert r'\fontsize{22pt}{26pt}\selectfont' == result
 
 
 def test_shrink_if_long_short():
-    f = _make_jinja_filters()
+    f = make_jinja_filters()
     assert f['shrink_if_long']('Software Engineer', 48) == ''
 
 
 def test_shrink_if_long_over_threshold():
-    f = _make_jinja_filters()
+    f = make_jinja_filters()
     long_title = 'Principal Machine Learning Infrastructure Engineering Lead'
     assert f['shrink_if_long'](long_title, 48) == r'\small '
 
 
 def test_shrink_if_long_default_threshold():
-    f = _make_jinja_filters()
+    f = make_jinja_filters()
     # Exactly at 48 chars — not over
     assert f['shrink_if_long']('A' * 48, 48) == ''
     # One over
@@ -857,18 +857,18 @@ def test_filters_available_in_template(tmp_path, minimal_cv):
 
 
 def test_contact_visible_defaults_true_when_no_fields():
-    visible, _ = _make_contact_helpers([], "url")
+    visible, _ = make_contact_helpers([], "url")
     assert visible("email") is True
     assert visible("github") is True
 
 
 def test_contact_visible_name_always_true():
-    visible, _ = _make_contact_helpers([{"key": "name", "visible": False}], "url")
+    visible, _ = make_contact_helpers([{"key": "name", "visible": False}], "url")
     assert visible("name") is True
 
 
 def test_contact_visible_respects_field_setting():
-    visible, _ = _make_contact_helpers(
+    visible, _ = make_contact_helpers(
         [{"key": "linkedin", "visible": False}, {"key": "github", "visible": True}],
         "url",
     )
@@ -877,43 +877,43 @@ def test_contact_visible_respects_field_setting():
 
 
 def test_contact_visible_unknown_key_defaults_true():
-    visible, _ = _make_contact_helpers([{"key": "email", "visible": False}], "url")
+    visible, _ = make_contact_helpers([{"key": "email", "visible": False}], "url")
     assert visible("nonexistent") is True
 
 
 def test_contact_link_style_uses_global_when_no_override():
-    _, style = _make_contact_helpers([{"key": "github", "visible": True}], "url")
+    _, style = make_contact_helpers([{"key": "github", "visible": True}], "url")
     assert style("github") == "url"
 
 
 def test_contact_link_style_uses_field_override():
-    _, style = _make_contact_helpers(
+    _, style = make_contact_helpers(
         [{"key": "github", "visible": True, "link_display": "label"}], "url"
     )
     assert style("github") == "label"
 
 
 def test_contact_link_style_ignores_invalid_override():
-    _, style = _make_contact_helpers(
+    _, style = make_contact_helpers(
         [{"key": "github", "visible": True, "link_display": "invalid"}], "url"
     )
     assert style("github") == "url"
 
 
 def test_link_text_with_explicit_style_overrides_global():
-    fn = _make_link_text_fn("url")
+    fn = make_link_text_fn("url")
     assert fn("github.com/user", "GitHub", "label") == "GitHub"
     assert fn("github.com/user", "GitHub", "both") == "GitHub (github.com/user)"
     assert fn("github.com/user", "GitHub", "url") == "github.com/user"
 
 
 def test_link_text_without_style_uses_global():
-    fn = _make_link_text_fn("both")
+    fn = make_link_text_fn("both")
     assert fn("github.com/user", "GitHub") == "GitHub (github.com/user)"
 
 
 def test_link_text_invalid_style_falls_back_to_global():
-    fn = _make_link_text_fn("label")
+    fn = make_link_text_fn("label")
     assert fn("github.com/user", "GitHub", "invalid") == "GitHub"
 
 

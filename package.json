@@ -8,7 +8,9 @@
     "test": "tests"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "npm run test:js && npm run test:py",
+    "test:js": "node --test \"tests/test_*.js\" \"tests/*.test.mjs\"",
+    "test:py": "pytest"
   },
   "repository": {
     "type": "git",
