@@ -15,7 +15,7 @@ Each phase produces working, testable software on its own. Each phase gets its o
 | 0 | Foundations | ✅ done (merged) | `2026-05-10-phase-0-foundations-design.md` | `2026-05-10-phase-0-foundations.md` |
 | 1 | Backend modularization | ✅ done (merged) | `2026-05-11-phase-1-backend-modularization-design.md` | `2026-05-11-phase-1-backend-modularization.md` |
 | 2 | Frontend bundler | ✅ done (merged) | `2026-05-11-phase-2-frontend-bundler-design.md` | `2026-05-11-phase-2-frontend-bundler.md` |
-| 3 | Frontend module split | 🔄 in progress | `2026-05-12-phase-3-frontend-module-split-design.md` | `2026-05-12-phase-3-frontend-module-split.md` |
+| 3 | Frontend module split | ✅ done (merged) | `2026-05-12-phase-3-frontend-module-split-design.md` | `2026-05-12-phase-3-frontend-module-split.md` |
 | 4 | Persistence | ⬜ not started | — | — |
 | 5 | Template authoring polish | ⬜ not started | — | — |
 
@@ -47,7 +47,7 @@ Add Vite. Convert the 18 inline `<script>` tags + `window.xxx` globals in `front
 
 **Acceptance:** `npm run build` produces a `dist/` that FastAPI serves. Dev mode (`npm run dev`) runs Vite alongside `uvicorn`. All 111 JS tests still pass against the source files (not bundled output).
 
-## Phase 3 — Frontend module split *(in progress)*
+## Phase 3 — Frontend module split *(done)*
 
 Break the monolithic `frontend/` JS into focused modules along the same axes as Phase 1's backend split:
 
