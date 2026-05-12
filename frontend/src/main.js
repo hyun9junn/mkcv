@@ -1,4 +1,5 @@
 import './vendor.js';
+import './index.css';
 
 import { initValidator } from './validator.js';
 import { initFileSync } from './file-sync.js';
