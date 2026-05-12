@@ -304,16 +304,63 @@ async function boot(options = {}) {
     localStorageData.set('mkcv_sections_state', sectionState);
   }
 
+  // Point the live app singleton at the test context's mutable state so that
+  // sections-ui.js (ESM) reads the same yaml/template that settings-sync writes.
+  const { app } = await import('../frontend/src/app.js');
+  app.state = context.app.state;
+  // Keep context.app.setState in sync with the live singleton's state object.
+  context.app.state = app.state;
+
   loadScript('frontend/src/settings-sync.js', context);
+
   if (options.loadSectionsUI) {
-    loadScript('frontend/src/sections-ui.js', context);
+    // sections-ui.js is now ESM — import it and wire it into the test context.
+    const { sectionsUI, _setPanelForTesting } = await import('../frontend/src/sections-ui.js');
+    const previewMod = await import('../frontend/src/preview.js');
+
+    // Stub preview.refresh so chip dot clicks don't trigger real PDF rendering.
+    const realRefresh = previewMod.preview.refresh;
+    previewMod.preview.refresh = () => {};
+
+    // The test context's mock document uses a custom createElement. Temporarily
+    // replace globalThis.document.createElement so sections-ui chip creation
+    // produces mock elements whose .children / .dataset / .querySelector work
+    // the same way the vm-based IIFE tests expect.
+    const savedCreateElement = globalThis.document.createElement.bind(globalThis.document);
+    globalThis.document.createElement = context.document.createElement;
+
+    // Use the panel the test context registered under 'sections-panel'.
+    const panel = context.document.getElementById('sections-panel');
+    _setPanelForTesting(panel);
+
+    // Expose sectionsUI on the context window for test assertions.
+    context.window.sectionsUI = sectionsUI;
+
+    // sections-ui.js reads window.editorAdapter and window.settingsSync from
+    // globalThis. The test context's editorAdapter lives on context.window
+    // (which is the same object as context). Wire it onto globalThis so the
+    // ESM module sees it.
+    window.editorAdapter = context.window.editorAdapter;
+    window.settingsSync = context.window.settingsSync;
+
+    // Restore globals after DOMContentLoaded callbacks fire.
+    const originalTeardown = options._teardown || (() => {});
+    options._teardown = () => {
+      globalThis.document.createElement = savedCreateElement;
+      previewMod.preview.refresh = realRefresh;
+      delete globalThis.window.editorAdapter;
+      delete globalThis.window.settingsSync;
+      originalTeardown();
+    };
   }
 
   for (const callback of domReadyCallbacks) {
     await callback();
   }
 
-  return { context, helpers };
+  const teardown = options._teardown || (() => {});
+
+  return { context, helpers, teardown };
 }
 
 test.afterEach(async () => {
@@ -322,6 +369,8 @@ test.afterEach(async () => {
   _resetParseCache();
   // Restore globalThis.localStorage as the default storage after each test.
   _setStorage(globalThis.localStorage);
+  delete globalThis.editorAdapter;
+  delete globalThis.settingsSync;
 });
 
 test('settings.yaml can hide a present section by moving it below the invisible marker', async () => {
