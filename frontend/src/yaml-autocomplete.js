@@ -198,7 +198,7 @@ function _fuzzyScore(pattern, candidate) {
 // ---------------------------------------------------------------------------
 
 const SETTINGS_VALUE_SUGGESTIONS = {
-  template: () => (SETTINGS_HELPERS?.VALID_TPL ?? []),
+  template: () => (SETTINGS_HELPERS?.getValidTemplates?.() ?? SETTINGS_HELPERS?.VALID_TPL ?? []),
   'layout.density': () => (SETTINGS_HELPERS?.VALID_DENSITY ?? []),
   'layout.font_scale': () => (SETTINGS_HELPERS?.VALID_FONT ?? []),
   'personal.default_link_display': () => ['label', 'url', 'both'],

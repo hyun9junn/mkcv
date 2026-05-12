@@ -443,14 +443,16 @@ Link fields (`website`, `linkedin`, `github`, `huggingface`) must include a `lin
 
 ## Compiler constraints
 
-All templates must compile with **pdflatex** (`-interaction=nonstopmode`). XeLaTeX or LuaLaTeX features are not available in the app's render pipeline.
+All templates compile with **xelatex** (`-interaction=nonstopmode`). The full xelatex
+package set is available, including `fontspec`, `unicode-math`, and CJK font packages.
 
-Allowed font packages (pre-installed on standard TeX Live):
-- `ebgaramond`, `libertine`, `tgheros`, `lmodern`
+Commonly used packages (pre-installed on standard TeX Live):
+- `fontspec`, `unicode-math` — xelatex font selection
+- `ebgaramond`, `libertine`, `tgheros`, `lmodern` — font families
 - `titlesec`, `enumitem`, `hyperref`, `microtype`, `xcolor`
 - `array`, `parskip`, `etoolbox`, `tabularx`, `paracol`, `eso-pic`
 
-Do not use `fontspec`, `unicode-math`, or any package that requires an engine other than pdflatex.
+LuaLaTeX is not supported — use xelatex-compatible packages only.
 
 ---
 
@@ -459,9 +461,9 @@ Do not use `fontspec`, `unicode-math`, or any package that requires an engine ot
 When the server starts, every template is validated in two stages:
 
 1. **Jinja2 render** — rendered against a sample `CVData` object with `StrictUndefined`. Any undefined variable reference, undefined filter, or syntax error fails validation.
-2. **pdflatex compilation** — the rendered `.tex` is compiled. Any LaTeX error fails validation.
+2. **xelatex compilation** — the rendered `.tex` is compiled. Any LaTeX error fails validation.
 
-The validation environment registers the same Jinja2 filters (`name_size`, `name_fontsize`, `shrink_if_long`) as the render environment. Any filter call that does not appear in `_make_jinja_filters()` in `backend/renderers/latex.py` will fail validation.
+The validation environment registers the same Jinja2 filters (`name_size`, `name_fontsize`, `shrink_if_long`) as the render environment. Any filter call that does not appear in `_make_jinja_filters()` in `backend/renderers/latex/helpers.py` will fail validation.
 
 The validation result is cached and exposed via `GET /api/templates`. A template with `"valid": false` is still listed but flagged in the UI. Always verify both stages pass before shipping a new template.
 
@@ -470,6 +472,31 @@ To manually re-run validation for a single template:
 ```
 POST /api/templates/{name}/validate
 ```
+
+---
+
+## CLI tools
+
+The backend ships a command-line interface for template authors:
+
+```bash
+# Validate one template (Jinja2 render + xelatex compile)
+python -m backend validate classic
+
+# Validate all templates
+python -m backend validate
+
+# Generate PNG thumbnail for one template
+# Requires: pip install pdf2image  and  poppler (brew install poppler / apt-get install poppler-utils)
+python -m backend thumbnails classic
+
+# Generate thumbnails for all templates
+python -m backend thumbnails
+```
+
+Thumbnails are written to `frontend/assets/template-previews/<slug>.png` and served by
+the template picker. Run this command after adding a new template so its card shows a
+preview image instead of the blank placeholder.
 
 ---
 

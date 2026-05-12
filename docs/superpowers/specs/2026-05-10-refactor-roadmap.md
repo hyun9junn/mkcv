@@ -17,7 +17,7 @@ Each phase produces working, testable software on its own. Each phase gets its o
 | 2 | Frontend bundler | ✅ done (merged) | `2026-05-11-phase-2-frontend-bundler-design.md` | `2026-05-11-phase-2-frontend-bundler.md` |
 | 3 | Frontend module split | ✅ done (merged) | `2026-05-12-phase-3-frontend-module-split-design.md` | `2026-05-12-phase-3-frontend-module-split.md` |
 | 4 | Persistence | ⬜ not started | — | — |
-| 5 | Template authoring polish | ⬜ not started | — | — |
+| 5 | Template authoring polish | ✅ done (merged) | `2026-05-12-phase-5-template-authoring-polish-design.md` | `2026-05-12-phase-5-template-authoring-polish.md` |
 
 Both completed phases landed on the `phase-0-foundations` branch (13-commit fast-forward merge from `phase-1-backend-modularization`). All 396 tests (111 JS + 285 Python) pass on the merged result.
 
@@ -75,7 +75,7 @@ Add server-side user state so CVs survive across devices and browsers. Today eve
 
 **Acceptance:** A logged-in user can edit a CV on one device and see the same state on another. `localStorage`-only flow still works for anonymous users.
 
-## Phase 5 — Template authoring polish *(not started)*
+## Phase 5 — Template authoring polish *(done)*
 
 Make adding a new template a one-file change, not a scattered edit across the codebase. With Phase 1 done, the backend already pulls everything from `meta.yaml` + `cv.tex.j2`; this phase finishes the job on the frontend side.
 

@@ -34,6 +34,7 @@ export const VALID_TPL          = [
   'studio-pop',
   'trackline',
 ];
+let _validTplSet = new Set(VALID_TPL);
 export const VALID_LINK_DISPLAY        = ['label', 'url', 'both'];
 export const VALID_GLOBAL_LINK_DISPLAY = ['label', 'url', 'both'];
 export const VALID_FIELD_LINK_DISPLAY  = ['default', 'label', 'url', 'both'];
@@ -89,7 +90,7 @@ export const DEFAULT_SETTINGS = {
 };
 
 export function settingsToYaml(s) {
-  const template = VALID_TPL.includes(s.template) ? s.template : DEFAULT_SETTINGS.template;
+  const template = _validTplSet.has(s.template) ? s.template : DEFAULT_SETTINGS.template;
   const lines = [
     '# settings.yaml — layout & section state',
     '# auto-synced with toolbar controls; edit either side',
@@ -161,7 +162,7 @@ function _getDefaultSection(key) {
 
 export function normalizeTemplateDefaults(rawDefaults, currentTemplate = DEFAULT_SETTINGS.template) {
   const normalized = _clone(DEFAULT_SETTINGS);
-  normalized.template = VALID_TPL.includes(currentTemplate) ? currentTemplate : DEFAULT_SETTINGS.template;
+  normalized.template = _validTplSet.has(currentTemplate) ? currentTemplate : DEFAULT_SETTINGS.template;
 
   if (!rawDefaults || typeof rawDefaults !== 'object') {
     return normalized;
@@ -227,7 +228,7 @@ export function parseSettings(yaml) {
 
   if (parsed.template != null) {
     const template = String(parsed.template);
-    if (VALID_TPL.includes(template)) {
+    if (_validTplSet.has(template)) {
       out.template = template;
     } else {
       warnings.push({ msg: `unknown template "${template}" — using classic`, line: null });
@@ -306,4 +307,10 @@ export const SETTINGS_HELPERS = {
   parseSettings,
   normalizePersonalFields,
   normalizeTemplateDefaults,
+  setValidTemplates(names) {
+    _validTplSet = new Set([...VALID_TPL, ...(Array.isArray(names) ? names : [])]);
+  },
+  getValidTemplates() {
+    return Array.from(_validTplSet);
+  },
 };

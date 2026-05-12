@@ -202,6 +202,7 @@ export async function initTemplates() {
     const validationMap = data.validation || {};
     templateRegistry.setAllMeta(data.meta || {});
     templateUI.setAvailableTemplates(data.templates || []);
+    SETTINGS_HELPERS.setValidTemplates(data.templates || []);
 
     let cardIndex = 0;
     data.templates.forEach((name) => {
