@@ -175,7 +175,7 @@ education:
     courses:                  # optional
       - Algorithms
       - Systems
-    thesis: "My thesis title"       # optional
+    thesis: "My thesis title" # optional
 
 skills:
   - category: Languages
@@ -286,17 +286,33 @@ cd mkcv
 python -m venv .venv
 source .venv/bin/activate      # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-uvicorn backend.main:app --reload
 ```
 
+**Backend only** (serves the built frontend from `frontend/dist/`):
+```bash
+uvicorn backend.main:app --reload
+```
 Open **http://localhost:8000**.
+
+**Full dev mode** (Vite hot-reload + backend API, recommended when editing frontend code):
+```bash
+# Terminal 1
+uvicorn backend.main:app --reload --port 8000
+
+# Terminal 2
+npm install
+npm run dev
+```
+Open **http://localhost:5173** — frontend changes reflect instantly without a rebuild.
 
 > The Docker image bundles TeX Live, XeLaTeX, and Korean fonts, so PDF generation works out of the box. For local dev, install LaTeX separately — see [Installing LaTeX](#installing-latex).
 
 ### Running Tests
 
 ```bash
-pytest -v
+npm test           # runs both JS (node --test) and Python (pytest) suites
+npm run test:js    # JS tests only
+npm run test:py    # Python (pytest) only
 ```
 
 ---
@@ -389,18 +405,14 @@ xelatex --version
 
 ## Adding a Custom Template
 
-1. Create `backend/templates/<your-name>/cv.tex.j2`
-2. Optionally create `backend/templates/<your-name>/meta.yaml` to set display name, default layout, section title casing, and template-specific Hangul font stacks
-3. Use these Jinja2 delimiters (chosen to avoid conflicts with LaTeX `{}`):
-   - Variables: `<< variable >>`
-   - Blocks: `<% if condition %>` / `<% endif %>`
-   - Comments: `<# comment #>`
-4. Include `<< xelatex_preamble >>` somewhere in the LaTeX preamble so shared XeLaTeX and Korean font support is enabled
-5. CV data is available as `cv` — see `backend/models.py` for the full schema
-6. Restart the server — the template appears in the dropdown automatically
-7. Click **✓ Validate Template** to confirm it compiles
+Drop a directory under `backend/templates/` and restart the server — it appears in the picker automatically, no code changes required.
 
-See `backend/templates/classic/cv.tex.j2` for a reference implementation.
+1. Create `backend/templates/<your-name>/cv.tex.j2` (required — the Jinja2+XeLaTeX source)
+2. Create `backend/templates/<your-name>/meta.yaml` (required — display name, defaults, font config)
+3. Restart the server — the template appears in the dropdown
+4. Click **✓ Validate Template** in the UI to confirm it compiles cleanly
+
+For the full template authoring guide (Jinja2 delimiters, data model, `meta.yaml` schema, spacing system, CLI tools), see [`backend/templates/README.md`](./backend/templates/README.md).
 
 ---
 
@@ -414,7 +426,7 @@ See `backend/templates/classic/cv.tex.j2` for a reference implementation.
 | `/api/export/markdown` | POST | `{yaml, template}` | `.md` file |
 | `/api/export/latex` | POST | `{yaml, template}` | `.tex` file |
 | `/api/export/pdf` | POST | `{yaml, template}` | `.pdf` file |
-| `/api/templates` | GET | — | `{templates[], validation{}}` |
+| `/api/templates` | GET | — | `{templates[], meta{}, validation{}}` |
 | `/api/templates/{name}/validate` | POST | — | `{valid, errors[]}` |
 | `/api/schema` | GET | — | CV JSON schema |
 
@@ -432,9 +444,9 @@ All error responses share a common shape:
 ## Tech Stack
 
 - **Backend:** FastAPI, Pydantic v2, PyYAML, Jinja2
-- **Frontend:** Vanilla JS, CodeMirror 5, js-yaml, PDF.js, JSZip
+- **Frontend:** Vanilla JS (ES modules), CodeMirror 5, js-yaml, PDF.js, JSZip, Vite
 - **PDF:** xelatex (TeX Live / MiKTeX) with template-specific Hangul font stacks
-- **Tests:** pytest, pytest-asyncio, httpx
+- **Tests:** pytest, pytest-asyncio, httpx, node --test
 
 ---
 

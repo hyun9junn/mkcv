@@ -1,3 +1,18 @@
+# ── Stage 1: Frontend build ───────────────────────────────────────────────────
+FROM node:20-slim AS frontend-builder
+WORKDIR /build
+
+# Install Node deps first (cache layer — only re-runs if package files change)
+COPY package*.json ./
+RUN npm ci
+
+# Copy only the files Vite needs, then build
+COPY vite.config.js ./
+COPY frontend/ frontend/
+RUN npm run build
+# Output: /build/frontend/dist/
+
+# ── Stage 2: Runtime ─────────────────────────────────────────────────────────
 FROM python:3.11-slim
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -25,7 +40,11 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Copy source (frontend/dist is excluded by .dockerignore — comes from builder below)
 COPY . .
+
+# Overlay the production-built frontend from Stage 1
+COPY --from=frontend-builder /build/frontend/dist ./frontend/dist
 
 RUN useradd --no-create-home --shell /bin/false appuser
 USER appuser

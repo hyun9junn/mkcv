@@ -13,3 +13,5 @@ docs/
 mycv.yaml
 settings.yaml
 node_modules/
+frontend/dist/
+.github/

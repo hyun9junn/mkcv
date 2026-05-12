@@ -30,6 +30,15 @@ app = FastAPI(lifespan=lifespan)
 app.include_router(router)
 
 
+# Mount image asset dirs from source so they're always current regardless of
+# whether a dist build exists. These specific paths don't conflict with Vite's
+# hashed JS/CSS output (which lives at /assets/<hash>.js, not under these dirs).
+_frontend_assets = Path("frontend/assets")
+for _subdir in ("template-previews", "onboarding"):
+    _p = _frontend_assets / _subdir
+    if _p.exists():
+        app.mount(f"/assets/{_subdir}", StaticFiles(directory=str(_p)), name=f"assets-{_subdir}")
+
 # Serve frontend — must come after all API routes
 dist_dir = Path("frontend/dist")
 src_dir = Path("frontend")

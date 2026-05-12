@@ -1,6 +1,6 @@
 import { defineConfig } from 'vite';
 import { copyFileSync, mkdirSync, readdirSync, statSync, existsSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 
 // Copies classic <script src> and <link href> references that aren't part of
 // the Vite module graph into dist/. Needed during Phase 2 Tasks 3–8 while
@@ -25,6 +25,20 @@ function copyClassicAssets() {
           if (!statSync(src).isFile()) continue;
           if (!exts.some(e => file.endsWith(e))) continue;
           copyFileSync(src, join(to, file));
+        }
+      }
+
+      // Copy image asset subdirs into dist/assets/ so uvicorn can serve them
+      // from the built output without needing the source tree.
+      for (const subdir of ['onboarding', 'template-previews']) {
+        const fromDir = join('frontend', 'assets', subdir);
+        const toDir   = join('frontend', 'dist', 'assets', subdir);
+        if (!existsSync(fromDir)) continue;
+        mkdirSync(toDir, { recursive: true });
+        for (const file of readdirSync(fromDir)) {
+          const src = join(fromDir, file);
+          if (!statSync(src).isFile()) continue;
+          copyFileSync(src, join(toDir, file));
         }
       }
     },
