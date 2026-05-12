@@ -245,6 +245,7 @@ export async function initTemplates() {
       if (isFirst && nameDisplay) nameDisplay.textContent = displayName;
 
       card.addEventListener("mouseenter", () => {
+        clearTimeout(hoverTimer);
         clearTimeout(hideTimer);
         hoverTimer = setTimeout(() => {
           if (!portal) return;
@@ -291,7 +292,8 @@ export async function initTemplates() {
       cardIndex++;
     });
 
-    if (portal) {
+    if (portal && !portal.dataset.listenersBound) {
+      portal.dataset.listenersBound = "1";
       portal.addEventListener("mouseenter", () => clearTimeout(hideTimer));
       portal.addEventListener("mouseleave", () => { if (portal) portal.hidden = true; });
     }
@@ -309,7 +311,6 @@ export async function initTemplates() {
         <div class="popover-name">Classic</div>
       </div>
     `;
-    card.addEventListener("click", () => templateUI.selectTemplate("classic"));
     grid.appendChild(card);
     if (nameDisplay) nameDisplay.textContent = "Classic";
   }
