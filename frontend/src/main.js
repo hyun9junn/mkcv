@@ -12,8 +12,12 @@ import { preview, initPreview } from './preview.js';
 import { contactUI, initContactUI } from './contact-ui.js';
 import { sectionsUI, initSectionsUI } from './sections-ui.js';
 import { templateRegistry, templateUI, initTemplates } from './templates.js';
+import { settingsSync, initSettingsSync } from './settings-sync.js';
+import { exporter, initExporter } from './export.js';
+import { yamlBackup, initYamlBackup } from './yaml-backup.js';
+import { onboarding, initOnboarding } from './onboarding.js';
 
-// Compat shims — unconverted (still-IIFE) source files reach for these on window.
+// Compat shims — the inline <script> block in index.html still reads these on window.
 window.app = app;
 window.validator = validator;
 window.fileSync = fileSync;
@@ -26,6 +30,10 @@ window.contactUI = contactUI;
 window.sectionsUI = sectionsUI;
 window.templateRegistry = templateRegistry;
 window.templateUI = templateUI;
+window.settingsSync = settingsSync;
+window.exporter = exporter;
+window.yamlBackup = yamlBackup;
+window.onboarding = onboarding;
 // (layout-controls didn't expose anything on window in IIFE form, so no shim needed)
 // `window.editorAdapter` is set inside the DOMContentLoaded handler below — its
 // methods only work after `initEditorAdapter()` runs, and `contact-ui.js` uses
@@ -44,4 +52,8 @@ document.addEventListener('DOMContentLoaded', () => {
   initContactUI();
   initSectionsUI();
   initTemplates();
+  initSettingsSync();
+  initExporter();
+  initYamlBackup();
+  initOnboarding();
 });

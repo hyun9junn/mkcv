@@ -1,8 +1,18 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const vm = require('node:vm');
 const jsyaml = require('js-yaml');
+
+// Phase 2: settings-sync.js was converted from IIFE-on-window to ESM.
+// This harness boots it by:
+//   1. Pointing the real ESM sections-state/localStorage at the test's storage stub.
+//   2. Monkey-patching editorAdapter, preview, sectionsUI, sectionsState, and app.state.
+//   3. Calling _resetSettingsSyncForTesting() + initSettingsSync().
+// The sections-ui integration (loadSectionsUI) uses the real ESM sections-ui module.
+// Every test assertion is preserved verbatim.
+
+// ---------------------------------------------------------------------------
+// Helpers from the original test file
+// ---------------------------------------------------------------------------
 
 function createElement() {
   const listeners = new Map();
@@ -75,39 +85,27 @@ function createElement() {
   };
 
   Object.defineProperty(element, 'innerHTML', {
-    get() {
-      return innerHTML;
-    },
+    get() { return innerHTML; },
     set(value) {
       innerHTML = String(value);
       element.children = [];
-
       if (innerHTML.includes('chip-grip')) {
-        const grip = createElement();
-        grip.className = 'chip-grip';
-        element.appendChild(grip);
+        const grip = createElement(); grip.className = 'chip-grip'; element.appendChild(grip);
       }
       if (innerHTML.includes('chip-dot')) {
-        const dot = createElement();
-        dot.className = 'chip-dot';
-        element.appendChild(dot);
+        const dot = createElement(); dot.className = 'chip-dot'; element.appendChild(dot);
       }
       if (innerHTML.includes('chip-name')) {
-        const name = createElement();
-        name.className = 'chip-name';
+        const name = createElement(); name.className = 'chip-name';
         const match = innerHTML.match(/<span class="chip-name">([\s\S]*?)<\/span>/);
         name.textContent = match ? match[1] : '';
         element.appendChild(name);
       }
       if (innerHTML.includes('toast-msg')) {
-        const msg = createElement();
-        msg.className = 'toast-msg';
-        element.appendChild(msg);
+        const msg = createElement(); msg.className = 'toast-msg'; element.appendChild(msg);
       }
       if (innerHTML.includes('toast-close')) {
-        const close = createElement();
-        close.className = 'toast-close';
-        element.appendChild(close);
+        const close = createElement(); close.className = 'toast-close'; element.appendChild(close);
       }
     },
   });
@@ -115,277 +113,280 @@ function createElement() {
   return element;
 }
 
-function clone(value) {
-  return JSON.parse(JSON.stringify(value));
-}
+function clone(value) { return JSON.parse(JSON.stringify(value)); }
 
-function createContext(options = {}) {
-  const domReadyCallbacks = [];
-  const elements = new Map();
-  const localStorageData = new Map();
-  const editorChangeCallbacks = [];
-  const deferredEditorChanges = [];
+// ---------------------------------------------------------------------------
+// Global teardown state (per-test)
+// ---------------------------------------------------------------------------
 
-  const ids = [
-    'file-tab-resume',
-    'file-tab-settings',
-    'valid-dot',
-    'valid-text',
-    'settings-warn-item',
-    'lines-stat',
-    'editor-meta',
-    'density-group',
-    'font-scale-group',
-    'toast-stack',
-    'sections-panel',
-    'reset-modal',
-    'reset-modal-title',
-    'reset-modal-cancel',
-    'reset-modal-confirm',
-    'undo-toast',
-    'undo-toast-message',
-    'undo-toast-btn',
-  ];
-  for (const id of ids) {
-    elements.set(id, createElement());
-  }
-
-  const context = {
-    console,
-    TextEncoder,
-    jsyaml,
-    setTimeout,
-    clearTimeout,
-    localStorage: {
-      getItem(key) {
-        return localStorageData.has(key) ? localStorageData.get(key) : null;
-      },
-      setItem(key, value) {
-        localStorageData.set(key, String(value));
-      },
-      removeItem(key) {
-        localStorageData.delete(key);
-      },
-    },
-    document: {
-      body: createElement(),
-      getElementById(id) {
-        if (!elements.has(id)) elements.set(id, createElement());
-        return elements.get(id);
-      },
-      createElement,
-      addEventListener(type, callback) {
-        if (type === 'DOMContentLoaded') domReadyCallbacks.push(callback);
-      },
-      removeEventListener() {},
-    },
-    app: {
-      state: {
-        yaml: options.initialYaml || 'personal:\n  name: Test User\n',
-        template: 'classic',
-        density: 'balanced',
-        font_scale: 'normal',
-        link_display: 'label',
-        personal_fields: [],
-      },
-      setState(patch) {
-        Object.assign(this.state, patch);
-      },
-    },
-    validator: {
-      validate() {},
-    },
-    preview: {
-      refresh() {},
-    },
-    sectionsUI: {
-      buildPanel() {},
-    },
-    requestAnimationFrame(callback) {
-      return callback;
-    },
-    cancelAnimationFrame() {},
-    fetch: async () => ({ ok: false }),
-  };
-
-  const editorAdapter = {
-    value: context.app.state.yaml,
-    _suppressNextPreviewRefresh: false,
-    setValue(value) {
-      this.value = value;
-      if (!context.window.settingsSync || context.window.settingsSync.activeTab === 'resume') {
-        context.app.setState({ yaml: value });
-      }
-      if (options.deferEditorChangeDispatch) {
-        deferredEditorChanges.push(value);
-      } else {
-        for (const callback of editorChangeCallbacks) callback(value);
-      }
-    },
-    setValueSilently(value) {
-      this.value = value;
-    },
-    setValuePreserveScroll(value) {
-      this.value = value;
-      if (!context.window.settingsSync || context.window.settingsSync.activeTab === 'resume') {
-        context.app.setState({ yaml: value });
-      }
-      if (options.deferEditorChangeDispatch) {
-        deferredEditorChanges.push(value);
-      } else {
-        for (const callback of editorChangeCallbacks) callback(value);
-      }
-    },
-    getScrollInfo() {
-      return { left: 0, top: 0 };
-    },
-    scrollTo() {},
-    suppressNextPreviewRefresh() {
-      this._suppressNextPreviewRefresh = true;
-    },
-    consumeSuppressedPreviewRefresh() {
-      const suppressed = this._suppressNextPreviewRefresh;
-      this._suppressNextPreviewRefresh = false;
-      return suppressed;
-    },
-    clearHistory() {},
-    closeHint() {},
-    onChange(callback) {
-      editorChangeCallbacks.push(callback);
-    },
-  };
-
-  context.window = context;
-  context.window.editorAdapter = editorAdapter;
-  context.__flushEditorChanges = () => {
-    while (deferredEditorChanges.length) {
-      const value = deferredEditorChanges.shift();
-      for (const callback of editorChangeCallbacks) callback(value);
-    }
-  };
-
-  return { context, domReadyCallbacks, localStorageData };
-}
-
-function loadScript(filename, context) {
-  const source = fs.readFileSync(filename, 'utf8');
-  vm.runInNewContext(source, context, { filename });
-}
-
-async function boot(options = {}) {
-  const { context, domReadyCallbacks, localStorageData } = createContext(options);
-
-  // Import ESM modules for settings-engine and sections-state.
-  const { SETTINGS_HELPERS, DEFAULT_SETTINGS, settingsToYaml } = await import('../frontend/src/settings-engine.js');
-  const { sectionsState, _resetParseCache, _setStorage } = await import('../frontend/src/sections-state.js');
-
-  // Reset sections-state parse cache so each test starts clean.
-  _resetParseCache();
-
-  // Point the ESM module at the vm context's localStorage stub so that
-  // settings-sync.js (IIFE, writes mkcv_sections_state to context.localStorage)
-  // and sectionsState (ESM, reads/writes via _storage) share the same storage.
-  _setStorage(context.localStorage);
-
-  context.window.SETTINGS_HELPERS = SETTINGS_HELPERS;
-  context.window.sectionsState = sectionsState;
-
-  const helpers = SETTINGS_HELPERS;
-  const initialSettings = clone(options.initialSettings || DEFAULT_SETTINGS);
-  const settingsYaml = settingsToYaml(initialSettings);
-
-  localStorageData.set('mkcv:default:settings.yaml', settingsYaml);
-
-  if (Array.isArray(options.initialSectionState?.order) || Array.isArray(options.initialSectionState?.hidden)) {
-    const sectionState = JSON.stringify({
-      order: options.initialSectionState.order || DEFAULT_SETTINGS.sections.map((section) => section.key),
-      hidden: options.initialSectionState.hidden || [],
-    });
-    localStorageData.set('mkcv_sections_state', sectionState);
-  }
-
-  // Point the live app singleton at the test context's mutable state so that
-  // sections-ui.js (ESM) reads the same yaml/template that settings-sync writes.
-  const { app } = await import('../frontend/src/app.js');
-  app.state = context.app.state;
-  // Keep context.app.setState in sync with the live singleton's state object.
-  context.app.state = app.state;
-
-  loadScript('frontend/src/settings-sync.js', context);
-
-  if (options.loadSectionsUI) {
-    // sections-ui.js is now ESM — import it and wire it into the test context.
-    const { sectionsUI, _setPanelForTesting } = await import('../frontend/src/sections-ui.js');
-    const previewMod = await import('../frontend/src/preview.js');
-
-    // Stub preview.refresh so chip dot clicks don't trigger real PDF rendering.
-    const realRefresh = previewMod.preview.refresh;
-    previewMod.preview.refresh = () => {};
-
-    // The test context's mock document uses a custom createElement. Temporarily
-    // replace globalThis.document.createElement so sections-ui chip creation
-    // produces mock elements whose .children / .dataset / .querySelector work
-    // the same way the vm-based IIFE tests expect.
-    const savedCreateElement = globalThis.document.createElement.bind(globalThis.document);
-    globalThis.document.createElement = context.document.createElement;
-
-    // Use the panel the test context registered under 'sections-panel'.
-    const panel = context.document.getElementById('sections-panel');
-    _setPanelForTesting(panel);
-
-    // Expose sectionsUI on the context window for test assertions.
-    context.window.sectionsUI = sectionsUI;
-
-    // sections-ui.js reads window.editorAdapter and window.settingsSync from
-    // globalThis. The test context's editorAdapter lives on context.window
-    // (which is the same object as context). Wire it onto globalThis so the
-    // ESM module sees it.
-    window.editorAdapter = context.window.editorAdapter;
-    window.settingsSync = context.window.settingsSync;
-
-    // Restore globals after DOMContentLoaded callbacks fire.
-    const originalTeardown = options._teardown || (() => {});
-    options._teardown = () => {
-      globalThis.document.createElement = savedCreateElement;
-      previewMod.preview.refresh = realRefresh;
-      delete globalThis.window.editorAdapter;
-      delete globalThis.window.settingsSync;
-      originalTeardown();
-    };
-  }
-
-  for (const callback of domReadyCallbacks) {
-    await callback();
-  }
-
-  const teardown = options._teardown || (() => {});
-
-  return { context, helpers, teardown };
-}
+let _currentTeardown = null;
 
 test.afterEach(async () => {
+  if (_currentTeardown) { _currentTeardown(); _currentTeardown = null; }
   if (globalThis.localStorage) localStorage.clear();
   const { _resetParseCache, _setStorage } = await import('../frontend/src/sections-state.js');
   _resetParseCache();
-  // Restore globalThis.localStorage as the default storage after each test.
   _setStorage(globalThis.localStorage);
   delete globalThis.editorAdapter;
   delete globalThis.settingsSync;
+  delete globalThis.window.editorAdapter;
+  delete globalThis.window.settingsSync;
 });
+
+// ---------------------------------------------------------------------------
+// Boot helper — replaces the old createContext + loadScript pattern
+// ---------------------------------------------------------------------------
+
+async function boot(options = {}) {
+  // ── Import all required ESM modules ─────────────────────────────────────────
+  const { SETTINGS_HELPERS, DEFAULT_SETTINGS, settingsToYaml } =
+    await import('../frontend/src/settings-engine.js');
+  const { sectionsState, _resetParseCache, _setStorage } =
+    await import('../frontend/src/sections-state.js');
+  const appMod           = await import('../frontend/src/app.js');
+  const editorAdapterMod  = await import('../frontend/src/editor-adapter.js');
+  const previewMod        = await import('../frontend/src/preview.js');
+  const sectionsUIMod     = await import('../frontend/src/sections-ui.js');
+  const validatorMod      = await import('../frontend/src/validator.js');
+  const {
+    settingsSync,
+    initSettingsSync,
+    _resetSettingsSyncForTesting,
+  } = await import('../frontend/src/settings-sync.js');
+
+  // ── Sections-state: reset cache + point at test localStorage stub ────────────
+  _resetParseCache();
+
+  const localStorageData = new Map();
+  const testLocalStorage = {
+    getItem(k)     { return localStorageData.has(k) ? localStorageData.get(k) : null; },
+    setItem(k, v)  { localStorageData.set(k, String(v)); },
+    removeItem(k)  { localStorageData.delete(k); },
+  };
+  _setStorage(testLocalStorage);
+
+  // ── Seed test localStorage ───────────────────────────────────────────────────
+  const initialSettings = clone(options.initialSettings || DEFAULT_SETTINGS);
+  const settingsYaml    = settingsToYaml(initialSettings);
+  localStorageData.set('mkcv:default:settings.yaml', settingsYaml);
+
+  if (Array.isArray(options.initialSectionState?.order) || Array.isArray(options.initialSectionState?.hidden)) {
+    localStorageData.set('mkcv_sections_state', JSON.stringify({
+      order:  options.initialSectionState.order  || DEFAULT_SETTINGS.sections.map(s => s.key),
+      hidden: options.initialSectionState.hidden || [],
+    }));
+  }
+
+  // ── Patch globalThis.localStorage so settings-sync.js reads the same store ──
+  const origGlobalLS = globalThis.localStorage;
+  Object.defineProperty(globalThis, 'localStorage', {
+    configurable: true, value: testLocalStorage,
+  });
+
+  // ── Patch app.state ──────────────────────────────────────────────────────────
+  const origAppState   = appMod.app.state;
+  const origSetState   = appMod.app.setState.bind(appMod.app);
+  appMod.app.state = {
+    yaml:            options.initialYaml || 'personal:\n  name: Test User\n',
+    template:        'classic',
+    density:         'balanced',
+    font_scale:      'normal',
+    link_display:    'label',
+    personal_fields: [],
+  };
+  appMod.app.setState = (patch) => Object.assign(appMod.app.state, patch);
+
+  // ── Build synthetic editorAdapter ────────────────────────────────────────────
+  const editorChangeCallbacks = [];
+  const deferredEditorChanges = [];
+
+  const origEA = {
+    getValue: editorAdapterMod.editorAdapter.getValue,
+    setValue: editorAdapterMod.editorAdapter.setValue,
+    setValueSilently: editorAdapterMod.editorAdapter.setValueSilently,
+    setValuePreserveScroll: editorAdapterMod.editorAdapter.setValuePreserveScroll,
+    getScrollInfo: editorAdapterMod.editorAdapter.getScrollInfo,
+    scrollTo: editorAdapterMod.editorAdapter.scrollTo,
+    suppressNextPreviewRefresh: editorAdapterMod.editorAdapter.suppressNextPreviewRefresh,
+    consumeSuppressedPreviewRefresh: editorAdapterMod.editorAdapter.consumeSuppressedPreviewRefresh,
+    clearHistory: editorAdapterMod.editorAdapter.clearHistory,
+    closeHint: editorAdapterMod.editorAdapter.closeHint,
+    onChange: editorAdapterMod.editorAdapter.onChange,
+  };
+
+  const editorValue = { current: appMod.app.state.yaml };
+  let _suppressNextPreviewRefresh = false;
+
+  editorAdapterMod.editorAdapter.getValue = () => editorValue.current;
+  editorAdapterMod.editorAdapter.setValue = (value) => {
+    editorValue.current = value;
+    if (settingsSync.activeTab === 'resume') {
+      appMod.app.setState({ yaml: value });
+    }
+    if (options.deferEditorChangeDispatch) {
+      deferredEditorChanges.push(value);
+    } else {
+      for (const cb of editorChangeCallbacks) cb(value);
+    }
+  };
+  editorAdapterMod.editorAdapter.setValueSilently = (value) => { editorValue.current = value; };
+  editorAdapterMod.editorAdapter.setValuePreserveScroll = (value) => {
+    editorValue.current = value;
+    if (settingsSync.activeTab === 'resume') {
+      appMod.app.setState({ yaml: value });
+    }
+    if (options.deferEditorChangeDispatch) {
+      deferredEditorChanges.push(value);
+    } else {
+      for (const cb of editorChangeCallbacks) cb(value);
+    }
+  };
+  editorAdapterMod.editorAdapter.getScrollInfo = () => ({ left: 0, top: 0 });
+  editorAdapterMod.editorAdapter.scrollTo = () => {};
+  editorAdapterMod.editorAdapter.suppressNextPreviewRefresh = () => { _suppressNextPreviewRefresh = true; };
+  editorAdapterMod.editorAdapter.consumeSuppressedPreviewRefresh = () => {
+    const v = _suppressNextPreviewRefresh; _suppressNextPreviewRefresh = false; return v;
+  };
+  editorAdapterMod.editorAdapter.clearHistory = () => {};
+  editorAdapterMod.editorAdapter.closeHint = () => {};
+  editorAdapterMod.editorAdapter.onChange = (cb) => editorChangeCallbacks.push(cb);
+
+  // ── Patch preview ─────────────────────────────────────────────────────────────
+  const origPreviewRefresh = previewMod.preview.refresh;
+  previewMod.preview.refresh = () => {};
+
+  // ── Patch sectionsUI ─────────────────────────────────────────────────────────
+  const origBuildPanel = sectionsUIMod.sectionsUI.buildPanel;
+  sectionsUIMod.sectionsUI.buildPanel = () => {};
+
+  // ── Patch validator ──────────────────────────────────────────────────────────
+  const origValidate = validatorMod.validator.validate;
+  validatorMod.validator.validate = () => {};
+
+  // ── Build synthetic document (for chip/panel tests) ──────────────────────────
+  const elements = new Map();
+  const ids = [
+    'file-tab-resume', 'file-tab-settings', 'valid-dot', 'valid-text',
+    'settings-warn-item', 'lines-stat', 'editor-meta',
+    'density-group', 'font-scale-group', 'toast-stack',
+    'sections-panel', 'reset-modal', 'reset-modal-title',
+    'reset-modal-cancel', 'reset-modal-confirm',
+    'undo-toast', 'undo-toast-message', 'undo-toast-btn',
+  ];
+  for (const id of ids) elements.set(id, createElement());
+
+  // We need document.getElementById to return our synthetic elements for the
+  // `file-tab-*` clicks and `density-group` etc.
+  const origGetElementById = globalThis.document.getElementById.bind(globalThis.document);
+  const origCreateElement  = globalThis.document.createElement.bind(globalThis.document);
+
+  globalThis.document.getElementById = (id) => {
+    if (elements.has(id)) return elements.get(id);
+    return origGetElementById(id);
+  };
+  globalThis.document.createElement = createElement;
+
+  // ── Reset settings-sync state + boot ─────────────────────────────────────────
+  _resetSettingsSyncForTesting();
+  initSettingsSync();
+
+  // ── Expose settingsSync on window for sections-ui compat ─────────────────────
+  globalThis.window.settingsSync = settingsSync;
+  globalThis.window.editorAdapter = {
+    getValue: editorAdapterMod.editorAdapter.getValue,
+    setValue: editorAdapterMod.editorAdapter.setValue,
+    setValueSilently: editorAdapterMod.editorAdapter.setValueSilently,
+    setValuePreserveScroll: editorAdapterMod.editorAdapter.setValuePreserveScroll,
+    getScrollInfo: editorAdapterMod.editorAdapter.getScrollInfo,
+    scrollTo: editorAdapterMod.editorAdapter.scrollTo,
+    suppressNextPreviewRefresh: editorAdapterMod.editorAdapter.suppressNextPreviewRefresh,
+    consumeSuppressedPreviewRefresh: editorAdapterMod.editorAdapter.consumeSuppressedPreviewRefresh,
+    clearHistory: editorAdapterMod.editorAdapter.clearHistory,
+    closeHint: editorAdapterMod.editorAdapter.closeHint,
+    onChange: editorAdapterMod.editorAdapter.onChange,
+    get value() { return editorValue.current; },
+  };
+
+  // ── sections-ui integration (for chip-level tests) ────────────────────────────
+  if (options.loadSectionsUI) {
+    const { _setPanelForTesting } = await import('../frontend/src/sections-ui.js');
+    const panel = elements.get('sections-panel');
+    // Set the panel BEFORE restoring buildPanel so the real implementation has a
+    // valid panel to write into.
+    _setPanelForTesting(panel);
+    // Restore the real buildPanel now that init is done and the panel is wired.
+    sectionsUIMod.sectionsUI.buildPanel = origBuildPanel;
+  }
+
+  // ── Build context object matching original API ────────────────────────────────
+  const context = {
+    window: {
+      settingsSync,
+      editorAdapter: globalThis.window.editorAdapter,
+      sectionsState,
+      sectionsUI: sectionsUIMod.sectionsUI,
+    },
+    app: appMod.app,
+    document: {
+      getElementById: (id) => {
+        if (elements.has(id)) return elements.get(id);
+        return origGetElementById(id);
+      },
+      createElement,
+      addEventListener: (type, cb) => { if (type === 'DOMContentLoaded') cb(); },
+      removeEventListener: () => {},
+    },
+    __flushEditorChanges: () => {
+      while (deferredEditorChanges.length) {
+        const value = deferredEditorChanges.shift();
+        for (const cb of editorChangeCallbacks) cb(value);
+      }
+    },
+  };
+
+  // ── Teardown: restore all patches ────────────────────────────────────────────
+  _currentTeardown = () => {
+    // Restore app
+    appMod.app.state    = origAppState;
+    appMod.app.setState = origSetState;
+    // Restore editorAdapter
+    Object.assign(editorAdapterMod.editorAdapter, origEA);
+    // Restore preview
+    previewMod.preview.refresh = origPreviewRefresh;
+    // Restore sectionsUI
+    sectionsUIMod.sectionsUI.buildPanel = origBuildPanel;
+    // Restore validator
+    validatorMod.validator.validate = origValidate;
+    // Restore document
+    globalThis.document.getElementById = origGetElementById;
+    globalThis.document.createElement  = origCreateElement;
+    // Restore localStorage
+    Object.defineProperty(globalThis, 'localStorage', {
+      configurable: true, value: origGlobalLS,
+    });
+    // Reset settings-sync state
+    _resetSettingsSyncForTesting();
+    // Restore sections-ui panel
+    if (options.loadSectionsUI) {
+      import('../frontend/src/sections-ui.js').then(({ _setPanelForTesting }) => {
+        _setPanelForTesting(null);
+      });
+    }
+  };
+
+  return { context, helpers: SETTINGS_HELPERS };
+}
+
+// ===========================================================================
+// Tests (assertions preserved verbatim from the original file)
+// ===========================================================================
 
 test('settings.yaml can hide a present section by moving it below the invisible marker', async () => {
   const { context, helpers } = await boot({
     initialYaml: [
-      'personal:',
-      '  name: Test User',
-      '',
-      'summary: >',
-      '  Short summary.',
-      '',
-      'projects:',
-      '  - name: Resume Builder',
-      '    description: Sync sections reliably.',
-      '',
+      'personal:', '  name: Test User', '',
+      'summary: >', '  Short summary.', '',
+      'projects:', '  - name: Resume Builder', '    description: Sync sections reliably.', '',
     ].join('\n'),
   });
 
@@ -405,12 +406,8 @@ test('settings.yaml can hide a present section by moving it below the invisible 
 test('settings.yaml can reveal an absent built-in section by materializing it into resume.yaml', async () => {
   const { context, helpers } = await boot({
     initialYaml: [
-      'personal:',
-      '  name: Test User',
-      '',
-      'summary: >',
-      '  Short summary.',
-      '',
+      'personal:', '  name: Test User', '',
+      'summary: >', '  Short summary.', '',
     ].join('\n'),
   });
 
@@ -419,19 +416,16 @@ test('settings.yaml can reveal an absent built-in section by materializing it in
   context.window.settingsSync.setYaml(helpers.settingsToYaml(next));
 
   assert.match(context.app.state.yaml, /^certifications:/m);
-  assert.equal(context.window.sectionsState.isHidden('certifications'), false);
+  const { sectionsState } = await import('../frontend/src/sections-state.js');
+  assert.equal(sectionsState.isHidden('certifications'), false);
 });
 
 test('revealing one absent section from the resume tab does not flip other absent hidden sections to visible', async () => {
   const { context } = await boot({
     loadSectionsUI: true,
     initialYaml: [
-      'personal:',
-      '  name: Test User',
-      '',
-      'summary: >',
-      '  Short summary.',
-      '',
+      'personal:', '  name: Test User', '',
+      'summary: >', '  Short summary.', '',
     ].join('\n'),
   });
 
@@ -445,33 +439,20 @@ test('revealing one absent section from the resume tab does not flip other absen
   certificationsChip.querySelector('.chip-dot').click();
 
   const sections = context.window.settingsSync.getSettings().sections;
-  assert.equal(
-    sections.find((section) => section.key === 'certifications')?.visible,
-    true,
-    'the clicked absent section should become visible'
-  );
-  assert.equal(
-    sections.find((section) => section.key === 'publications')?.visible,
-    false,
-    'other absent hidden sections should keep their previous visibility'
-  );
-  assert.equal(
-    sections.find((section) => section.key === 'languages')?.visible,
-    false,
-    'other absent hidden sections should stay false'
-  );
+  assert.equal(sections.find((section) => section.key === 'certifications')?.visible, true,
+    'the clicked absent section should become visible');
+  assert.equal(sections.find((section) => section.key === 'publications')?.visible, false,
+    'other absent hidden sections should keep their previous visibility');
+  assert.equal(sections.find((section) => section.key === 'languages')?.visible, false,
+    'other absent hidden sections should stay false');
 });
 
 test('revealing an absent section while settings tab is open updates settings.yaml to visible true', async () => {
   const { context } = await boot({
     loadSectionsUI: true,
     initialYaml: [
-      'personal:',
-      '  name: Test User',
-      '',
-      'summary: >',
-      '  Short summary.',
-      '',
+      'personal:', '  name: Test User', '',
+      'summary: >', '  Short summary.', '',
     ].join('\n'),
   });
 
@@ -487,11 +468,8 @@ test('revealing an absent section while settings tab is open updates settings.ya
   certificationsChip.querySelector('.chip-dot').click();
 
   const nextSettings = context.window.settingsSync.getSettings().sections;
-  assert.equal(
-    nextSettings.find((section) => section.key === 'certifications')?.visible,
-    true,
-    'clicked absent section should become visible in parsed settings state'
-  );
+  assert.equal(nextSettings.find((section) => section.key === 'certifications')?.visible, true,
+    'clicked absent section should become visible in parsed settings state');
   assert.match(
     context.window.settingsSync.getYaml(),
     /- key: certifications\n\s+title: "CERTIFICATIONS"\n\s+visible: true/,
@@ -508,11 +486,8 @@ test('revealing an absent section while settings tab is open still updates setti
   const { context } = await boot({
     loadSectionsUI: true,
     initialYaml: [
-      'personal:',
-      '  name: Test User',
-      '',
-      'summary: [unterminated',
-      '',
+      'personal:', '  name: Test User', '',
+      'summary: [unterminated', '',
     ].join('\n'),
   });
 
@@ -543,12 +518,8 @@ test('after revealing one hidden absent section in resume tab, revealing another
   const { context } = await boot({
     loadSectionsUI: true,
     initialYaml: [
-      'personal:',
-      '  name: Test User',
-      '',
-      'summary: >',
-      '  Short summary.',
-      '',
+      'personal:', '  name: Test User', '',
+      'summary: >', '  Short summary.', '',
     ].join('\n'),
   });
 
@@ -570,27 +541,19 @@ test('after revealing one hidden absent section in resume tab, revealing another
 
   publicationsChip.querySelector('.chip-dot').click();
 
-  assert.match(
-    context.app.state.yaml,
-    /^publications:/m,
-    'the second revealed section should be materialized into resume yaml state'
-  );
+  assert.match(context.app.state.yaml, /^publications:/m,
+    'the second revealed section should be materialized into resume yaml state');
+  const { sectionsState } = await import('../frontend/src/sections-state.js');
   assert.ok(
-    context.window.sectionsState.getExpandedPresentKeys(context.app.state.yaml).includes('publications'),
+    sectionsState.getExpandedPresentKeys(context.app.state.yaml).includes('publications'),
     'present-key detection should see the second revealed section in resume yaml'
   );
 
   const nextSections = context.window.settingsSync.getSettings().sections;
-  assert.equal(
-    nextSections.find((section) => section.key === 'certifications')?.visible,
-    true,
-    'the first revealed section should remain visible in settings'
-  );
-  assert.equal(
-    nextSections.find((section) => section.key === 'publications')?.visible,
-    true,
-    'the second revealed section should flip to visible true'
-  );
+  assert.equal(nextSections.find((section) => section.key === 'certifications')?.visible, true,
+    'the first revealed section should remain visible in settings');
+  assert.equal(nextSections.find((section) => section.key === 'publications')?.visible, true,
+    'the second revealed section should flip to visible true');
   assert.match(
     context.window.settingsSync.getYaml(),
     /- key: publications\n\s+title: "PUBLICATIONS"\n\s+visible: true/,
@@ -602,12 +565,8 @@ test('clicking an absent built-in chip materializes the section with its selecte
   const { context } = await boot({
     loadSectionsUI: true,
     initialYaml: [
-      'personal:',
-      '  name: Test User',
-      '',
-      'summary: >',
-      '  Short summary.',
-      '',
+      'personal:', '  name: Test User', '',
+      'summary: >', '  Short summary.', '',
     ].join('\n'),
   });
 
@@ -631,23 +590,11 @@ test('clicking an absent built-in chip materializes the section with its selecte
 test('reordering hidden chips updates the invisible-area order inside resume.yaml', async () => {
   const { context } = await boot({
     initialYaml: [
-      'personal:',
-      '  name: Test User',
-      '',
-      'summary: >',
-      '  Short summary.',
-      '',
-      '### invisible sections',
-      '',
-      'languages:',
-      '  - language: English',
-      '    proficiency: Native',
-      '',
-      'awards:',
-      '  - name: Hackathon Winner',
-      '    issuer: Example Org',
-      '    date: "2025"',
-      '',
+      'personal:', '  name: Test User', '',
+      'summary: >', '  Short summary.', '',
+      '### invisible sections', '',
+      'languages:', '  - language: English', '    proficiency: Native', '',
+      'awards:', '  - name: Hackathon Winner', '    issuer: Example Org', '    date: "2025"', '',
     ].join('\n'),
     initialSectionState: {
       order: ['summary', 'languages', 'awards'],
@@ -655,7 +602,8 @@ test('reordering hidden chips updates the invisible-area order inside resume.yam
     },
   });
 
-  context.window.sectionsState.setOrder(['summary', 'awards', 'languages']);
+  const { sectionsState } = await import('../frontend/src/sections-state.js');
+  sectionsState.setOrder(['summary', 'awards', 'languages']);
 
   const invisibleArea = context.app.state.yaml.split('### invisible sections')[1] || '';
   assert.match(invisibleArea, /awards:[\s\S]*languages:/);
@@ -664,32 +612,17 @@ test('reordering hidden chips updates the invisible-area order inside resume.yam
 test('moving a section under the invisible marker in resume.yaml syncs settings.yaml visibility', async () => {
   const { context } = await boot({
     initialYaml: [
-      'personal:',
-      '  name: Test User',
-      '',
-      'summary: >',
-      '  Short summary.',
-      '',
-      'projects:',
-      '  - name: Resume Builder',
-      '    description: Sync sections reliably.',
-      '',
+      'personal:', '  name: Test User', '',
+      'summary: >', '  Short summary.', '',
+      'projects:', '  - name: Resume Builder', '    description: Sync sections reliably.', '',
     ].join('\n'),
   });
 
   context.window.editorAdapter.setValue([
-    'personal:',
-    '  name: Test User',
-    '',
-    'summary: >',
-    '  Short summary.',
-    '',
-    '### invisible sections',
-    '',
-    'projects:',
-    '  - name: Resume Builder',
-    '    description: Sync sections reliably.',
-    '',
+    'personal:', '  name: Test User', '',
+    'summary: >', '  Short summary.', '',
+    '### invisible sections', '',
+    'projects:', '  - name: Resume Builder', '    description: Sync sections reliably.', '',
   ].join('\n'));
 
   const projects = context.window.settingsSync.getSettings().sections.find((section) => section.key === 'projects');
@@ -699,21 +632,10 @@ test('moving a section under the invisible marker in resume.yaml syncs settings.
 test('restore recommended updates hidden section placement inside resume.yaml', async () => {
   const { context } = await boot({
     initialYaml: [
-      'personal:',
-      '  name: Test User',
-      '',
-      'summary: >',
-      '  Short summary.',
-      '',
-      'education:',
-      '  - degree: B.S. Computer Science',
-      '    institution: Example University',
-      '    year: "2024"',
-      '',
-      'projects:',
-      '  - name: Resume Builder',
-      '    description: Sync sections reliably.',
-      '',
+      'personal:', '  name: Test User', '',
+      'summary: >', '  Short summary.', '',
+      'education:', '  - degree: B.S. Computer Science', '    institution: Example University', '    year: "2024"', '',
+      'projects:', '  - name: Resume Builder', '    description: Sync sections reliably.', '',
     ].join('\n'),
   });
 
@@ -734,22 +656,10 @@ test('clicking a visible middle chip hides it instead of bouncing back to visibl
   const { context } = await boot({
     loadSectionsUI: true,
     initialYaml: [
-      'personal:',
-      '  name: Test User',
-      '',
-      'summary: >',
-      '  Short summary.',
-      '',
-      'experience:',
-      '  - title: Staff Engineer',
-      '    company: Example Co',
-      '    highlights:',
-      '      - Shipped section sync fixes.',
-      '',
-      'projects:',
-      '  - name: Resume Builder',
-      '    description: Sync sections reliably.',
-      '',
+      'personal:', '  name: Test User', '',
+      'summary: >', '  Short summary.', '',
+      'experience:', '  - title: Staff Engineer', '    company: Example Co', '    highlights:', '      - Shipped section sync fixes.', '',
+      'projects:', '  - name: Resume Builder', '    description: Sync sections reliably.', '',
     ].join('\n'),
   });
 
@@ -762,7 +672,8 @@ test('clicking a visible middle chip hides it instead of bouncing back to visibl
   experienceChip.querySelector('.chip-dot').click();
 
   const refreshedChip = panel.children.find((chip) => chip.dataset.key === 'experience');
-  assert.equal(context.window.sectionsState.isHidden('experience'), true);
+  const { sectionsState } = await import('../frontend/src/sections-state.js');
+  assert.equal(sectionsState.isHidden('experience'), true);
   assert.match(refreshedChip.className, /\bhidden\b/);
   assert.doesNotMatch(refreshedChip.className, /\bon\b/);
   assert.match(context.app.state.yaml, /### invisible sections[\s\S]*\nexperience:/);
@@ -778,22 +689,10 @@ test('resume-tab hide and show keeps chip order stable after deferred editor syn
     loadSectionsUI: true,
     deferEditorChangeDispatch: true,
     initialYaml: [
-      'personal:',
-      '  name: Test User',
-      '',
-      'summary: >',
-      '  Short summary.',
-      '',
-      'experience:',
-      '  - title: Staff Engineer',
-      '    company: Example Co',
-      '    highlights:',
-      '      - Shipped section sync fixes.',
-      '',
-      'projects:',
-      '  - name: Resume Builder',
-      '    description: Sync sections reliably.',
-      '',
+      'personal:', '  name: Test User', '',
+      'summary: >', '  Short summary.', '',
+      'experience:', '  - title: Staff Engineer', '    company: Example Co', '    highlights:', '      - Shipped section sync fixes.', '',
+      'projects:', '  - name: Resume Builder', '    description: Sync sections reliably.', '',
     ].join('\n'),
   });
 
@@ -816,16 +715,9 @@ test('resume-tab hide and show keeps chip order stable after deferred editor syn
 test('renaming a built-in section title mirrors it into resume.yaml as an inline comment', async () => {
   const { context } = await boot({
     initialYaml: [
-      'personal:',
-      '  name: Test User',
-      '',
-      'summary: >',
-      '  Short summary.',
-      '',
-      'projects:',
-      '  - name: Resume Builder',
-      '    description: Sync sections reliably.',
-      '',
+      'personal:', '  name: Test User', '',
+      'summary: >', '  Short summary.', '',
+      'projects:', '  - name: Resume Builder', '    description: Sync sections reliably.', '',
     ].join('\n'),
   });
 
@@ -841,16 +733,9 @@ test('renaming a built-in section title mirrors it into resume.yaml as an inline
 test('applying template defaults mirrors selected built-in titles into resume.yaml comments', async () => {
   const { context } = await boot({
     initialYaml: [
-      'personal:',
-      '  name: Test User',
-      '',
-      'summary: >',
-      '  Short summary.',
-      '',
-      'projects:',
-      '  - name: Resume Builder',
-      '    description: Sync sections reliably.',
-      '',
+      'personal:', '  name: Test User', '',
+      'summary: >', '  Short summary.', '',
+      'projects:', '  - name: Resume Builder', '    description: Sync sections reliably.', '',
     ].join('\n'),
   });
 
