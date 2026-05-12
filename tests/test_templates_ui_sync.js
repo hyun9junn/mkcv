@@ -216,3 +216,38 @@ test('syncSelectedOption updates tpl-card selected class', async () => {
   assert.ok(!classicCard.classList.contains('selected'), 'classic no longer selected');
   assert.ok(sigCard.classList.contains('selected'), 'signature-split now selected');
 });
+
+test('clicking a card does not apply the template', async () => {
+  const { app, elements, refreshCalls } = await createContext();
+
+  const cards = Array.from(elements.get('template-grid').children);
+  const sigCard = cards.find(c => c.dataset.name === 'signature-split');
+  assert.ok(sigCard, 'signature-split card found');
+
+  sigCard.click();
+
+  assert.equal(app.state.template, 'classic', 'template unchanged after card click');
+  assert.equal(refreshCalls.length, 0, 'no preview refresh triggered by card click');
+});
+
+test('hovering a card shows portal with image src, metadata, and use button', async (t) => {
+  t.mock.timers.enable(['setTimeout']);
+
+  const { elements } = await createContext();
+
+  const portal = elements.get('tpl-popover-portal');
+  const cards = Array.from(elements.get('template-grid').children);
+  const sigCard = cards.find(c => c.dataset.name === 'signature-split');
+  assert.ok(sigCard, 'signature-split card found');
+
+  sigCard.dispatchEvent(new Event('mouseenter'));
+  t.mock.timers.tick(400);
+
+  assert.ok(!portal.hidden, 'portal is visible after hover delay');
+  assert.match(portal.innerHTML, /template-previews\/signature-split\.png/, 'portal has preview image src');
+  assert.match(portal.innerHTML, /Creative direction/, 'portal has description');
+  assert.match(portal.innerHTML, /Popular/, 'portal has badge');
+  assert.match(portal.innerHTML, /Use this template/, 'portal has use button');
+
+  t.mock.timers.reset();
+});
