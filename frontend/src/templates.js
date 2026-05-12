@@ -204,6 +204,8 @@ export async function initTemplates() {
     templateUI.setAvailableTemplates(data.templates || []);
     SETTINGS_HELPERS.setValidTemplates(data.templates || []);
 
+    let hoverTimer = null;
+    let hideTimer  = null;
     let cardIndex = 0;
     data.templates.forEach((name) => {
       const meta        = templateRegistry.getMeta(name);
@@ -242,42 +244,57 @@ export async function initTemplates() {
 
       if (isFirst && nameDisplay) nameDisplay.textContent = displayName;
 
-      card.addEventListener("click", (e) => {
-        e.stopPropagation();
-        templateUI.selectTemplate(name);
-      });
-
-      let hoverTimer = null;
       card.addEventListener("mouseenter", () => {
+        clearTimeout(hideTimer);
         hoverTimer = setTimeout(() => {
-          const tplContent = card.querySelector(".tpl-popover");
-          if (portal && tplContent) {
-            const cardRect    = card.getBoundingClientRect();
-            const wrapperRect = wrapper.getBoundingClientRect();
-            const POPOVER_W   = 164;
-            const GAP         = 10;
-            portal.innerHTML  = tplContent.innerHTML;
-            portal.style.top  = (cardRect.top - wrapperRect.top) + "px";
-            const spaceRight  = window.innerWidth - cardRect.right - GAP;
-            if (spaceRight >= POPOVER_W) {
-              portal.style.left  = (cardRect.right - wrapperRect.left + GAP) + "px";
-              portal.style.right = "";
-            } else {
-              portal.style.left  = (cardRect.left - wrapperRect.left - GAP - POPOVER_W) + "px";
-              portal.style.right = "";
-            }
-            portal.hidden = false;
+          if (!portal) return;
+          const cardRect    = card.getBoundingClientRect();
+          const wrapperRect = wrapper.getBoundingClientRect();
+          const POPOVER_W   = 220;
+          const GAP         = 10;
+          portal.innerHTML = `
+            <img class="tpl-preview-img"
+                 src="/assets/template-previews/${name}.png"
+                 alt="${displayName}"
+                 onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+            <div class="tpl-preview-img-fallback tpl-thumb-${name}" style="display:none"></div>
+            <div class="popover-name">${displayName}</div>
+            ${audience ? `<span class="popover-audience">${audience}</span>` : ""}
+            ${badge    ? `<span class="popover-badge">${badge}</span>`       : ""}
+            ${description ? `<div class="popover-desc">${description}</div>` : ""}
+            <button class="tpl-use-btn">Use this template</button>
+          `;
+          portal.querySelector(".tpl-use-btn").addEventListener("click", (e) => {
+            e.stopPropagation();
+            templateUI.selectTemplate(name);
+          });
+          portal.style.top  = (cardRect.top - wrapperRect.top) + "px";
+          const spaceRight  = window.innerWidth - cardRect.right - GAP;
+          if (spaceRight >= POPOVER_W) {
+            portal.style.left  = (cardRect.right - wrapperRect.left + GAP) + "px";
+            portal.style.right = "";
+          } else {
+            portal.style.left  = (cardRect.left - wrapperRect.left - GAP - POPOVER_W) + "px";
+            portal.style.right = "";
           }
+          portal.hidden = false;
         }, 400);
       });
       card.addEventListener("mouseleave", () => {
         clearTimeout(hoverTimer);
-        if (portal) portal.hidden = true;
+        hideTimer = setTimeout(() => {
+          if (portal) portal.hidden = true;
+        }, 120);
       });
 
       grid.appendChild(card);
       cardIndex++;
     });
+
+    if (portal) {
+      portal.addEventListener("mouseenter", () => clearTimeout(hideTimer));
+      portal.addEventListener("mouseleave", () => { if (portal) portal.hidden = true; });
+    }
 
   } catch {
     templateRegistry.setAllMeta({});
