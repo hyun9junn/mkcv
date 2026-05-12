@@ -31,6 +31,9 @@ app.include_router(router)
 
 
 # Serve frontend — must come after all API routes
-frontend_dir = Path("frontend")
-if frontend_dir.exists():
-    app.mount("/", StaticFiles(directory=str(frontend_dir), html=True), name="frontend")
+dist_dir = Path("frontend/dist")
+src_dir = Path("frontend")
+if dist_dir.exists():
+    app.mount("/", StaticFiles(directory=str(dist_dir), html=True), name="frontend")
+elif src_dir.exists():
+    app.mount("/", StaticFiles(directory=str(src_dir), html=True), name="frontend")

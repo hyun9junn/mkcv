@@ -1,10 +1,16 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const vm = require('node:vm');
 const jsyaml = require('js-yaml');
 
-function createElement(tagName = 'div') {
+// Phase 2: sections-ui.js was converted from IIFE-on-window to ESM. This
+// harness drives the same scenarios through the ESM module — DOM lives in
+// happy-dom, `app.state` is mutated on the live singleton, `sectionsState`
+// parse cache and storage are reset via exported test hooks, and
+// `window.settingsSync` / `window.editorAdapter` are injected onto
+// `globalThis`. The imported `preview` object's `.refresh` method is
+// monkey-patched to capture calls without invoking real PDF rendering.
+
+function createMockElement(tagName = 'div') {
   const listeners = new Map();
   let innerHTML = '';
 
@@ -20,33 +26,47 @@ function createElement(tagName = 'div') {
     children: [],
     parentNode: null,
     classList: {
-      add() {},
-      remove() {},
-      toggle() {},
+      add(...cls) {
+        const set = new Set(element.className.split(/\s+/).filter(Boolean));
+        cls.forEach((c) => set.add(c));
+        element.className = Array.from(set).join(' ');
+      },
+      remove(...cls) {
+        const removeSet = new Set(cls);
+        element.className = element.className
+          .split(/\s+/)
+          .filter(Boolean)
+          .filter((c) => !removeSet.has(c))
+          .join(' ');
+      },
+      toggle(cls, force) {
+        const set = new Set(element.className.split(/\s+/).filter(Boolean));
+        const shouldHave = force == null ? !set.has(cls) : !!force;
+        if (shouldHave) set.add(cls);
+        else set.delete(cls);
+        element.className = Array.from(set).join(' ');
+      },
     },
     appendChild(child) {
-      child.parentNode = this;
-      this.children.push(child);
+      child.parentNode = element;
+      element.children.push(child);
       return child;
     },
     insertBefore(child, beforeChild) {
-      child.parentNode = this;
-      const idx = this.children.indexOf(beforeChild);
-      if (idx === -1) {
-        this.children.push(child);
-      } else {
-        this.children.splice(idx, 0, child);
-      }
+      child.parentNode = element;
+      const idx = element.children.indexOf(beforeChild);
+      if (idx === -1) element.children.push(child);
+      else element.children.splice(idx, 0, child);
       return child;
     },
     removeChild(child) {
-      const idx = this.children.indexOf(child);
-      if (idx !== -1) this.children.splice(idx, 1);
+      const idx = element.children.indexOf(child);
+      if (idx !== -1) element.children.splice(idx, 1);
       child.parentNode = null;
       return child;
     },
     remove() {
-      if (this.parentNode) this.parentNode.removeChild(this);
+      if (element.parentNode) element.parentNode.removeChild(element);
     },
     addEventListener(type, callback) {
       if (!listeners.has(type)) listeners.set(type, []);
@@ -59,7 +79,7 @@ function createElement(tagName = 'div') {
       if (idx !== -1) callbacks.splice(idx, 1);
     },
     querySelector(selector) {
-      return this.querySelectorAll(selector)[0] || null;
+      return element.querySelectorAll(selector)[0] || null;
     },
     querySelectorAll(selector) {
       if (!selector.startsWith('.')) return [];
@@ -72,16 +92,12 @@ function createElement(tagName = 'div') {
           visit(child);
         }
       };
-      visit(this);
+      visit(element);
       return results;
     },
     click() {
       for (const callback of listeners.get('click') || []) {
-        callback({
-          target: this,
-          preventDefault() {},
-          stopPropagation() {},
-        });
+        callback({ target: element, preventDefault() {}, stopPropagation() {} });
       }
     },
     focus() {},
@@ -92,37 +108,34 @@ function createElement(tagName = 'div') {
   };
 
   Object.defineProperty(element, 'innerHTML', {
-    get() {
-      return innerHTML;
-    },
+    get() { return innerHTML; },
     set(value) {
       innerHTML = String(value);
       element.children = [];
-
       if (innerHTML.includes('chip-grip')) {
-        const grip = createElement('span');
+        const grip = createMockElement('span');
         grip.className = 'chip-grip';
         element.appendChild(grip);
       }
       if (innerHTML.includes('chip-dot')) {
-        const dot = createElement('span');
+        const dot = createMockElement('span');
         dot.className = 'chip-dot';
         element.appendChild(dot);
       }
       if (innerHTML.includes('chip-name')) {
-        const name = createElement('span');
+        const name = createMockElement('span');
         name.className = 'chip-name';
         const match = innerHTML.match(/<span class="chip-name">([\s\S]*?)<\/span>/);
         name.textContent = match ? match[1] : '';
         element.appendChild(name);
       }
       if (innerHTML.includes('toast-msg')) {
-        const msg = createElement('div');
+        const msg = createMockElement('div');
         msg.className = 'toast-msg';
         element.appendChild(msg);
       }
       if (innerHTML.includes('toast-close')) {
-        const close = createElement('button');
+        const close = createMockElement('button');
         close.className = 'toast-close';
         element.appendChild(close);
       }
@@ -132,37 +145,101 @@ function createElement(tagName = 'div') {
   return element;
 }
 
-function createContext(options = {}) {
-  const elements = new Map();
-  const domReadyCallbacks = [];
-  const previewCalls = [];
+function createMockDocument(elements) {
+  const documentListeners = new Map();
+  return {
+    body: createMockElement('body'),
+    getElementById(id) {
+      if (!elements.has(id)) elements.set(id, createMockElement('div'));
+      return elements.get(id);
+    },
+    createElement: createMockElement,
+    addEventListener(type, callback) {
+      if (!documentListeners.has(type)) documentListeners.set(type, []);
+      documentListeners.get(type).push(callback);
+    },
+    removeEventListener() {},
+  };
+}
+
+async function createHarness(options = {}) {
+  const { app } = await import('../frontend/src/app.js');
+  const { sectionsState, _resetParseCache, _setStorage } =
+    await import('../frontend/src/sections-state.js');
+  const { sectionsUI, _setPanelForTesting } =
+    await import('../frontend/src/sections-ui.js');
+  const previewMod = await import('../frontend/src/preview.js');
+
+  // Reset sections-state parse cache.
+  _resetParseCache();
+
+  // Set up in-memory localStorage storage.
   const storage = new Map();
-  const editorChangeCallbacks = [];
+  const localStorageMock = {
+    getItem(key) { return storage.has(key) ? storage.get(key) : null; },
+    setItem(key, value) { storage.set(key, String(value)); },
+    removeItem(key) { storage.delete(key); },
+  };
 
-  const ids = [
-    'sections-panel',
-    'reset-modal',
-    'reset-modal-title',
-    'reset-modal-cancel',
-    'reset-modal-confirm',
-    'undo-toast',
-    'undo-toast-message',
-    'undo-toast-btn',
-    'toast-stack',
-  ];
-  for (const id of ids) {
-    elements.set(id, createElement('div'));
-  }
-
+  // Initialise the section state storage.
   const initialOrder = options.initialOrder || ['summary', 'experience', 'education', 'skills', 'projects', 'certifications'];
   const initialHidden = options.initialHidden || ['certifications'];
-  storage.set(
-    'mkcv_sections_state',
-    JSON.stringify({
-      hidden: initialHidden,
-      order: initialOrder,
-    })
-  );
+  storage.set('mkcv_sections_state', JSON.stringify({ hidden: initialHidden, order: initialOrder }));
+
+  _setStorage(localStorageMock);
+
+  // Set app state.
+  app.state = Object.assign(app.state, {
+    yaml: options.initialYaml || [
+      'personal:',
+      '  name: Test User',
+      '',
+      'summary: >',
+      '  Wrote tests first.',
+      '',
+      '### invisible sections',
+      '',
+      'languages:',
+      '  - language: English',
+      '    proficiency: Native',
+      '',
+    ].join('\n'),
+    template: 'classic',
+  });
+
+  // Capture preview refresh calls by monkey-patching the live `preview` export.
+  const previewCalls = [];
+  const realRefresh = previewMod.preview.refresh;
+  previewMod.preview.refresh = (yaml, template) => {
+    previewCalls.push({ yaml, template });
+  };
+
+  // Track editorAdapter calls.
+  let setValueCalls = 0;
+  let setValuePreserveScrollCalls = 0;
+  const editorChangeCallbacks = [];
+
+  const editorAdapter = {
+    value: app.state.yaml,
+    suppressNextPreviewRefresh() {},
+    consumeSuppressedPreviewRefresh() { return false; },
+    setValue(value) {
+      setValueCalls += 1;
+      this.value = value;
+      app.setState({ yaml: value });
+      for (const cb of editorChangeCallbacks) cb(value);
+    },
+    setValuePreserveScroll(value) {
+      setValuePreserveScrollCalls += 1;
+      this.value = value;
+      app.setState({ yaml: value });
+      for (const cb of editorChangeCallbacks) cb(value);
+    },
+    onChange(callback) {
+      editorChangeCallbacks.push(callback);
+    },
+  };
+  window.editorAdapter = editorAdapter;
 
   const settingsSections = options.settingsSections || [
     { key: 'summary', title: 'SUMMARY', visible: true },
@@ -173,118 +250,89 @@ function createContext(options = {}) {
     { key: 'certifications', title: 'CERTIFICATIONS', visible: false },
   ];
 
-  const context = {
-    console,
-    jsyaml,
-    requestAnimationFrame(callback) {
-      return callback;
-    },
-    cancelAnimationFrame() {},
-    setTimeout,
-    clearTimeout,
-    localStorage: {
-      getItem(key) {
-        return storage.has(key) ? storage.get(key) : null;
-      },
-      setItem(key, value) {
-        storage.set(key, String(value));
-      },
-    },
-    document: {
-      body: createElement('body'),
-      getElementById(id) {
-        if (!elements.has(id)) elements.set(id, createElement('div'));
-        return elements.get(id);
-      },
-      createElement,
-      addEventListener(type, callback) {
-        if (type === 'DOMContentLoaded') domReadyCallbacks.push(callback);
-      },
-      removeEventListener() {},
-    },
-    app: {
-      state: {
-        yaml: options.initialYaml || [
-          'personal:',
-          '  name: Test User',
-          '',
-          'summary: >',
-          '  Wrote tests first.',
-          '',
-          '### invisible sections',
-          '',
-          'languages:',
-          '  - language: English',
-          '    proficiency: Native',
-          '',
-        ].join('\n'),
-        template: 'classic',
-      },
-      setState(patch) {
-        Object.assign(this.state, patch);
-      },
-    },
-    preview: {
-      refresh(yaml, template) {
-        previewCalls.push({ yaml, template });
-      },
-    },
-    showToast() {},
-    editorAdapter: {
-      suppressNextPreviewRefresh() {},
-      setValue(value) {
-        this.value = value;
-        for (const callback of editorChangeCallbacks) callback(value);
-      },
-      setValuePreserveScroll(value) {
-        this.value = value;
-        for (const callback of editorChangeCallbacks) callback(value);
-      },
-      onChange(callback) {
-        editorChangeCallbacks.push(callback);
-      },
-    },
-    settingsSync: {
-      activeTab: options.activeTab || 'resume',
-      getSettings() {
-        return {
-          sections: settingsSections,
-        };
-      },
+  window.settingsSync = {
+    activeTab: options.activeTab || 'resume',
+    getSettings() {
+      return { sections: settingsSections };
     },
   };
-  context.window = context;
 
-  return { context, elements, previewCalls, domReadyCallbacks };
+  // Set up a mock panel element using the mock element (not happy-dom) so that
+  // chip children are tracked in element.children.
+  const elements = new Map();
+  const panel = createMockElement('div');
+  elements.set('sections-panel', panel);
+  for (const id of ['reset-modal', 'reset-modal-title', 'reset-modal-cancel', 'reset-modal-confirm',
+    'undo-toast', 'undo-toast-message', 'undo-toast-btn', 'toast-stack']) {
+    elements.set(id, createMockElement('div'));
+  }
+
+  // Replace the module's document reference for getElementById/createElement by
+  // temporarily overriding window.document. Sections-ui uses the global
+  // `document` reference, so we patch it.
+  const originalDocument = globalThis.document;
+  globalThis.document = createMockDocument(elements);
+
+  // Inject the panel directly via the test hook so initSectionsUI isn't needed.
+  _setPanelForTesting(panel);
+
+  function restore() {
+    globalThis.document = originalDocument;
+    previewMod.preview.refresh = realRefresh;
+    delete window.editorAdapter;
+    delete window.settingsSync;
+  }
+
+  const harness = {
+    sectionsState,
+    sectionsUI,
+    panel,
+    elements,
+    previewCalls,
+    app,
+    get setValueCalls() { return setValueCalls; },
+    get setValuePreserveScrollCalls() { return setValuePreserveScrollCalls; },
+    restore,
+  };
+  _currentHarness = harness;
+  return harness;
 }
 
-function loadScript(filename, context) {
-  const source = fs.readFileSync(filename, 'utf8');
-  vm.runInNewContext(source, context, { filename });
-}
+// Track harness per-test so afterEach can always restore globalThis.document.
+let _currentHarness = null;
 
-test('education default section scaffold uses start and end dates', () => {
-  const { context } = createContext();
-
-  loadScript('frontend/sections-state.js', context);
-
-  assert.match(context.window.sectionsState.SECTION_DEFS.education.yaml, /start_date: "2020"/);
-  assert.match(context.window.sectionsState.SECTION_DEFS.education.yaml, /end_date: "2024"/);
-  assert.doesNotMatch(context.window.sectionsState.SECTION_DEFS.education.yaml, /\byear:/);
+test.afterEach(async () => {
+  if (_currentHarness) {
+    _currentHarness.restore();
+    _currentHarness = null;
+  }
+  const { _resetParseCache, _setStorage } = await import('../frontend/src/sections-state.js');
+  _resetParseCache();
+  _setStorage(globalThis.localStorage);
 });
 
-test('skills default section scaffold uses block-list items without forced quotes', () => {
-  const { context } = createContext();
+test('education default section scaffold uses start and end dates', async () => {
+  const { sectionsState, restore } = await createHarness();
 
-  loadScript('frontend/sections-state.js', context);
+  assert.match(sectionsState.SECTION_DEFS.education.yaml, /start_date: "2020"/);
+  assert.match(sectionsState.SECTION_DEFS.education.yaml, /end_date: "2024"/);
+  assert.doesNotMatch(sectionsState.SECTION_DEFS.education.yaml, /\byear:/);
 
-  assert.match(context.window.sectionsState.SECTION_DEFS.skills.yaml, /category: Languages/);
-  assert.match(context.window.sectionsState.SECTION_DEFS.skills.yaml, /items:\n\s+- Python\n\s+- JavaScript/);
-  assert.doesNotMatch(context.window.sectionsState.SECTION_DEFS.skills.yaml, /items: \[/);
+  restore();
 });
 
-test('clicking an absent hidden built-in section adds it as visible content', () => {
-  const { context, elements } = createContext({
+test('skills default section scaffold uses block-list items without forced quotes', async () => {
+  const { sectionsState, restore } = await createHarness();
+
+  assert.match(sectionsState.SECTION_DEFS.skills.yaml, /category: Languages/);
+  assert.match(sectionsState.SECTION_DEFS.skills.yaml, /items:\n\s+- Python\n\s+- JavaScript/);
+  assert.doesNotMatch(sectionsState.SECTION_DEFS.skills.yaml, /items: \[/);
+
+  restore();
+});
+
+test('clicking an absent hidden built-in section adds it as visible content', async () => {
+  const harness = await createHarness({
     initialYaml: [
       'personal:',
       '  name: Test User',
@@ -306,57 +354,42 @@ test('clicking an absent hidden built-in section adds it as visible content', ()
     initialOrder: ['summary', 'certifications', 'projects', 'languages'],
   });
 
-  let setValueCalls = 0;
-  let setValuePreserveScrollCalls = 0;
-  const originalSetValue = context.editorAdapter.setValue.bind(context.editorAdapter);
-  const originalSetValuePreserveScroll = context.editorAdapter.setValuePreserveScroll.bind(context.editorAdapter);
-  context.editorAdapter.setValue = (value) => {
-    setValueCalls += 1;
-    return originalSetValue(value);
-  };
-  context.editorAdapter.setValuePreserveScroll = (value) => {
-    setValuePreserveScrollCalls += 1;
-    return originalSetValuePreserveScroll(value);
-  };
+  harness.sectionsUI.buildPanel();
 
-  loadScript('frontend/sections-state.js', context);
-  loadScript('frontend/sections-ui.js', context);
-
-  context.window.sectionsUI.buildPanel();
-
-  const panel = elements.get('sections-panel');
-  const absentCertificationsChip = panel.children.find((chip) => chip.dataset.key === 'certifications');
+  const absentCertificationsChip = harness.panel.children.find((chip) => chip.dataset.key === 'certifications');
   assert.ok(absentCertificationsChip, 'expected certifications chip to exist');
   assert.match(absentCertificationsChip.className, /\babsent\b/);
 
   absentCertificationsChip.querySelector('.chip-dot').click();
 
-  assert.match(context.app.state.yaml, /^certifications:/m, 'section should be materialized into the main YAML area');
+  assert.match(harness.app.state.yaml, /^certifications:/m, 'section should be materialized into the main YAML area');
   assert.match(
-    context.app.state.yaml.split('### invisible sections')[0],
+    harness.app.state.yaml.split('### invisible sections')[0],
     /summary:[\s\S]*certifications:[\s\S]*projects:/,
     'added section should follow the chip order inside the main YAML area'
   );
   assert.equal(
-    context.window.sectionsState.isHidden('certifications'),
+    harness.sectionsState.isHidden('certifications'),
     false,
     'adding an absent hidden section should also reveal it'
   );
-  assert.equal(setValueCalls, 0, 'adding a section should not reset the resume editor state');
+  assert.equal(harness.setValueCalls, 0, 'adding a section should not reset the resume editor state');
   assert.equal(
-    setValuePreserveScrollCalls,
+    harness.setValuePreserveScrollCalls,
     1,
     'adding a section should preserve the current resume editor scroll position'
   );
 
-  const refreshedCertificationsChip = panel.children.find((chip) => chip.dataset.key === 'certifications');
+  const refreshedCertificationsChip = harness.panel.children.find((chip) => chip.dataset.key === 'certifications');
   assert.ok(refreshedCertificationsChip, 'expected certifications chip after rebuild');
   assert.doesNotMatch(refreshedCertificationsChip.className, /\babsent\b/);
   assert.match(refreshedCertificationsChip.className, /\bon\b/, 'added section should render as visible');
+
+  harness.restore();
 });
 
-test('clicking an absent visible built-in section inserts it by chip order instead of appending to the bottom', () => {
-  const { context, elements } = createContext({
+test('clicking an absent visible built-in section inserts it by chip order instead of appending to the bottom', async () => {
+  const harness = await createHarness({
     initialYaml: [
       'personal:',
       '  name: Test User',
@@ -378,19 +411,15 @@ test('clicking an absent visible built-in section inserts it by chip order inste
     ],
   });
 
-  loadScript('frontend/sections-state.js', context);
-  loadScript('frontend/sections-ui.js', context);
+  harness.sectionsUI.buildPanel();
 
-  context.window.sectionsUI.buildPanel();
-
-  const panel = elements.get('sections-panel');
-  const certificationsChip = panel.children.find((chip) => chip.dataset.key === 'certifications');
+  const certificationsChip = harness.panel.children.find((chip) => chip.dataset.key === 'certifications');
   assert.ok(certificationsChip, 'expected certifications chip to exist');
   assert.match(certificationsChip.className, /\babsent\b/);
 
   certificationsChip.querySelector('.chip-dot').click();
 
-  const mainArea = context.app.state.yaml.split('### invisible sections')[0];
+  const mainArea = harness.app.state.yaml.split('### invisible sections')[0];
   assert.match(
     mainArea,
     /summary:[\s\S]*certifications:[\s\S]*projects:/,
@@ -401,36 +430,36 @@ test('clicking an absent visible built-in section inserts it by chip order inste
     /projects:[\s\S]*certifications:/,
     'the inserted section should not be forced to the bottom of the main YAML area'
   );
+
+  harness.restore();
 });
 
-test('sections below the invisible marker render as hidden chips, not absent chips', () => {
-  const { context, elements } = createContext();
+test('sections below the invisible marker render as hidden chips, not absent chips', async () => {
+  const harness = await createHarness({
+    initialYaml: [
+      'personal:',
+      '  name: Test User',
+      '',
+      'summary: >',
+      '  Wrote tests first.',
+      '',
+      '### invisible sections',
+      '',
+      'certifications:',
+      '  - name: Deep Learning Specialization',
+      '    issuer: Coursera',
+      '    date: "2025"',
+      '',
+    ].join('\n'),
+  });
 
-  context.app.state.yaml = [
-    'personal:',
-    '  name: Test User',
-    '',
-    'summary: >',
-    '  Wrote tests first.',
-    '',
-    '### invisible sections',
-    '',
-    'certifications:',
-    '  - name: Deep Learning Specialization',
-    '    issuer: Coursera',
-    '    date: "2025"',
-    '',
-  ].join('\n');
+  harness.sectionsUI.buildPanel();
 
-  loadScript('frontend/sections-state.js', context);
-  loadScript('frontend/sections-ui.js', context);
-
-  context.window.sectionsUI.buildPanel();
-
-  const panel = elements.get('sections-panel');
-  const certificationsChip = panel.children.find((chip) => chip.dataset.key === 'certifications');
+  const certificationsChip = harness.panel.children.find((chip) => chip.dataset.key === 'certifications');
   assert.ok(certificationsChip, 'expected certifications chip to exist');
   assert.match(certificationsChip.className, /\bhidden\b/);
   assert.doesNotMatch(certificationsChip.className, /\babsent\b/);
   assert.doesNotMatch(certificationsChip.className, /\bon\b/);
+
+  harness.restore();
 });

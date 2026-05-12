@@ -1,4 +1,4 @@
-const app = {
+export const app = {
   state: {
     yaml: "",
     template: "classic",
@@ -6,7 +6,7 @@ const app = {
     font_scale: "normal",
     link_display: "label",
     personal_fields: [],
-    lang: localStorage.getItem('mkcv_lang') || 'ko',
+    lang: typeof localStorage !== 'undefined' ? (localStorage.getItem('mkcv_lang') || 'ko') : 'ko',
   },
   setState(patch) {
     Object.assign(this.state, patch);
@@ -18,5 +18,3 @@ const app = {
     document.dispatchEvent(new CustomEvent('langchange', { detail: { lang } }));
   },
 };
-
-window.app = app;

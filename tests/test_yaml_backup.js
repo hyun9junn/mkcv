@@ -1,98 +1,14 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const vm = require('node:vm');
 
-test('settingsSync exposes setYaml', () => {
-  const src = fs.readFileSync('frontend/settings-sync.js', 'utf8');
-  const ctx = vm.createContext({
-    document: {
-      addEventListener() {},
-      getElementById: () => null,
-      querySelector: () => null,
-      querySelectorAll: () => [],
-    },
-    window: {},
-    setTimeout: () => 0,
-    clearTimeout: () => {},
-    console,
-  });
-  ctx.jsyaml = { load: () => ({}) };
-  const settingsHelpers = {
-    parseSettings: () => ({ value: {}, errors: [], warnings: [] }),
-    settingsToYaml: (s) => JSON.stringify(s),
-    DEFAULT_SETTINGS: {
-      template: 'classic',
-      layout: { density: 'balanced', font_scale: 'normal' },
-      personal: { default_link_display: 'label', fields: [] },
-      sections: [],
-    },
-    normalizeTemplateDefaults: () => ({}),
-    VALID_TPL: ['classic'],
-    VALID_DENSITY: ['balanced'],
-    VALID_FONT: ['normal'],
-    SECTION_CATALOG: [],
-    KNOWN_KEYS: new Set(),
-  };
-  ctx.SETTINGS_HELPERS = settingsHelpers;
-  ctx.window.SETTINGS_HELPERS = settingsHelpers;
-  ctx.window.editorAdapter = {
-    getValue: () => '',
-    setValue() {},
-    setValueSilently() {},
-    setValuePreserveScroll() {},
-    onChange() {},
-    clearHistory() {},
-  };
-  ctx.app = { state: {}, setState() {} };
-  ctx.sectionsState = { rebuild() {}, getOrderedFilteredYaml: (y) => y, getVisibleOrder: () => [] };
-  ctx.window.settingsSync = null;
-  try { vm.runInContext(src, ctx); } catch {}
-  assert.ok(
-    typeof ctx.window.settingsSync?.setYaml === 'function',
-    'setYaml should be a function on settingsSync'
-  );
-});
+// Phase 2: yaml-backup.js and settings-sync.js were converted from IIFE-on-
+// window to ESM. This harness drives the same scenarios by:
+//  - Importing the real ESM yamlBackup module
+//  - Monkey-patching editorAdapter and settingsSync live exports for each test
+//  - Injecting JSZip / jsyaml stubs via globalThis
+//  - Building a real happy-dom DOM for each test
 
-// ── Shared harness ──────────────────────────────────────────────────────────
-
-function makeDOM() {
-  const elements = {};
-  const listeners = {};
-
-  function el(id) {
-    if (!elements[id]) {
-      elements[id] = {
-        id,
-        className: '',
-        textContent: '',
-        innerHTML: '',
-        style: {},
-        files: null,
-        value: '',
-        classList: {
-          add(c)      { elements[id].className += ' ' + c; },
-          remove(c)   { elements[id].className = elements[id].className.replace(' ' + c, ''); },
-          contains(c) { return elements[id].className.includes(c); },
-        },
-        addEventListener(type, fn) {
-          const k = `${id}:${type}`;
-          if (!listeners[k]) listeners[k] = [];
-          listeners[k].push(fn);
-        },
-        click() { fire(id, 'click', {}); },
-      };
-    }
-    return elements[id];
-  }
-
-  function fire(id, type, event = {}) {
-    const k = `${id}:${type}`;
-    for (const fn of listeners[k] || []) fn({ target: el(id), currentTarget: el(id), ...event });
-  }
-
-  return { el, fire, elements, listeners };
-}
+// ── Shared helpers ────────────────────────────────────────────────────────────
 
 function makeJSZipStub({ files = {}, throwOnLoad = false } = {}) {
   function JSZip() { this._files = {}; }
@@ -111,74 +27,155 @@ function makeJSZipStub({ files = {}, throwOnLoad = false } = {}) {
   return JSZip;
 }
 
-function loadBackup(ctx) {
-  const src = require('fs').readFileSync('frontend/yaml-backup.js', 'utf8');
-  require('vm').runInContext(src, ctx);
+function buildDOM() {
+  const ids = [
+    'btn-yaml-export', 'btn-yaml-import', 'import-yaml-input',
+    'import-modal-cancel', 'import-modal-confirm', 'import-modal',
+    'import-modal-body', 'toast-stack',
+  ];
+  for (const id of ids) {
+    if (!document.getElementById(id)) {
+      const el = document.createElement(
+        id === 'import-yaml-input' ? 'input' : 'div'
+      );
+      el.id = id;
+      document.body.appendChild(el);
+    }
+  }
 }
 
-function makeCtx({ dom, jszip, resumeYaml = 'name: Test\n', settingsYaml = 'template: classic\n', settingsErrors = [] } = {}) {
+// Track the pending test teardown for cleanup in afterEach.
+let _currentTeardown = null;
+
+test.afterEach(async () => {
+  if (_currentTeardown) {
+    _currentTeardown();
+    _currentTeardown = null;
+  }
+  document.body.innerHTML = '';
+  if (globalThis.localStorage) localStorage.clear();
+  // Restore globalThis stubs
+  delete globalThis.JSZip;
+  delete globalThis.jsyaml;
+});
+
+// ── createContext ─────────────────────────────────────────────────────────────
+
+async function createContext({
+  resumeYaml = 'name: Test\n',
+  settingsYaml = 'template: classic\n',
+  settingsErrors = [],
+  jszip,
+} = {}) {
   const downloads = [];
-  const toasts = [];
   const settingsSetYamlCalls = [];
 
-  const ctx = require('vm').createContext({
-    document: {
-      addEventListener(type, fn) { if (type === 'DOMContentLoaded') fn(); },
-      getElementById: (id) => dom.el(id),
-      createElement(tag) {
-        if (tag === 'a') {
-          return {
-            href: '', download: '',
-            click() { downloads.push({ href: this.href, download: this.download }); },
-          };
-        }
-        const e = dom.el('__' + tag + '_' + Math.random());
-        e.tagName = tag;
-        return e;
-      },
-    },
-    window: {
-      editorAdapter: {
-        getValue: () => resumeYaml,
-        setValue(v) { this._value = v; },
-        _value: resumeYaml,
-      },
-      settingsSync: {
-        getYaml: () => settingsYaml,
-        setYaml: (y) => settingsSetYamlCalls.push(y),
-      },
-      SETTINGS_HELPERS: {
-        parseSettings: () => ({ errors: settingsErrors, warnings: [], value: {} }),
-      },
-    },
-    JSZip: jszip || makeJSZipStub({ files: { 'resume.yaml': resumeYaml, 'settings.yaml': settingsYaml } }),
-    jsyaml: { load: (y) => { if (y === '__invalid__') throw new Error('bad yaml'); return {}; } },
-    URL: { createObjectURL: () => 'blob:fake', revokeObjectURL: () => {} },
-    setTimeout: () => 0,
-    console,
-    downloads,
-    toasts,
-    settingsSetYamlCalls,
+  // Build a minimal DOM.
+  buildDOM();
+
+  // Import the real ESM modules.
+  const editorAdapterMod = await import('../frontend/src/editor-adapter.js');
+  const settingsSyncMod  = await import('../frontend/src/settings-sync.js');
+  const { yamlBackup, initYamlBackup } = await import('../frontend/src/yaml-backup.js');
+
+  // Monkey-patch editorAdapter live export (object property replacement).
+  const origEditorGetValue = editorAdapterMod.editorAdapter.getValue;
+  const origEditorSetValue = editorAdapterMod.editorAdapter.setValue;
+  editorAdapterMod.editorAdapter.getValue = () => resumeYaml;
+  editorAdapterMod.editorAdapter.setValue = (v) => {
+    editorAdapterMod.editorAdapter._testValue = v;
+  };
+
+  // Monkey-patch settingsSync live export.
+  const origGetYaml  = settingsSyncMod.settingsSync.getYaml;
+  const origSetYaml  = settingsSyncMod.settingsSync.setYaml;
+  settingsSyncMod.settingsSync.getYaml = () => settingsYaml;
+  settingsSyncMod.settingsSync.setYaml = (y) => settingsSetYamlCalls.push(y);
+
+  // Stub SETTINGS_HELPERS.parseSettings via globalThis so yaml-backup.js can read it.
+  // (yaml-backup imports parseSettings from SETTINGS_HELPERS which is imported from settings-engine.js)
+  // We need to override the live parseSettings — import settings-engine and patch it.
+  const settingsEngineMod = await import('../frontend/src/settings-engine.js');
+  const origParseSettings = settingsEngineMod.SETTINGS_HELPERS.parseSettings;
+  settingsEngineMod.SETTINGS_HELPERS.parseSettings = () => ({
+    errors: settingsErrors,
+    warnings: [],
+    value: {},
   });
 
-  dom.el('toast-stack').appendChild = (e) => toasts.push(e.className + ':' + e.innerHTML);
+  // Inject JSZip and jsyaml into globalThis.
+  globalThis.JSZip = jszip || makeJSZipStub({
+    files: { 'resume.yaml': resumeYaml, 'settings.yaml': settingsYaml },
+  });
+  globalThis.jsyaml = {
+    load: (y) => { if (y === '__invalid__') throw new Error('bad yaml'); return {}; },
+  };
 
-  return { ctx, downloads, toasts, settingsSetYamlCalls };
+  // Stub URL.createObjectURL / revokeObjectURL and intercept anchor clicks.
+  const origCreateObjectURL = URL.createObjectURL;
+  const origRevokeObjectURL = URL.revokeObjectURL;
+  URL.createObjectURL = () => 'blob:fake';
+  URL.revokeObjectURL = () => {};
+
+  // Intercept <a> click for download capture.
+  const origCreateElement = document.createElement.bind(document);
+  const savedCreateElement = globalThis.document.createElement.bind(globalThis.document);
+  globalThis.document.createElement = (tag) => {
+    const el = origCreateElement(tag);
+    if (tag === 'a') {
+      const origClick = el.click.bind(el);
+      el.click = function () {
+        downloads.push({ href: this.href, download: this.download });
+      };
+    }
+    return el;
+  };
+
+  // Wire up DOM event listeners via initYamlBackup.
+  initYamlBackup();
+
+  _currentTeardown = () => {
+    // Restore all monkey-patches.
+    editorAdapterMod.editorAdapter.getValue = origEditorGetValue;
+    editorAdapterMod.editorAdapter.setValue = origEditorSetValue;
+    delete editorAdapterMod.editorAdapter._testValue;
+    settingsSyncMod.settingsSync.getYaml = origGetYaml;
+    settingsSyncMod.settingsSync.setYaml = origSetYaml;
+    settingsEngineMod.SETTINGS_HELPERS.parseSettings = origParseSettings;
+    URL.createObjectURL = origCreateObjectURL;
+    URL.revokeObjectURL = origRevokeObjectURL;
+    globalThis.document.createElement = savedCreateElement;
+  };
+
+  // Helper: fire a DOM event on an element.
+  function fire(id, type, extra = {}) {
+    const el = document.getElementById(id);
+    const evt = Object.assign({ target: el, currentTarget: el }, extra);
+    el.dispatchEvent(Object.assign(new Event(type), evt));
+  }
+
+  return {
+    yamlBackup,
+    downloads,
+    settingsSetYamlCalls,
+    getEditorValue: () => editorAdapterMod.editorAdapter._testValue,
+    getImportModalOpen: () => document.getElementById('import-modal').classList.contains('open'),
+    getToasts: () => Array.from(document.getElementById('toast-stack').children),
+    clickConfirm: () => document.getElementById('import-modal-confirm').click(),
+    clickCancel: () => document.getElementById('import-modal-cancel').click(),
+  };
 }
 
 // ── Export tests ─────────────────────────────────────────────────────────────
 
 test('exportZip triggers download with timestamped filename', async () => {
-  const dom = makeDOM();
-  const { ctx, downloads } = makeCtx({ dom });
-  loadBackup(ctx);
-  await ctx.window.yamlBackup.exportZip();
+  const { yamlBackup, downloads } = await createContext();
+  await yamlBackup.exportZip();
   assert.equal(downloads.length, 1);
   assert.match(downloads[0].download, /^mkcv-backup-\d{4}-\d{2}-\d{2}\.zip$/);
 });
 
 test('exportZip includes both yaml files in zip', async () => {
-  const dom = makeDOM();
   const zippedFiles = {};
   function JSZip() { this._files = zippedFiles; }
   JSZip.prototype.file = function(name, content) {
@@ -187,9 +184,12 @@ test('exportZip includes both yaml files in zip', async () => {
   };
   JSZip.prototype.generateAsync = () => Promise.resolve(new Blob(['']));
   JSZip.loadAsync = () => Promise.resolve(new JSZip());
-  const { ctx } = makeCtx({ dom, jszip: JSZip, resumeYaml: 'name: Alice\n', settingsYaml: 'template: boardroom\n' });
-  loadBackup(ctx);
-  await ctx.window.yamlBackup.exportZip();
+  const { yamlBackup } = await createContext({
+    jszip: JSZip,
+    resumeYaml: 'name: Alice\n',
+    settingsYaml: 'template: boardroom\n',
+  });
+  await yamlBackup.exportZip();
   assert.equal(zippedFiles['resume.yaml'], 'name: Alice\n');
   assert.equal(zippedFiles['settings.yaml'], 'template: boardroom\n');
 });
@@ -197,86 +197,83 @@ test('exportZip includes both yaml files in zip', async () => {
 // ── Import error tests ────────────────────────────────────────────────────────
 
 test('importZip shows toast when zip is corrupt', async () => {
-  const dom = makeDOM();
-  const { ctx, toasts } = makeCtx({ dom, jszip: makeJSZipStub({ throwOnLoad: true }) });
-  loadBackup(ctx);
-  await ctx.window.yamlBackup.importZip(new Blob());
-  assert.ok(toasts.some(t => t.includes('Could not read zip file')));
+  const { yamlBackup, getToasts } = await createContext({
+    jszip: makeJSZipStub({ throwOnLoad: true }),
+  });
+  await yamlBackup.importZip(new Blob());
+  assert.ok(getToasts().some(t => t.textContent.includes('Could not read zip file')));
 });
 
 test('importZip shows toast when no yaml files found', async () => {
-  const dom = makeDOM();
-  const { ctx, toasts } = makeCtx({ dom, jszip: makeJSZipStub({ files: {} }) });
-  loadBackup(ctx);
-  await ctx.window.yamlBackup.importZip(new Blob());
-  assert.ok(toasts.some(t => t.includes('No YAML files found')));
+  const { yamlBackup, getToasts } = await createContext({
+    jszip: makeJSZipStub({ files: {} }),
+  });
+  await yamlBackup.importZip(new Blob());
+  assert.ok(getToasts().some(t => t.textContent.includes('No YAML files found')));
 });
 
 test('importZip shows toast when resume.yaml is invalid YAML', async () => {
-  const dom = makeDOM();
-  const jszip = makeJSZipStub({ files: { 'resume.yaml': '__invalid__' } });
-  const { ctx, toasts } = makeCtx({ dom, jszip });
-  loadBackup(ctx);
-  await ctx.window.yamlBackup.importZip(new Blob());
-  assert.ok(toasts.some(t => t.includes('Invalid YAML in') && t.includes('resume.yaml')));
+  const { yamlBackup, getToasts } = await createContext({
+    jszip: makeJSZipStub({ files: { 'resume.yaml': '__invalid__' } }),
+  });
+  await yamlBackup.importZip(new Blob());
+  assert.ok(getToasts().some(t =>
+    t.textContent.includes('Invalid YAML in') && t.textContent.includes('resume.yaml')
+  ));
 });
 
 test('importZip shows toast when settings.yaml has parse errors', async () => {
-  const dom = makeDOM();
-  const jszip = makeJSZipStub({ files: { 'settings.yaml': 'bad: yaml: content' } });
-  const { ctx, toasts } = makeCtx({ dom, jszip, settingsErrors: [{ msg: 'bad', line: null }] });
-  loadBackup(ctx);
-  await ctx.window.yamlBackup.importZip(new Blob());
-  assert.ok(toasts.some(t => t.includes('Invalid YAML in') && t.includes('settings.yaml')));
+  const { yamlBackup, getToasts } = await createContext({
+    jszip: makeJSZipStub({ files: { 'settings.yaml': 'bad: yaml: content' } }),
+    settingsErrors: [{ msg: 'bad', line: null }],
+  });
+  await yamlBackup.importZip(new Blob());
+  assert.ok(getToasts().some(t =>
+    t.textContent.includes('Invalid YAML in') && t.textContent.includes('settings.yaml')
+  ));
 });
 
 // ── Import success path ───────────────────────────────────────────────────────
 
 test('importZip opens modal when validation passes', async () => {
-  const dom = makeDOM();
-  const { ctx } = makeCtx({ dom });
-  loadBackup(ctx);
-  await ctx.window.yamlBackup.importZip(new Blob());
-  assert.ok(dom.el('import-modal').classList.contains('open'));
+  const { yamlBackup, getImportModalOpen } = await createContext();
+  await yamlBackup.importZip(new Blob());
+  assert.ok(getImportModalOpen());
 });
 
 test('confirming import calls setYaml and setValue', async () => {
-  const dom = makeDOM();
-  const { ctx, settingsSetYamlCalls } = makeCtx({ dom, resumeYaml: 'name: Bob\n', settingsYaml: 'template: classic\n' });
-  loadBackup(ctx);
-  await ctx.window.yamlBackup.importZip(new Blob());
-  dom.fire('import-modal-confirm', 'click');
+  const { yamlBackup, settingsSetYamlCalls, clickConfirm, getEditorValue } =
+    await createContext({ resumeYaml: 'name: Bob\n', settingsYaml: 'template: classic\n' });
+  await yamlBackup.importZip(new Blob());
+  clickConfirm();
   assert.equal(settingsSetYamlCalls.length, 1);
   assert.equal(settingsSetYamlCalls[0], 'template: classic\n');
-  assert.equal(ctx.window.editorAdapter._value, 'name: Bob\n');
+  assert.equal(getEditorValue(), 'name: Bob\n');
 });
 
 test('confirming import closes modal', async () => {
-  const dom = makeDOM();
-  const { ctx } = makeCtx({ dom });
-  loadBackup(ctx);
-  await ctx.window.yamlBackup.importZip(new Blob());
-  dom.fire('import-modal-confirm', 'click');
-  assert.ok(!dom.el('import-modal').classList.contains('open'));
+  const { yamlBackup, getImportModalOpen, clickConfirm } = await createContext();
+  await yamlBackup.importZip(new Blob());
+  clickConfirm();
+  assert.ok(!getImportModalOpen());
 });
 
 test('cancelling import closes modal without writing', async () => {
-  const dom = makeDOM();
-  const { ctx, settingsSetYamlCalls } = makeCtx({ dom });
-  loadBackup(ctx);
-  await ctx.window.yamlBackup.importZip(new Blob());
-  dom.fire('import-modal-cancel', 'click');
-  assert.ok(!dom.el('import-modal').classList.contains('open'));
+  const { yamlBackup, getImportModalOpen, settingsSetYamlCalls, clickCancel } =
+    await createContext();
+  await yamlBackup.importZip(new Blob());
+  clickCancel();
+  assert.ok(!getImportModalOpen());
   assert.equal(settingsSetYamlCalls.length, 0);
 });
 
 test('partial zip with only resume.yaml calls setValue but not setYaml', async () => {
-  const dom = makeDOM();
-  const jszip = makeJSZipStub({ files: { 'resume.yaml': 'name: Carol\n' } });
-  const { ctx, settingsSetYamlCalls } = makeCtx({ dom, jszip });
-  loadBackup(ctx);
-  await ctx.window.yamlBackup.importZip(new Blob());
-  dom.fire('import-modal-confirm', 'click');
-  assert.equal(ctx.window.editorAdapter._value, 'name: Carol\n');
+  const { yamlBackup, settingsSetYamlCalls, getEditorValue, clickConfirm } =
+    await createContext({
+      jszip: makeJSZipStub({ files: { 'resume.yaml': 'name: Carol\n' } }),
+    });
+  await yamlBackup.importZip(new Blob());
+  clickConfirm();
+  assert.equal(getEditorValue(), 'name: Carol\n');
   assert.equal(settingsSetYamlCalls.length, 0);
 });

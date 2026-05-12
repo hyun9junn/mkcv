@@ -1,7 +1,16 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const vm = require('node:vm');
+
+// Phase 2: preview.js was converted from IIFE-on-window to ESM. The original
+// harness used `vm.runInNewContext` to evaluate the source in a custom global
+// with mocked pdfjsLib, fetch, timers, etc. We preserve every assertion 1:1 by
+// driving the same scenarios through the ESM module — DOM lives in happy-dom,
+// `globalThis.fetch` is stubbed per test, `globalThis.setTimeout` /
+// `clearTimeout` are swapped for a synthetic timer harness, and `pdfjsLib` is
+// substituted via the module's `_setPdfjsLibForTesting` hook.
+
+// Track harness per-test so afterEach can always restore globals on failure.
+let _currentHarness = null;
 
 function createDeferred() {
   let resolve;
@@ -60,42 +69,6 @@ function createTimerHarness() {
   };
 }
 
-function createElement(tagName = 'div') {
-  const listeners = new Map();
-  return {
-    tagName: tagName.toUpperCase(),
-    style: {},
-    textContent: '',
-    innerHTML: '',
-    children: [],
-    width: 0,
-    height: 0,
-    clientWidth: 900,
-    scrollTop: 0,
-    scrollLeft: 0,
-    appendChild(child) {
-      this.children.push(child);
-      return child;
-    },
-    addEventListener(type, callback) {
-      if (!listeners.has(type)) listeners.set(type, []);
-      listeners.get(type).push(callback);
-    },
-    dispatch(type, event = {}) {
-      for (const callback of listeners.get(type) || []) {
-        callback({
-          preventDefault() {},
-          stopPropagation() {},
-          ...event,
-        });
-      }
-    },
-    getContext() {
-      return {};
-    },
-  };
-}
-
 function createFetchResponse({ ok = true, jsonData, arrayBufferData }) {
   return {
     ok,
@@ -108,146 +81,178 @@ function createFetchResponse({ ok = true, jsonData, arrayBufferData }) {
   };
 }
 
-function createHarness({ search = '', getVisibleOrder, getOrderedFilteredYaml } = {}) {
+async function createHarness({ search = '', getVisibleOrder, getOrderedFilteredYaml } = {}) {
   const timers = createTimerHarness();
-  const domReadyCallbacks = [];
-  const elements = new Map([
-    ['preview-frame', createElement('div')],
-    ['preview-loading', createElement('div')],
-    ['preview-error', createElement('div')],
-    ['preview-zoom-label', createElement('span')],
-  ]);
   const editorCallbacks = [];
   const fetchCalls = [];
   const renderBuffers = [];
   const fetchQueue = [];
   const counters = { pageRenderCalls: 0 };
 
-  elements.get('preview-loading').style.display = 'none';
-  elements.get('preview-error').style.display = 'none';
+  // Set up DOM under happy-dom — happy-dom doesn't honor query strings on its
+  // pre-registered `window.location`, but `URLSearchParams(window.location?.search)`
+  // resolves at `initPreview()` time, so we patch `window.location.search`
+  // directly.
+  document.body.innerHTML = `
+    <div id="preview-frame"></div>
+    <div id="preview-loading" style="display:none"></div>
+    <div id="preview-error" style="display:none"></div>
+    <span id="preview-zoom-label"></span>
+  `;
+  const previewFrame = document.getElementById('preview-frame');
+  // Pin clientWidth — happy-dom defaults to 0 which would break the page-scale
+  // calc. The original harness used 900.
+  Object.defineProperty(previewFrame, 'clientWidth', { configurable: true, value: 900 });
 
-  const context = {
-    console,
-    Math,
-    JSON,
-    Date,
-    ArrayBuffer,
-    Uint8Array,
-    TextEncoder,
-    TextDecoder,
-    URLSearchParams,
-    location: { search },
-    setTimeout: timers.setTimeout.bind(timers),
-    clearTimeout: timers.clearTimeout.bind(timers),
-    fetch(url, options) {
-      const deferred = createDeferred();
-      fetchCalls.push({ url, options, deferred });
-      fetchQueue.push(deferred);
-      return deferred.promise;
-    },
-    document: {
-      getElementById(id) {
-        return elements.get(id) || null;
-      },
-      createElement(tagName) {
-        return createElement(tagName);
-      },
-      addEventListener(type, callback) {
-        if (type === 'DOMContentLoaded') domReadyCallbacks.push(callback);
-      },
-    },
-    window: null,
-    pdfjsLib: {
-      GlobalWorkerOptions: {},
-      getDocument({ data }) {
-        renderBuffers.push(data);
-        return {
-          promise: Promise.resolve({
-            numPages: 1,
-            destroy() {},
-            async getPage() {
-              return {
-                getViewport({ scale }) {
-                  return { width: 612 * scale, height: 792 * scale };
-                },
-                render() {
-                  counters.pageRenderCalls += 1;
-                  return { promise: Promise.resolve() };
-                },
-              };
-            },
-          }),
-        };
-      },
-    },
-    sectionsState: {
-      getVisibleOrder(yaml) {
-        if (typeof getVisibleOrder === 'function') return getVisibleOrder(yaml);
-        return [`visible:${yaml}`];
-      },
-      getOrderedFilteredYaml(yaml) {
-        if (typeof getOrderedFilteredYaml === 'function') return getOrderedFilteredYaml(yaml);
-        return `ordered:${yaml}`;
-      },
-    },
-    settingsSync: {
-      activeTab: 'resume',
-      getSettings() {
-        return {
-          sections: [
-            { key: 'summary', title: 'Summary' },
-          ],
-        };
-      },
-    },
-    app: {
-      state: {
-        yaml: 'yaml-initial',
-        template: 'classic',
-        density: 'balanced',
-        font_scale: 'normal',
-        link_display: 'both',
-        personal_fields: [{ key: 'email', visible: true }],
-      },
-    },
-    editorAdapter: {
-      onChange(callback) {
-        editorCallbacks.push(callback);
-      },
-      consumeSuppressedPreviewRefresh() {
-        return false;
-      },
-    },
-    AbortController: class AbortController {
-      constructor() {
-        this.signal = { aborted: false };
-      }
-      abort() {
-        this.signal.aborted = true;
-      }
-    },
-  };
-  context.window = context;
-
-  function boot() {
-    const source = fs.readFileSync('frontend/preview.js', 'utf8');
-    vm.runInNewContext(source, context, { filename: 'frontend/preview.js' });
-    for (const callback of domReadyCallbacks) {
-      callback();
-    }
+  // happy-dom's `window.location.search` is a writable property setter; use
+  // it directly. `history.replaceState` doesn't sync into `location.search` in
+  // happy-dom 14.x.
+  try { window.location.search = search || ''; }
+  catch (_) {
+    // Fall back: redefine the location object entirely.
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: { search: search || '' },
+    });
   }
 
-  return {
-    context,
+  const originalFetch = globalThis.fetch;
+  const originalSetTimeout = globalThis.setTimeout;
+  const originalClearTimeout = globalThis.clearTimeout;
+
+  globalThis.fetch = function fetchMock(url, options) {
+    const deferred = createDeferred();
+    fetchCalls.push({ url, options, deferred });
+    fetchQueue.push(deferred);
+    return deferred.promise;
+  };
+  globalThis.setTimeout = timers.setTimeout.bind(timers);
+  globalThis.clearTimeout = timers.clearTimeout.bind(timers);
+
+  // Stub sectionsState — the preview module imports `sectionsState` via ESM,
+  // so we monkey-patch the live binding's methods rather than swapping the
+  // module.
+  const sectionsStateMod = await import('../frontend/src/sections-state.js');
+  const realGetVisibleOrder = sectionsStateMod.sectionsState.getVisibleOrder;
+  const realGetOrderedFilteredYaml = sectionsStateMod.sectionsState.getOrderedFilteredYaml;
+  sectionsStateMod.sectionsState.getVisibleOrder = (yaml) => {
+    if (typeof getVisibleOrder === 'function') return getVisibleOrder(yaml);
+    return [`visible:${yaml}`];
+  };
+  sectionsStateMod.sectionsState.getOrderedFilteredYaml = (yaml) => {
+    if (typeof getOrderedFilteredYaml === 'function') return getOrderedFilteredYaml(yaml);
+    return `ordered:${yaml}`;
+  };
+
+  // Stub app.state via mutating the singleton — preview reads `app.state.*`.
+  const { app } = await import('../frontend/src/app.js');
+  app.state = {
+    yaml: 'yaml-initial',
+    template: 'classic',
+    density: 'balanced',
+    font_scale: 'normal',
+    link_display: 'both',
+    personal_fields: [{ key: 'email', visible: true }],
+  };
+
+  // Stub editorAdapter via window (preview reads `window.editorAdapter`).
+  window.editorAdapter = {
+    onChange(callback) {
+      editorCallbacks.push(callback);
+    },
+    consumeSuppressedPreviewRefresh() {
+      return false;
+    },
+  };
+
+  // Stub settingsSync via window.
+  window.settingsSync = {
+    activeTab: 'resume',
+    getSettings() {
+      return {
+        sections: [
+          { key: 'summary', title: 'Summary' },
+        ],
+      };
+    },
+  };
+
+  // Substitute pdfjsLib via the module's test hook.
+  // happy-dom does not implement HTMLCanvasElement.getContext — stub it so
+  // _renderPages() can call `canvas.getContext("2d")` without throwing.
+  const realCreateElement = document.createElement.bind(document);
+  const stubbedCreateElement = (tagName, ...rest) => {
+    const el = realCreateElement(tagName, ...rest);
+    if (String(tagName).toLowerCase() === 'canvas' && typeof el.getContext !== 'function') {
+      el.getContext = () => ({});
+    }
+    return el;
+  };
+  document.createElement = stubbedCreateElement;
+
+  const previewMod = await import('../frontend/src/preview.js');
+  previewMod._resetForTesting();
+  previewMod._setPdfjsLibForTesting({
+    GlobalWorkerOptions: {},
+    getDocument({ data }) {
+      renderBuffers.push(data);
+      return {
+        promise: Promise.resolve({
+          numPages: 1,
+          destroy() {},
+          async getPage() {
+            return {
+              getViewport({ scale }) {
+                return { width: 612 * scale, height: 792 * scale };
+              },
+              render() {
+                counters.pageRenderCalls += 1;
+                return { promise: Promise.resolve() };
+              },
+            };
+          },
+        }),
+      };
+    },
+  });
+
+  // Mirror the IIFE-original behavior: `window.preview = preview` shim that
+  // tests reach for.
+  window.preview = previewMod.preview;
+
+  function boot() {
+    previewMod.initPreview();
+  }
+
+  function restore() {
+    globalThis.fetch = originalFetch;
+    globalThis.setTimeout = originalSetTimeout;
+    globalThis.clearTimeout = originalClearTimeout;
+    sectionsStateMod.sectionsState.getVisibleOrder = realGetVisibleOrder;
+    sectionsStateMod.sectionsState.getOrderedFilteredYaml = realGetOrderedFilteredYaml;
+    document.createElement = realCreateElement;
+    previewMod._resetForTesting();
+  }
+
+  const harness = {
+    context: {
+      app,
+      preview: previewMod.preview,
+    },
     timers,
     editorCallbacks,
     fetchCalls,
     fetchQueue,
     renderBuffers,
     counters,
-    elements,
+    elements: {
+      get(id) { return document.getElementById(id); },
+    },
     boot,
+    restore,
   };
+  _currentHarness = harness;
+  return harness;
 }
 
 async function settleRequest(fetchCall, response) {
@@ -255,8 +260,19 @@ async function settleRequest(fetchCall, response) {
   await flushMicrotasks();
 }
 
+test.afterEach(() => {
+  if (_currentHarness) {
+    _currentHarness.restore();
+    _currentHarness = null;
+  }
+  document.body.innerHTML = '';
+  delete window.editorAdapter;
+  delete window.settingsSync;
+  delete window.preview;
+});
+
 test('latest-only scheduling serializes in-flight work and applies only the newest queued payload', async () => {
-  const harness = createHarness();
+  const harness = await createHarness();
   harness.boot();
 
   harness.timers.advanceBy(200);
@@ -297,10 +313,12 @@ test('latest-only scheduling serializes in-flight work and applies only the newe
     harness.renderBuffers.map((buffer) => new TextDecoder().decode(buffer)),
     ['latest']
   );
+
+  harness.restore();
 });
 
 test('preview requests include preview_session_id and preview_request_seq', async () => {
-  const harness = createHarness();
+  const harness = await createHarness();
   harness.boot();
 
   harness.timers.advanceBy(200);
@@ -320,10 +338,12 @@ test('preview requests include preview_session_id and preview_request_seq', asyn
   body = JSON.parse(harness.fetchCalls[1].options.body);
   assert.equal(body.preview_session_id, JSON.parse(harness.fetchCalls[0].options.body).preview_session_id);
   assert.equal(body.preview_request_seq, 2);
+
+  harness.restore();
 });
 
 test('editor changes wait for the longer debounce window before scheduling preview work', async () => {
-  const harness = createHarness();
+  const harness = await createHarness();
   harness.boot();
 
   harness.timers.advanceBy(200);
@@ -341,10 +361,12 @@ test('editor changes wait for the longer debounce window before scheduling previ
   await flushMicrotasks();
 
   assert.equal(harness.fetchCalls.length, 2);
+
+  harness.restore();
 });
 
 test('capture=gif lowers the debounce window for README capture runs', async () => {
-  const harness = createHarness({ search: '?capture=gif' });
+  const harness = await createHarness({ search: '?capture=gif' });
   harness.boot();
 
   harness.timers.advanceBy(200);
@@ -367,10 +389,12 @@ test('capture=gif lowers the debounce window for README capture runs', async () 
 
   assert.equal(harness.fetchCalls.length, 2);
   assert.equal(JSON.parse(harness.fetchCalls[1].options.body).yaml, 'ordered:yaml-fast');
+
+  harness.restore();
 });
 
 test('editor changes skip duplicate preview requests when normalized render input is unchanged', async () => {
-  const harness = createHarness({
+  const harness = await createHarness({
     getVisibleOrder() {
       return ['summary'];
     },
@@ -408,10 +432,12 @@ test('editor changes skip duplicate preview requests when normalized render inpu
   await flushMicrotasks();
 
   assert.equal(harness.fetchCalls.length, 2);
+
+  harness.restore();
 });
 
 test('reverting to the in-flight preview state clears queued duplicate work', async () => {
-  const harness = createHarness({
+  const harness = await createHarness({
     getVisibleOrder() {
       return ['summary'];
     },
@@ -441,10 +467,12 @@ test('reverting to the in-flight preview state clears queued duplicate work', as
   await flushMicrotasks();
 
   assert.equal(harness.fetchCalls.length, 2);
+
+  harness.restore();
 });
 
 test('failed preview requests retry when the same render input is requested again', async () => {
-  const harness = createHarness();
+  const harness = await createHarness();
   harness.boot();
 
   harness.timers.advanceBy(200);
@@ -472,10 +500,12 @@ test('failed preview requests retry when the same render input is requested agai
   await flushMicrotasks();
 
   assert.equal(harness.fetchCalls.length, 3);
+
+  harness.restore();
 });
 
 test('returning to the last applied preview state clears stale error UI without a refetch', async () => {
-  const harness = createHarness();
+  const harness = await createHarness();
   harness.boot();
 
   harness.timers.advanceBy(200);
@@ -507,10 +537,12 @@ test('returning to the last applied preview state clears stale error UI without 
   assert.equal(harness.fetchCalls.length, 2);
   assert.equal(harness.elements.get('preview-error').style.display, 'none');
   assert.equal(harness.elements.get('preview-error').innerHTML, '');
+
+  harness.restore();
 });
 
 test('stale_preview responses are ignored without showing an error banner', async () => {
-  const harness = createHarness();
+  const harness = await createHarness();
   harness.boot();
 
   harness.timers.advanceBy(200);
@@ -528,10 +560,12 @@ test('stale_preview responses are ignored without showing an error banner', asyn
   assert.equal(harness.elements.get('preview-error').style.display, 'none');
   assert.equal(harness.elements.get('preview-error').innerHTML, '');
   assert.equal(harness.renderBuffers.length, 0);
+
+  harness.restore();
 });
 
 test('non-stale preview errors still show the error banner', async () => {
-  const harness = createHarness();
+  const harness = await createHarness();
   harness.boot();
 
   harness.timers.advanceBy(200);
@@ -550,10 +584,12 @@ test('non-stale preview errors still show the error banner', async () => {
   assert.match(harness.elements.get('preview-error').innerHTML, /Render failed/);
   assert.match(harness.elements.get('preview-error').innerHTML, /missing font/);
   assert.equal(harness.renderBuffers.length, 0);
+
+  harness.restore();
 });
 
 test('zoom and refit rerender the current active pdf', async () => {
-  const harness = createHarness();
+  const harness = await createHarness();
   harness.boot();
 
   harness.timers.advanceBy(200);
@@ -591,4 +627,6 @@ test('zoom and refit rerender the current active pdf', async () => {
   await flushMicrotasks();
   assert.equal(harness.counters.pageRenderCalls, 6);
   assert.equal(harness.elements.get('preview-zoom-label').textContent, '100%');
+
+  harness.restore();
 });

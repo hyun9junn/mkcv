@@ -1,96 +1,25 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const vm = require('node:vm');
 const jsyaml = require('js-yaml');
 
-function bootEditorAdapter() {
-  const domReadyCallbacks = [];
-  const editorPane = {};
-  let codeMirrorEditor = null;
+// Phase 2: editor-adapter.js was converted to ESM. The first test now boots
+// the real CodeMirror under happy-dom (added to the DOM as `#editor-pane`).
+// The second test exercises the Enter-key handler in isolation by calling the
+// exported `_enterSmartIndent` directly with a fake editor — this preserves
+// the exact assertions from the previous IIFE/vm harness, just without the
+// indirection through the fake `extraKeys` map.
 
-  function createEditor(options) {
-    const listeners = new Map();
-    codeMirrorEditor = {
-      state: {},
-      _value: options.value,
-      _cursor: { line: 0, ch: 0 },
-      _lines: String(options.value || '').split('\n'),
-      _replaceCalls: [],
-      _enterHandler: options.extraKeys?.Enter,
-      getValue() {
-        return this._value;
-      },
-      setValue(next) {
-        this._value = next;
-        this._lines = String(next).split('\n');
-        for (const callback of listeners.get('change') || []) callback();
-      },
-      replaceSelection() {},
-      replaceRange(text, from, to) {
-        this._replaceCalls.push({ text, from, to });
-      },
-      getCursor() {
-        return this._cursor;
-      },
-      getLine(line) {
-        return this._lines[line] || '';
-      },
-      on(type, callback) {
-        if (!listeners.has(type)) listeners.set(type, []);
-        listeners.get(type).push(callback);
-      },
-      showHint() {},
-      refresh() {},
-      scrollTo() {},
-      getScrollInfo() {
-        return { left: 0, top: 0 };
-      },
-      clearHistory() {},
-    };
-    return codeMirrorEditor;
-  }
+test.afterEach(() => {
+  document.body.innerHTML = '';
+});
 
-  const context = {
-    console,
-    document: {
-      getElementById(id) {
-        assert.equal(id, 'editor-pane');
-        return editorPane;
-      },
-      addEventListener(type, callback) {
-        if (type === 'DOMContentLoaded') domReadyCallbacks.push(callback);
-      },
-      documentElement: {
-        style: {
-          setProperty() {},
-        },
-      },
-    },
-    CodeMirror(container, options) {
-      assert.equal(container, editorPane);
-      return createEditor(options);
-    },
-    initYamlAutocomplete() {},
-    app: {
-      state: {},
-      setState(patch) {
-        Object.assign(this.state, patch);
-      },
-    },
-  };
-  context.window = context;
+test('editor adapter boots with a realistic software engineer resume sample', async () => {
+  document.body.innerHTML = '<div id="editor-pane"></div>';
+  const { app } = await import('../frontend/src/app.js');
+  const { initEditorAdapter } = await import('../frontend/src/editor-adapter.js');
 
-  const source = fs.readFileSync('frontend/editor-adapter.js', 'utf8');
-  vm.runInNewContext(source, context, { filename: 'frontend/editor-adapter.js' });
-  for (const callback of domReadyCallbacks) callback();
-  context.__codeMirrorEditor = codeMirrorEditor;
-  return context;
-}
-
-test('editor adapter boots with a realistic software engineer resume sample', () => {
-  const context = bootEditorAdapter();
-  const initialYaml = context.app.state.yaml;
+  initEditorAdapter();
+  const initialYaml = app.state.yaml;
   const parsed = jsyaml.load(initialYaml);
 
   assert.match(initialYaml, /name: Gildong Hong/);
@@ -114,19 +43,25 @@ test('editor adapter boots with a realistic software engineer resume sample', ()
   assert.match(initialYaml, /items:\n\s+- Python\n\s+- TypeScript/);
 });
 
-test('pressing Enter after items inserts a nested bullet', () => {
-  const context = bootEditorAdapter();
-  const editor = context.__codeMirrorEditor;
+test('pressing Enter after items inserts a nested bullet', async () => {
+  const { _enterSmartIndent } = await import('../frontend/src/editor-adapter.js');
 
-  editor._lines = ['    items:'];
-  editor._cursor = { line: 0, ch: '    items:'.length };
-  editor._replaceCalls = [];
+  const replaceCalls = [];
+  const editor = {
+    _lines: ['    items:'],
+    _cursor: { line: 0, ch: '    items:'.length },
+    getCursor() { return this._cursor; },
+    getLine(line) { return this._lines[line] || ''; },
+    replaceRange(text, from, to) {
+      replaceCalls.push({ text, from, to });
+    },
+  };
 
-  editor._enterHandler(editor);
+  _enterSmartIndent(editor);
 
-  assert.equal(editor._replaceCalls.length, 1);
-  assert.equal(editor._replaceCalls[0].text, '\n      - ');
-  assert.equal(editor._replaceCalls[0].from.line, 0);
-  assert.equal(editor._replaceCalls[0].from.ch, '    items:'.length);
-  assert.equal(editor._replaceCalls[0].to, undefined);
+  assert.equal(replaceCalls.length, 1);
+  assert.equal(replaceCalls[0].text, '\n      - ');
+  assert.equal(replaceCalls[0].from.line, 0);
+  assert.equal(replaceCalls[0].from.ch, '    items:'.length);
+  assert.equal(replaceCalls[0].to, undefined);
 });
