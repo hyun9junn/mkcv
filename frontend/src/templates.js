@@ -311,6 +311,7 @@ export async function initTemplates() {
         <div class="popover-name">Classic</div>
       </div>
     `;
+    card.addEventListener("click", () => templateUI.selectTemplate("classic"));
     grid.appendChild(card);
     if (nameDisplay) nameDisplay.textContent = "Classic";
   }

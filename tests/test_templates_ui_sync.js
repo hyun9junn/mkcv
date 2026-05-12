@@ -251,3 +251,25 @@ test('hovering a card shows portal with image src, metadata, and use button', as
 
   t.mock.timers.reset();
 });
+
+test('clicking Use this template in portal applies the template', async (t) => {
+  t.mock.timers.enable(['setTimeout']);
+
+  const { app, elements, refreshCalls } = await createContext();
+
+  const portal = elements.get('tpl-popover-portal');
+  const cards = Array.from(elements.get('template-grid').children);
+  const sigCard = cards.find(c => c.dataset.name === 'signature-split');
+
+  sigCard.dispatchEvent(new Event('mouseenter'));
+  t.mock.timers.tick(400);
+
+  const useBtn = portal.querySelector('.tpl-use-btn');
+  assert.ok(useBtn, 'use button exists in portal');
+  useBtn.click();
+
+  assert.equal(app.state.template, 'signature-split', 'template applied after button click');
+  assert.ok(refreshCalls.length > 0, 'preview refresh triggered after button click');
+
+  t.mock.timers.reset();
+});
