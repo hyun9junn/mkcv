@@ -14,7 +14,7 @@ Each phase produces working, testable software on its own. Each phase gets its o
 |---|------|--------|------|------|
 | 0 | Foundations | ✅ done (merged) | `2026-05-10-phase-0-foundations-design.md` | `2026-05-10-phase-0-foundations.md` |
 | 1 | Backend modularization | ✅ done (merged) | `2026-05-11-phase-1-backend-modularization-design.md` | `2026-05-11-phase-1-backend-modularization.md` |
-| 2 | Frontend bundler | ⬜ not started | — | — |
+| 2 | Frontend bundler | ✅ done (merged) | `2026-05-11-phase-2-frontend-bundler-design.md` | `2026-05-11-phase-2-frontend-bundler.md` |
 | 3 | Frontend module split | ⬜ not started | — | — |
 | 4 | Persistence | ⬜ not started | — | — |
 | 5 | Template authoring polish | ⬜ not started | — | — |
@@ -37,7 +37,7 @@ Slim `backend/main.py` from 703 lines to 36. Split responsibilities into focused
 
 Module-level dicts (`template_meta_cache`, `template_validation_cache`) shared between lifespan and routes via the explicit import. Preview-session staleness contract preserved (`asyncio.Lock`, sequence numbers).
 
-## Phase 2 — Frontend bundler *(not started)*
+## Phase 2 — Frontend bundler *(done)*
 
 Add Vite. Convert the 18 inline `<script>` tags + `window.xxx` globals in `frontend/index.html` to ES module imports. Extract inline `<style>` blocks to separate CSS files. Wire a build step into `npm test` and the FastAPI static mount.
 
